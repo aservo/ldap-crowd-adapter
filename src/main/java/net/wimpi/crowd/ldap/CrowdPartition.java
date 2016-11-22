@@ -359,7 +359,7 @@ public class CrowdPartition implements Partition {
 
         log.debug(userEntry.toString());
 
-        //m_EntryCache.put(dn.getName(), userEntry);
+        m_EntryCache.put(dn.getName(), userEntry);
       } catch (Exception ex) {
         log.debug("createUserEntry()", ex);
       }
@@ -392,7 +392,7 @@ public class CrowdPartition implements Partition {
           Dn mdn = new Dn(this.m_SchemaManager, String.format("uid=%s,%s", u, CROWD_USERS_DN));
           groupEntry.add(SchemaConstants.MEMBER_AT, mdn.getName());
         }
-        //m_EntryCache.put(dn.getName(), groupEntry);
+        m_EntryCache.put(dn.getName(), groupEntry);
       } catch (Exception ex) {
         log.debug("createGroupEntry()", ex);
       }
@@ -451,17 +451,17 @@ public class CrowdPartition implements Partition {
 
       if (dnSize == 1) {
         if (isCrowd(dn)) {
-          //m_EntryCache.put(dn.getName(), m_CrowdEntry);
+          m_EntryCache.put(dn.getName(), m_CrowdEntry);
           return true;
         } else {
           return false;
         }
       } else if (dnSize == 2) {
         if (isCrowdGroups(dn)) {
-         // m_EntryCache.put(dn.getName(), m_CrowdGroupsEntry);
+          m_EntryCache.put(dn.getName(), m_CrowdGroupsEntry);
           return true;
         } else if (isCrowdUsers(dn)) {
-         // m_EntryCache.put(dn.getName(), m_CrowdUsersEntry);
+          m_EntryCache.put(dn.getName(), m_CrowdUsersEntry);
           return true;
         } else {
           return false;
@@ -535,7 +535,7 @@ public class CrowdPartition implements Partition {
 
     for(String memberOf: member)
     {
-      HashMap<String,String> eachLineCheck = new HashMap<String, String>();
+      HashMap<String,String> eachLineCheck = new HashMap<String, String>(1);
       eachLineCheck.put("cn",readValueFromFilter(memberOf,"cn="));
       eachLineCheck.put("ou",readValueFromFilter(memberOf,"ou="));
       eachLineCheck.put("dc",readValueFromFilter(memberOf,"dc="));
