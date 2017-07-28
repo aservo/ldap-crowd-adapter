@@ -95,7 +95,7 @@ public class CrowdLDAPServer {
         this.workDir = workDir;
 
         try {
-            serverConfig = serverConfig;
+            this.serverConfig = serverConfig;
             emulateADmemberOf = Boolean.parseBoolean(serverConfig.getProperty(CONFIG_KEY_EMULATE_MEMBEROF, "false"));
             includeNested = Boolean.parseBoolean(serverConfig.getProperty(CONFIG_KEY_INCLUDE_NESTED, "false"));
 
