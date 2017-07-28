@@ -95,14 +95,17 @@ public class CrowdLDAPServer {
         this.workDir = workDir;
 
         try {
-            this.serverConfig = serverConfig;
-            emulateADmemberOf = Boolean.parseBoolean(this.serverConfig.getProperty(CONFIG_KEY_EMULATE_MEMBEROF, "false"));
-            includeNested = Boolean.parseBoolean(this.serverConfig.getProperty(CONFIG_KEY_INCLUDE_NESTED, "false"));
+            serverConfig = serverConfig;
+            emulateADmemberOf = Boolean.parseBoolean(serverConfig.getProperty(CONFIG_KEY_EMULATE_MEMBEROF, "false"));
+            includeNested = Boolean.parseBoolean(serverConfig.getProperty(CONFIG_KEY_INCLUDE_NESTED, "false"));
 
-            gid = Integer.parseInt((this.serverConfig.getProperty(MEMBER_OF_GID, "-1")));
-            gidCn = this.serverConfig.getProperty(MEMBER_OF_GID_CN, "false");
-            gidDc = this.serverConfig.getProperty(MEMBER_OF_GID_DC, "false");
-            gidOu = this.serverConfig.getProperty(MEMBER_OF_GID_OU, "false");
+            String gidString = serverConfig.getProperty(MEMBER_OF_GID, null);
+            if (gidString != null) {
+                gid = Integer.parseInt(gidString);
+            }
+            gidCn = serverConfig.getProperty(MEMBER_OF_GID_CN, "false");
+            gidDc = serverConfig.getProperty(MEMBER_OF_GID_DC, "false");
+            gidOu = serverConfig.getProperty(MEMBER_OF_GID_OU, "false");
 
             log.debug("Loading configuration.");
             crowdConfig = new Properties();
@@ -323,7 +326,6 @@ public class CrowdLDAPServer {
         CrowdPartition partition = new CrowdPartition(crowdClient, emulateADmemberOf, includeNested,
                 gidCn, gidDc, gidOu, gid);
         partition.setId("crowd");
-        partition.setSuffix("dc=crowd");
         partition.setSchemaManager(service.getSchemaManager());
         partition.initialize();
         service.addPartition(partition);
