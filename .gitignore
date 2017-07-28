@@ -5,3 +5,5 @@ target
 dependency-reduced-pom.xml
 work
 log
+*.ipr
+.iws

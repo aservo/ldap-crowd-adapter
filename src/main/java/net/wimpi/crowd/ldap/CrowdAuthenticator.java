@@ -20,10 +20,7 @@ import java.text.MessageFormat;import java.util.ResourceBundle;
  * @author Dieter Wimberger (dieter at wimpi dot net)
  */
 public class CrowdAuthenticator extends AbstractAuthenticator {
-
   private static final Logger log = LoggerFactory.getLogger(CrowdAuthenticator.class);
-  private static final ResourceBundle c_ResourceBundle =
-      ResourceBundle.getBundle("net.wimpi.crowd.ldap.strings");
 
   private CrowdClient m_CrowdClient;
   private DirectoryService service;
@@ -41,14 +38,14 @@ public class CrowdAuthenticator extends AbstractAuthenticator {
     try {
       User u = m_CrowdClient.authenticateUser(user, pass);
       if(u == null) {
-        log.debug(c_ResourceBundle.getString("crowdauthenticator.authentication.failed") + "()::Authentication failed");
+        log.debug("CrowdAuthenticator() :: Authentication failed ()::Authentication failed");
         throw new javax.naming.AuthenticationException("Invalid credentials for user: " + user);
       } else {
-        log.debug(MessageFormat.format(c_ResourceBundle.getString("crowdauthenticator.user"), u.toString()));
+        log.debug(MessageFormat.format("CrowdAuthenticator() :: User={0}", u.toString()));
         return new LdapPrincipal(this.service.getSchemaManager(), ctx.getDn(), AuthenticationLevel.SIMPLE);
       }
     } catch (Exception ex) {
-      log.debug(c_ResourceBundle.getString("crowdauthenticator.authentication.failed") + "()::Authentication failed: " + ex );
+      log.debug("CrowdAuthenticator() :: Authentication failed()::Authentication failed: ", ex);
       throw new javax.naming.NamingException("Unable to perform authentication: " + ex);
     }
   }//authenticate
