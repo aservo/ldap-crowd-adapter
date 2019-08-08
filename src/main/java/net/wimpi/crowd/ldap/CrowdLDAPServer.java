@@ -355,7 +355,7 @@ public class CrowdLDAPServer {
             // System properties can override
             serverConfig.putAll(System.getProperties());
             log.info("Starting up CrowdLDAP Server");
-            File workDir = new File("work");
+            File workDir = new File(serverConfig.getProperty(CONFIG_KEY_WD));
             if (workDir.exists()) {
                 FileUtils.deleteDirectory(workDir);
             }
@@ -377,6 +377,7 @@ public class CrowdLDAPServer {
         }
     }
 
+    private static final String CONFIG_KEY_WD = "working-directory";
 
     private static final String CONFIG_KEY_PORT = "listener.port";
     private static final String CONFIG_KEY_SSLENABLE = "ssl.enabled";
