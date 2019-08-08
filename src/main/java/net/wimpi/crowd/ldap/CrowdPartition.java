@@ -4,10 +4,21 @@ import com.atlassian.crowd.embedded.api.SearchRestriction;
 import com.atlassian.crowd.embedded.api.UserWithAttributes;
 import com.atlassian.crowd.model.group.Group;
 import com.atlassian.crowd.model.user.User;
-import com.atlassian.crowd.search.query.entity.restriction.*;
+import com.atlassian.crowd.search.query.entity.restriction.MatchMode;
+import com.atlassian.crowd.search.query.entity.restriction.NullRestrictionImpl;
+import com.atlassian.crowd.search.query.entity.restriction.TermRestriction;
 import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKeys;
 import com.atlassian.crowd.service.client.CrowdClient;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import net.wimpi.crowd.ldap.util.LRUCacheMap;
+import net.wimpi.crowd.ldap.util.MemberOfSupport;
+import net.wimpi.crowd.ldap.util.ServerConfiguration;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.EmptyCursor;
 import org.apache.directory.api.ldap.model.cursor.ListCursor;
@@ -16,7 +27,9 @@ import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
-import org.apache.directory.api.ldap.model.filter.*;
+import org.apache.directory.api.ldap.model.filter.EqualityNode;
+import org.apache.directory.api.ldap.model.filter.ExprNode;
+import org.apache.directory.api.ldap.model.filter.OrNode;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
@@ -30,16 +43,8 @@ import org.apache.directory.server.core.api.partition.Subordinates;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import static java.lang.Math.abs;
+
 
 /**
  * A partition that bridges to the CrowdClient/Crowd REST interface.
@@ -48,24 +53,19 @@ import static java.lang.Math.abs;
  *
  * @author Dieter Wimberger
  */
-public class CrowdPartition implements Partition {
-    private static final Logger log = LoggerFactory.getLogger(CrowdPartition.class);
+public class CrowdPartition
+        implements Partition {
+
+    private final Logger logger = LoggerFactory.getLogger(CrowdPartition.class);
 
     private final CrowdClient crowdClient;
 
-    private final String gidCn;
-    private final String gidOu;
-    private final String gidDc;
-    private final Integer gid;
+    private final ServerConfiguration serverConfig;
 
     private List<Entry> crowdOneLevelList;
     private final Pattern UIDFilter = Pattern.compile("\\(0.9.2342.19200300.100.1.1=([^\\)]*)\\)");
     private final Pattern uidFilter = Pattern.compile("\\(uid=([^\\)]*)\\)");
     private final Pattern gidFilter = Pattern.compile("\\(gidNumber=([^\\)]*)\\)");
-
-    // AD memberOf Emulation
-    private final boolean emulateADmemberOf;
-    private final boolean includeNested;
 
     private String id;
     private AtomicBoolean initialized;
@@ -77,16 +77,13 @@ public class CrowdPartition implements Partition {
     private Entry crowdGroupsEntry;
     private Entry crowdUsersEntry;
 
-    public CrowdPartition(CrowdClient client, boolean emulateADMemberOf, boolean includeNested, String mgidcn, String mgiddc, String mgidou, Integer mgid) {
-        crowdClient = client;
+    public CrowdPartition(CrowdClient crowdClient, ServerConfiguration serverConfig) {
+
+        this.crowdClient = crowdClient;
+        this.serverConfig = serverConfig;
+
         entryCache = new LRUCacheMap<>(300);
         initialized = new AtomicBoolean(false);
-        emulateADmemberOf = emulateADMemberOf;
-        this.includeNested = includeNested;
-        gidCn = mgidcn;
-        gidDc = mgiddc;
-        gidOu = mgidou;
-        gid = mgid;
     }
 
     public void initialize() {
@@ -95,15 +92,15 @@ public class CrowdPartition implements Partition {
             return;
         }
 
-        log.debug("==> CrowdPartition::init");
-        log.info("Initializing {} with suffix {}", this.getClass().getSimpleName(), CROWD_DN);
+        logger.debug("==> CrowdPartition::init");
+        logger.info("Initializing {} with suffix {}", this.getClass().getSimpleName(), CROWD_DN);
 
         // Create LDAP Dn
         Dn crowdDn;
         try {
             crowdDn = new Dn(this.schemaManager, CROWD_DN);
         } catch (LdapInvalidDnException e) {
-            log.error("Cannot create crowd DN", e);
+            logger.error("Cannot create crowd DN", e);
             return;
         }
 
@@ -131,7 +128,7 @@ public class CrowdPartition implements Partition {
         try {
             groupDn = new Dn(schemaManager, CROWD_GROUPS_DN);
         } catch (LdapInvalidDnException e) {
-            log.error("Cannot create group DN", e);
+            logger.error("Cannot create group DN", e);
             return;
         }
 
@@ -149,7 +146,7 @@ public class CrowdPartition implements Partition {
         try {
             usersDn = new Dn(this.schemaManager, CROWD_USERS_DN);
         } catch (LdapInvalidDnException e) {
-            log.error("Cannot create users DN", e);
+            logger.error("Cannot create users DN", e);
             return;
         }
 
@@ -165,7 +162,7 @@ public class CrowdPartition implements Partition {
         entryCache.put(crowdDn.getName(), crowdEntry);
         entryCache.put(groupDn.getName(), crowdGroupsEntry);
         entryCache.put(usersDn.getName(), crowdUsersEntry);
-        log.debug("<== CrowdPartition::init");
+        logger.debug("<== CrowdPartition::init");
     }
 
     @Override
@@ -177,7 +174,7 @@ public class CrowdPartition implements Partition {
     }
 
     public void destroy() throws Exception {
-        log.info("destroying partition");
+        logger.info("destroying partition");
         crowdClient.shutdown();
     }
 
@@ -230,7 +227,7 @@ public class CrowdPartition implements Partition {
     }
 
     private void enrichForActiveDirectory(String user, Entry userEntry) throws Exception {
-        if (!emulateADmemberOf) {
+        if (!serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
             // ActiveDirectory emulation is not enabled
             return;
         }
@@ -242,8 +239,8 @@ public class CrowdPartition implements Partition {
             userEntry.add("memberof", mdn.getName());
         }
 
-        if (includeNested) {
-            //groups
+        if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS)) {
+
             groups = crowdClient.getNamesOfGroupsForNestedUser(user, 0, Integer.MAX_VALUE);
             for (String g : groups) {
                 Dn mdn = new Dn(schemaManager, String.format("cn=%s,%s", g, CROWD_GROUPS_DN));
@@ -299,9 +296,9 @@ public class CrowdPartition implements Partition {
             } else {
                 // try to get gidNumber from memberOf attributes
                 HashMap<String, String> selectedGroup = new HashMap<>();
-                selectedGroup.put("cn", gidCn);
-                selectedGroup.put("dc", gidDc);
-                selectedGroup.put("ou", gidOu);
+                selectedGroup.put("cn", serverConfig.getGidCn());
+                selectedGroup.put("dc", serverConfig.getGidDc());
+                selectedGroup.put("ou", serverConfig.getGidOu());
 
                 ArrayList<String> member = new ArrayList<>();
                 String parsedRoles = userEntry.get("memberof").toString();
@@ -317,17 +314,17 @@ public class CrowdPartition implements Partition {
                     eachLineCheck.put("dc", readValueFromFilter(memberOf, "dc="));
                     eachLineCheck.put("ou", readValueFromFilter(memberOf, "ou="));
                     if (eachLineCheck.equals(selectedGroup)) {
-                        userEntry.put(SchemaConstants.GID_NUMBER_AT, String.valueOf(gid));
+                        userEntry.put(SchemaConstants.GID_NUMBER_AT, String.valueOf(serverConfig.getGid()));
                     }
                 }
             }
 
 
-            log.debug(userEntry.toString());
+            logger.debug(userEntry.toString());
 
             entryCache.put(dn.getName(), userEntry);
         } catch (Exception ex) {
-            log.debug("createUserEntry()", ex);
+            logger.debug("createUserEntry()", ex);
         }
         return userEntry;
     }
@@ -358,7 +355,7 @@ public class CrowdPartition implements Partition {
             }
             entryCache.put(dn.getName(), groupEntry);
         } catch (Exception ex) {
-            log.debug("createGroupEntry()", ex);
+            logger.debug("createGroupEntry()", ex);
         }
         return groupEntry;
     }
@@ -369,10 +366,10 @@ public class CrowdPartition implements Partition {
         Entry se = entryCache.get(ctx.getDn().getName());
         if (se == null) {
             //todo
-            log.debug("lookup()::No cached entry found for " + dn.getName());
+            logger.debug("lookup()::No cached entry found for " + dn.getName());
             return null;
         } else {
-            log.debug("lookup()::Cached entry found for " + dn.getName());
+            logger.debug("lookup()::Cached entry found for " + dn.getName());
             return new ClonedServerEntry(se);
         }
     }
@@ -416,14 +413,14 @@ public class CrowdPartition implements Partition {
             try {
                 prefix.apply(schemaManager);
             } catch (Exception ex) {
-                log.error("hasEntry()", ex);
+                logger.error("hasEntry()", ex);
             }
-            log.debug("Prefix={}", prefix);
+            logger.debug("Prefix={}", prefix);
 
             if (isCrowdUsers(prefix)) {
                 Rdn rdn = dn.getRdn(2);
                 String user = rdn.getNormValue();
-                log.debug("user={}", user);
+                logger.debug("user={}", user);
                 Entry userEntry = createUserEntry(dn);
                 return (userEntry != null);
             }
@@ -431,14 +428,14 @@ public class CrowdPartition implements Partition {
             if (isCrowdGroups(prefix)) {
                 Rdn rdn = dn.getRdn(2);
                 String group = rdn.getNormValue();
-                log.debug("group={}", group);
+                logger.debug("group={}", group);
                 Entry groupEntry = createGroupEntry(dn);
                 return (groupEntry != null);
             }
 
-            log.debug("Prefix is neither users nor groups");
-            log.debug("Crowd Users = {}", crowdUsersEntry.getDn());
-            log.debug("Crowd Groups = {}", crowdGroupsEntry.getDn().toString());
+            logger.debug("Prefix is neither users nor groups");
+            logger.debug("Crowd Users = {}", crowdUsersEntry.getDn());
+            logger.debug("Crowd Groups = {}", crowdGroupsEntry.getDn().toString());
             return false;
         }
 
@@ -518,7 +515,7 @@ public class CrowdPartition implements Partition {
         try {
             return new Dn(schemaManager, String.format("uid=%s,%s", name, CROWD_GROUPS_DN));
         } catch (LdapInvalidDnException e) {
-            log.error("Cannot create group DN for {}", name, e);
+            logger.error("Cannot create group DN for {}", name, e);
             return null;
         }
     }
@@ -529,7 +526,7 @@ public class CrowdPartition implements Partition {
 
         if (se == null) {
             String name = dn.getRdn(0).getNormValue();
-            log.debug("Name={}", name);
+            logger.debug("Name={}", name);
             if ("crowd".equals(name)) {
                 return new EntryFilteringCursorImpl(new EmptyCursor<>(), ctx, this.schemaManager);
             }
@@ -562,7 +559,7 @@ public class CrowdPartition implements Partition {
                             .collect(Collectors.toList());
                 }
             } catch (Exception ex) {
-                log.error("findOneLevel()", ex);
+                logger.error("findOneLevel()", ex);
             }
             return new EntryFilteringCursorImpl(
                     new ListCursor<>(l),
@@ -607,7 +604,7 @@ public class CrowdPartition implements Partition {
                     l.add(createUserEntry(udn));
                 }
             } catch (Exception ex) {
-                log.error("findOneLevel()", ex);
+                logger.error("findOneLevel()", ex);
             }
             return new EntryFilteringCursorImpl(
                     new ListCursor<>(l),
@@ -645,7 +642,7 @@ public class CrowdPartition implements Partition {
     private EntryFilteringCursor findSubTree(SearchOperationContext ctx) {
         Dn dn = ctx.getDn();
 
-        log.debug("findSubTree()::dn={}", dn.getName());
+        logger.debug("findSubTree()::dn={}", dn.getName());
         // Will only search at one level
         return findOneLevel(ctx);
     }
@@ -660,7 +657,7 @@ public class CrowdPartition implements Partition {
      * @return cursor
      */
     public EntryFilteringCursor search(SearchOperationContext ctx) {
-        log.debug("search((dn={}, filter={}, scope={})", ctx.getDn(), ctx.getFilter(), ctx.getScope());
+        logger.debug("search((dn={}, filter={}, scope={})", ctx.getDn(), ctx.getFilter(), ctx.getScope());
 
         switch (ctx.getScope()) {
             case OBJECT:
@@ -676,7 +673,7 @@ public class CrowdPartition implements Partition {
     }
 
     public void unbind(UnbindOperationContext opContext) {
-        log.debug("unbind()::opContext={}", opContext);
+        logger.debug("unbind()::opContext={}", opContext);
     }
 
     @Override
@@ -746,5 +743,4 @@ public class CrowdPartition implements Partition {
      * Error message, if someone tries to modify the partition
      */
     private static final String MODIFICATION_NOT_ALLOWED_MSG = "This simple partition does not allow modification.";
-
-}//class CrowdPartition
+}

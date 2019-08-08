@@ -18,11 +18,17 @@
  */
 package net.wimpi.crowd.ldap;
 
-
 import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;
+import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
-import org.apache.commons.io.FileUtils;
+import java.io.*;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import net.wimpi.crowd.ldap.util.ServerConfiguration;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.ldap.model.schema.registries.SchemaLoader;
@@ -44,353 +50,239 @@ import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.ldap.handlers.extended.StartTlsHandler;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
 import org.apache.directory.server.protocol.shared.transport.Transport;
-import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.text.MessageFormat;
-import java.util.*;
 
-/**
- * Main application taking care for setup and starting the embedded Apache Directory Server
- * (version 1.5.7).
- * <p/>
- * This code is partially derived from the embedded ApacheDS sample code.
- *
- * @author Dieter Wimberger (dieter at wimpi.net)
- */
 public class CrowdLDAPServer {
 
-    private static final Logger log = LoggerFactory.getLogger(CrowdLDAPServer.class);
+    private final Logger logger = LoggerFactory.getLogger(CrowdLDAPServer.class);
 
-    // Server Configuration
-    private Properties serverConfig;
-    // Directory Service
-    private DirectoryService service;
-    // Crowd Configuration
-    private Properties crowdConfig;
-    private CrowdClient crowdClient;
-    // AD memberOf Emulation
-    private boolean emulateADmemberOf = false;
-    private boolean includeNested = false;
+    private final ServerConfiguration serverConfig;
+    private final CrowdClient crowdClient;
+    private final DirectoryService directoryService;
 
-    private String gidCn;
-    private String gidOu;
-    private String gidDc;
-    private Integer gid;
+    public CrowdLDAPServer(ServerConfiguration serverConfig) {
 
-    private File workDir = null;
-
-    /**
-     * Creates a new instance of the  CrowdLDAPServer.
-     * Loads the configuration and prepares the Crowd Client side.
-     *
-     * @param workDir      the working directory.
-     * @param confDir      the configuration directory.
-     * @param serverConfig server configuration as properties.
-     * @throws Exception if configuration loading or crowd client setup did not work.
-     */
-    public CrowdLDAPServer(File workDir, File confDir, Properties serverConfig) throws Exception {
-        this.workDir = workDir;
-
-        try {
-            this.serverConfig = serverConfig;
-            emulateADmemberOf = Boolean.parseBoolean(serverConfig.getProperty(CONFIG_KEY_EMULATE_MEMBEROF, "false"));
-            includeNested = Boolean.parseBoolean(serverConfig.getProperty(CONFIG_KEY_INCLUDE_NESTED, "false"));
-
-            String gidString = serverConfig.getProperty(MEMBER_OF_GID, null);
-            if (gidString != null) {
-                gid = Integer.parseInt(gidString);
-            }
-            gidCn = serverConfig.getProperty(MEMBER_OF_GID_CN, "false");
-            gidDc = serverConfig.getProperty(MEMBER_OF_GID_DC, "false");
-            gidOu = serverConfig.getProperty(MEMBER_OF_GID_OU, "false");
-
-            log.debug("Loading configuration.");
-            crowdConfig = new Properties();
-            File f = new File(confDir, "crowd.properties");
-            crowdConfig.load(new FileReader(f));
-            // System properties can override
-            crowdConfig.putAll(System.getProperties());
-            initCrowdClient();
-        } catch (Exception ex) {
-            log.error("CrowdLDAPServer(File,File)", ex);
-        }
-
-
-        this.createNewLoaders();
-
-        initDirectoryService();
+        this.serverConfig = serverConfig;
+        ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(serverConfig.getCrowdProperties());
+        crowdClient = new RestCrowdClientFactory().newInstance(props);
+        createNewLoaders();
+        directoryService = initDirectoryService();
     }
 
-    private void copyStream(String resourcePath, File outputFile) throws IOException {
+    public ServerConfiguration getServerConfig() {
+
+        return serverConfig;
+    }
+
+    public void start() {
+
+        try {
+
+            crowdClient.testConnection();
+            directoryService.startup();
+
+            LdapServer server = new LdapServer();
+
+            Transport t = new TcpTransport(serverConfig.getHost(), serverConfig.getPort());
+
+            // SSL Support
+            if (serverConfig.isSslEnabled()) {
+
+                t.setEnableSSL(true);
+                server.setKeystoreFile(serverConfig.getKeyStore());
+                server.setCertificatePassword(serverConfig.getCertificatePassword());
+                server.addExtendedOperationHandler(new StartTlsHandler());
+            }
+
+            server.setTransports(t);
+            server.setDirectoryService(directoryService);
+            server.start();
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void copyStream(String resourcePath, File outputFile)
+            throws IOException {
+
         if (outputFile.exists()) {
             return;
         }
 
         InputStream in = null;
         OutputStream out = null;
+
         try {
+
             in = getClass().getClassLoader().getResourceAsStream(resourcePath);
             out = new FileOutputStream(outputFile);
 
-            // Transfer bytes from in to out
+            // transfer bytes from in to out
             byte[] buf = new byte[1024];
             int len;
-            while ((len = in.read(buf)) > 0) {
+
+            while ((len = in.read(buf)) > 0)
                 out.write(buf, 0, len);
-            }
+
         } finally {
-            if (in != null) {
+
+            if (in != null)
                 in.close();
-            }
-            if (out != null) {
+
+            if (out != null)
                 out.close();
-            }
         }
     }
 
-    private void createNewLoaders() throws IOException {
-        // Extract the schema on disk (a brand new one) and load the registries
-        SchemaLdifExtractor extractor = new DefaultSchemaLdifExtractor(workDir);
-        extractor.extractOrCopy(true);
+    private void createNewLoaders() {
 
-        File attributeTypesDir = new File(workDir, "schema/ou=schema/cn=other/ou=attributetypes");
-        attributeTypesDir.mkdirs();
-
-        // memberOf Support
-        if (emulateADmemberOf) {
-            File memberOfLDIF = new File(attributeTypesDir, "m-oid=1.2.840.113556.1.2.102.ldif");
-            copyStream("net/wimpi/crowd/ldap/memberof.ldif", memberOfLDIF);
-        }
-
-        File rf2307bisSchemaDir = new File(workDir, "schema/ou=schema/cn=rfc2307bis/ou=attributetypes");
-        rf2307bisSchemaDir.mkdirs();
-
-        ArrayList<String> filenames = new ArrayList<String>();
-        filenames.add("m-oid=1.3.6.1.1.1.1.0");
-        filenames.add("m-oid=1.3.6.1.1.1.1.1");
-        filenames.add("m-oid=1.3.6.1.1.1.1.2");
-        filenames.add("m-oid=1.3.6.1.1.1.1.3");
-        filenames.add("m-oid=1.3.6.1.1.1.1.4");
-
-
-        for (String name : filenames) {
-            File rf2307bisSchema = new File(attributeTypesDir, name + ".ldif");
-            copyStream("net/wimpi/crowd/ldap/rfc2307/" + name + ".ldif", rf2307bisSchema);
-        }
-    }
-
-
-    /**
-     * Initializes the Crowd client side.
-     *
-     * @throws Exception if initialization fails.
-     */
-    private void initCrowdClient() throws Exception {
-        // Prepare Crowd access
-        ClientPropertiesImpl crowdClientProperties = ClientPropertiesImpl.newInstanceFromProperties(crowdConfig);
-
-        // Create Crowd Client
-        crowdClient = new RestCrowdClientFactory().newInstance(crowdClientProperties);
-        crowdClient.testConnection();
-    }
-
-
-    /**
-     * initialize the schema manager and add the schema partition to diectory service
-     *
-     * @throws Exception if the schema LDIF files are not found on the classpath
-     */
-    private void initSchemaPartition() throws Exception {
-        File schemaRepository = new File(workDir, "schema");
-
-        SchemaLoader loader = new LdifSchemaLoader(schemaRepository);
-        SchemaManager schemaManager = new DefaultSchemaManager(loader);
-        schemaManager.loadAllEnabled();
-        service.setSchemaManager(schemaManager);
-
-
-        SchemaPartition schemaPartition = new SchemaPartition(schemaManager);
-        service.setSchemaPartition(schemaPartition);
-
-
-        // Init the LdifPartition
-        LdifPartition ldifPartition = new LdifPartition(service.getSchemaManager(), service.getDnFactory());
-        ldifPartition.setPartitionPath(schemaRepository.toURI());
-
-        schemaPartition.setWrappedPartition(ldifPartition);
-        service.setInstanceLayout(new InstanceLayout(this.workDir));
-
-
-        // We have to load the schema now, otherwise we won't be able
-        // to initialize the Partitions, as we won't be able to parse
-        // and normalize their suffix DN
-        schemaManager.loadAllEnabled();
-
-
-        List<Throwable> errors = schemaManager.getErrors();
-
-        if (errors.size() != 0) {
-            throw new Exception(MessageFormat.format("Schema load failed: {0}", errors));
-        }
-    }
-
-
-    /**
-     * Initialize the server. It creates the partition, adds the index, and
-     * injects the context entries for the created partitions.
-     *
-     * @throws Exception if there were some problems while initializing the system
-     */
-    private void initDirectoryService() throws Exception {
-        // Initialize the LDAP service
-        service = new DefaultDirectoryService();
-
-        // first load the schema
-        initSchemaPartition();
-
-        // then the system partition
-        // this is a MANDATORY partition
-
-        JdbmPartition partition = new JdbmPartition(service.getSchemaManager(), service.getDnFactory());
-        partition.setId("system");
-        partition.setPartitionPath(new File(this.workDir, "system").toURI());
-        partition.setSuffixDn(new Dn(ServerDNConstants.SYSTEM_DN));
-
-        service.setSystemPartition(partition);
-
-        // Disable the ChangeLog system
-        service.getChangeLog().setEnabled(false);
-        service.setDenormalizeOpAttrsEnabled(false);
-
-        //Disable Anonymous Access
-        service.setAllowAnonymousAccess(false);
-
-        List<Interceptor> interceptors = service.getInterceptors();
-
-        for (Interceptor interceptor : interceptors) {
-            if (interceptor instanceof AuthenticationInterceptor) {
-                log.debug("Interceptor: {}", interceptor.getName());
-                AuthenticationInterceptor ai = (AuthenticationInterceptor) interceptor;
-                Set<Authenticator> auths = new HashSet<Authenticator>();
-                auths.add(new CrowdAuthenticator(crowdClient, service));
-                ai.setAuthenticators(auths);
-            }
-        }
-
-        // Add Crowd Partition
-        addCrowdPartition();
-
-        // And start the service
-        service.startup();
-    }
-
-    /**
-     * Starts the LdapServer
-     *
-     * @throws Exception if starting the LDAP server does not work.
-     */
-    private void startServer() throws Exception {
-        LdapServer server = new LdapServer();
-        int serverPort = Integer.parseInt(serverConfig.getProperty(CONFIG_KEY_PORT, "10389"));
-
-        Transport t = new TcpTransport(serverPort);
-
-        // SSL Support
-        boolean sslEnabled = Boolean.parseBoolean(serverConfig.getProperty(CONFIG_KEY_SSLENABLE, "false"));
-
-        if (sslEnabled) {
-            String keyStore = serverConfig.getProperty(CONFIG_KEY_KEYSTORE, "etc/crowd-ldap-server.keystore");
-            String password = serverConfig.getProperty(CONFIG_KEY_CERTIFICATEPASSWD, "changeit");
-
-            t.setEnableSSL(true);
-            server.setKeystoreFile(keyStore);
-            server.setCertificatePassword(password);
-            server.addExtendedOperationHandler(new StartTlsHandler());
-        }
-
-        server.setTransports(t);
-        server.setDirectoryService(service);
-        server.start();
-    }
-
-
-    /**
-     * Add a new partition to the server.
-     *
-     * @throws Exception If the partition can't be added
-     */
-    private void addCrowdPartition() throws Exception {
-        CrowdPartition partition = new CrowdPartition(crowdClient, emulateADmemberOf, includeNested,
-                gidCn, gidDc, gidOu, gid);
-        partition.setId("crowd");
-        partition.setSchemaManager(service.getSchemaManager());
-        partition.initialize();
-        service.addPartition(partition);
-    }
-
-    /**
-     * Main application method.
-     *
-     * @param args not used.
-     */
-    public static void main(String[] args) {
         try {
-            File confDir = new File("etc");
 
-            // Configure Logging
-            Properties logConfig = new Properties();
-            File f1 = new File(confDir, "log4j.properties");
-            logConfig.load(new FileReader(f1));
-            PropertyConfigurator.configure(logConfig);
+            // extract the schema on disk (a brand new one) and load the registries
+            SchemaLdifExtractor extractor = new DefaultSchemaLdifExtractor(serverConfig.getCacheDir());
+            extractor.extractOrCopy(true);
 
-            log.info("Configuration directory: {}", confDir.getAbsolutePath());
+            File attributeTypesDir =
+                    new File(serverConfig.getCacheDir(), "schema/ou=schema/cn=other/ou=attributetypes");
 
-            // Server Configuration
-            Properties serverConfig = new Properties();
-            File f2 = new File(confDir, "crowd-ldap-server.properties");
-            serverConfig.load(new FileReader(f2));
-            // System properties can override
-            serverConfig.putAll(System.getProperties());
-            log.info("Starting up CrowdLDAP Server");
-            File workDir = new File(serverConfig.getProperty(CONFIG_KEY_WD));
-            if (workDir.exists()) {
-                FileUtils.deleteDirectory(workDir);
+            attributeTypesDir.mkdirs();
+
+            // memberOf Support
+            if (serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
+                File memberOfLDIF = new File(attributeTypesDir, "m-oid=1.2.840.113556.1.2.102.ldif");
+                copyStream("net/wimpi/crowd/ldap/memberof.ldif", memberOfLDIF);
             }
 
-            if (!workDir.mkdirs()) {
-                log.error("Cannot create working directory");
+            File rf2307bisSchemaDir =
+                    new File(serverConfig.getCacheDir(), "schema/ou=schema/cn=rfc2307bis/ou=attributetypes");
+
+            rf2307bisSchemaDir.mkdirs();
+
+            ArrayList<String> filenames = new ArrayList<String>();
+            filenames.add("m-oid=1.3.6.1.1.1.1.0");
+            filenames.add("m-oid=1.3.6.1.1.1.1.1");
+            filenames.add("m-oid=1.3.6.1.1.1.1.2");
+            filenames.add("m-oid=1.3.6.1.1.1.1.3");
+            filenames.add("m-oid=1.3.6.1.1.1.1.4");
+
+            for (String name : filenames) {
+                File rf2307bisSchema = new File(attributeTypesDir, name + ".ldif");
+                copyStream("net/wimpi/crowd/ldap/rfc2307/" + name + ".ldif", rf2307bisSchema);
             }
 
-            log.info("Working directory: {}", workDir.getAbsolutePath());
+        } catch (IOException e) {
 
-            // Create the server
-            CrowdLDAPServer clds = new CrowdLDAPServer(workDir, confDir, serverConfig);
-
-            // Start the server
-            clds.startServer();
-            log.info("Starting directory listener...");
-        } catch (Exception e) {
-            log.error("main()", e);
+            throw new UncheckedIOException(e);
         }
     }
 
-    private static final String CONFIG_KEY_WD = "working-directory";
+    private void initSchemaPartition(DirectoryService directoryService) {
 
-    private static final String CONFIG_KEY_PORT = "listener.port";
-    private static final String CONFIG_KEY_SSLENABLE = "ssl.enabled";
+        try {
 
-    private static final String CONFIG_KEY_KEYSTORE = "ssl.keystore";
-    private static final String CONFIG_KEY_CERTIFICATEPASSWD = "ssl.certificate.password";
+            File schemaRepository = new File(serverConfig.getCacheDir(), "schema");
 
-    private static final String CONFIG_KEY_EMULATE_MEMBEROF = "emulate.ad.memberof";
-    private static final String CONFIG_KEY_INCLUDE_NESTED = "emulate.ad.include.nested";
+            SchemaLoader loader = new LdifSchemaLoader(schemaRepository);
+            SchemaManager schemaManager = new DefaultSchemaManager(loader);
+            schemaManager.loadAllEnabled();
+            directoryService.setSchemaManager(schemaManager);
 
-    private static final String MEMBER_OF_GID_CN = "map.member.cn";
-    private static final String MEMBER_OF_GID_OU = "map.member.ou";
-    private static final String MEMBER_OF_GID_DC = "map.member.dc";
-    private static final String MEMBER_OF_GID = "map.member.gid";
+            SchemaPartition schemaPartition = new SchemaPartition(schemaManager);
+            directoryService.setSchemaPartition(schemaPartition);
 
-}//class CrowdLDAPServer
+            // initialize the LdifPartition
+            LdifPartition ldifPartition = new LdifPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+            ldifPartition.setPartitionPath(schemaRepository.toURI());
+
+            schemaPartition.setWrappedPartition(ldifPartition);
+            directoryService.setInstanceLayout(new InstanceLayout(serverConfig.getCacheDir()));
+
+            // We have to load the schema now, otherwise we won't be able
+            // to initialize the Partitions, as we won't be able to parse
+            // and normalize their suffix DN
+            schemaManager.loadAllEnabled();
+
+            List<Throwable> errors = schemaManager.getErrors();
+
+            if (errors.size() != 0) {
+                throw new Exception(MessageFormat.format("Schema load failed: {0}", errors));
+            }
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(e);
+        }
+    }
+
+    private DirectoryService initDirectoryService() {
+
+        try {
+
+            // initialize the LDAP service
+            DirectoryService directoryService = new DefaultDirectoryService();
+
+            // first load the schema
+            initSchemaPartition(directoryService);
+
+            // then the system partition
+            // this is a MANDATORY partition
+
+            JdbmPartition partition = new JdbmPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+            partition.setId("system");
+            partition.setPartitionPath(new File(serverConfig.getCacheDir(), "system").toURI());
+            partition.setSuffixDn(new Dn(ServerDNConstants.SYSTEM_DN));
+
+            directoryService.setSystemPartition(partition);
+
+            // disable the ChangeLog system
+            directoryService.getChangeLog().setEnabled(false);
+            directoryService.setDenormalizeOpAttrsEnabled(false);
+
+            //disable Anonymous Access
+            directoryService.setAllowAnonymousAccess(false);
+
+            List<Interceptor> interceptors = directoryService.getInterceptors();
+
+            for (Interceptor interceptor : interceptors) {
+                if (interceptor instanceof AuthenticationInterceptor) {
+                    logger.debug("Interceptor: {}", interceptor.getName());
+                    AuthenticationInterceptor ai = (AuthenticationInterceptor) interceptor;
+                    Set<Authenticator> auths = new HashSet<Authenticator>();
+                    auths.add(new CrowdAuthenticator(crowdClient, directoryService));
+                    ai.setAuthenticators(auths);
+                }
+            }
+
+            // add Crowd Partition
+            addCrowdPartition(directoryService);
+
+            return directoryService;
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void addCrowdPartition(DirectoryService directoryService) {
+
+        CrowdPartition partition = new CrowdPartition(crowdClient, serverConfig);
+
+        partition.setId("crowd");
+        partition.setSchemaManager(directoryService.getSchemaManager());
+        partition.initialize();
+
+        try {
+
+            directoryService.addPartition(partition);
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(e);
+        }
+    }
+}

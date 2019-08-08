@@ -21,6 +21,7 @@ package net.wimpi.crowd.ldap.util;
 
 import java.util.Map;
 
+
 /**
  * Provides the means for handling entries
  * when being expelled from the cache.
@@ -31,11 +32,10 @@ import java.util.Map;
  */
 public interface CacheMapExpelHandler<T1, T2> {
 
-  /**
-   * Called when an entry is expelled.
-   *
-   * @param entry the entry that has been expelled.
-   */
-  public void expelled(Map.Entry<T1, T2> entry);
-
-}//interface CacheMapExpelHandler
+    /**
+     * Called when an entry is expelled.
+     *
+     * @param entry the entry that has been expelled.
+     */
+    void expelled(Map.Entry<T1, T2> entry);
+}
