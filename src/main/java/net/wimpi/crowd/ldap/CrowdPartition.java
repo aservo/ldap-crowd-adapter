@@ -43,7 +43,6 @@ import org.apache.directory.server.core.api.partition.Subordinates;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static java.lang.Math.abs;
 
 
 /**
@@ -215,17 +214,6 @@ public class CrowdPartition
         return crowdUsersEntry.getDn().getName().equals(dn.getName());
     }
 
-
-    // potentialy problematic but we maybe can found some better
-    // TODO: remove this
-    private static int hash(String s) {
-        int h = 0;
-        for (int i = 0; i < s.length(); i++) {
-            h = h + s.charAt(i);
-        }
-        return abs(h);
-    }
-
     private void enrichForActiveDirectory(String user, Entry userEntry) throws Exception {
 
         // ActiveDirectory emulation is not enabled
@@ -362,7 +350,7 @@ public class CrowdPartition
             groupEntry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.GROUP_OF_NAMES_OC);
             groupEntry.put(SchemaConstants.CN_AT, g.getName());
             groupEntry.put(SchemaConstants.DESCRIPTION_AT, g.getDescription());
-            groupEntry.put(SchemaConstants.GID_NUMBER_AT, "" + hash(g.getName()));
+            groupEntry.put(SchemaConstants.GID_NUMBER_AT, "" + ((Math.abs(Objects.hash(g.getName())) % 100000) + 1));
 
             if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
 
