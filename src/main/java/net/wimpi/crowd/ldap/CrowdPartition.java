@@ -254,11 +254,14 @@ public class CrowdPartition
                     SchemaConstants.ORGANIZATIONAL_PERSON_OC,
                     SchemaConstants.PERSON_OC,
                     SchemaConstants.INET_ORG_PERSON_OC);
-            userEntry.put(SchemaConstants.CN_AT, u.getDisplayName());
             userEntry.put(SchemaConstants.UID_AT, user);
-            userEntry.put("mail", u.getEmailAddress());
-            userEntry.put("givenname", u.getFirstName());
+            userEntry.put(SchemaConstants.CN_AT, u.getDisplayName());
+            userEntry.put(SchemaConstants.COMMON_NAME_AT, u.getDisplayName());
+            userEntry.put(SchemaConstants.GN_AT, u.getFirstName());
+            userEntry.put(SchemaConstants.GIVENNAME_AT, u.getFirstName());
             userEntry.put(SchemaConstants.SN_AT, u.getLastName());
+            userEntry.put(SchemaConstants.SURNAME_AT, u.getLastName());
+            userEntry.put(SchemaConstants.MAIL_AT, u.getEmailAddress());
             userEntry.put(SchemaConstants.OU_AT, "users");
             userEntry.put(SchemaConstants.UID_NUMBER_AT, uu.getValue("uidNumber"));
             userEntry.put(SchemaConstants.HOME_DIRECTORY_AT, "/home/" + user + "/");
