@@ -227,27 +227,42 @@ public class CrowdPartition
     }
 
     private void enrichForActiveDirectory(String user, Entry userEntry) throws Exception {
-        if (!serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
-            // ActiveDirectory emulation is not enabled
-            return;
-        }
 
-        // groups
+        // ActiveDirectory emulation is not enabled
+        if (!serverConfig.getMemberOfSupport().allowMemberOfAttribute())
+            return;
+
         List<String> groups = crowdClient.getNamesOfGroupsForUser(user, 0, Integer.MAX_VALUE);
-        for (String g : groups) {
-            Dn mdn = new Dn(schemaManager, String.format("cn=%s,%s", g, CROWD_GROUPS_DN));
-            userEntry.add("memberof", mdn.getName());
-        }
 
         if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS)) {
 
-            groups = crowdClient.getNamesOfGroupsForNestedUser(user, 0, Integer.MAX_VALUE);
-            for (String g : groups) {
-                Dn mdn = new Dn(schemaManager, String.format("cn=%s,%s", g, CROWD_GROUPS_DN));
-                if (!userEntry.contains("memberof", mdn.getName())) {
-                    userEntry.add("memberof", mdn.getName());
-                }
+            List<String> result = crowdClient.getNamesOfGroupsForNestedUser(user, 0, Integer.MAX_VALUE);
+
+            for (String g : result)
+                if (!groups.contains(g))
+                    groups.add(g);
+
+        } else if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
+
+            List<String> flatGroupList = new LinkedList<>(groups);
+
+            for (String group : flatGroupList) {
+
+                // works transitive
+                List<String> result = crowdClient.getNamesOfParentGroupsForNestedGroup(group, 0, Integer.MAX_VALUE);
+
+                for (String g : result)
+                    if (!groups.contains(g))
+                        groups.add(g);
             }
+        }
+
+        for (String group : groups) {
+
+            Dn mdn = new Dn(schemaManager, String.format("cn=%s,%s", group, CROWD_GROUPS_DN));
+
+            if (!userEntry.contains("memberof", mdn.getName()))
+                userEntry.add("memberof", mdn.getName());
         }
     }
 
@@ -348,6 +363,14 @@ public class CrowdPartition
             groupEntry.put(SchemaConstants.CN_AT, g.getName());
             groupEntry.put(SchemaConstants.DESCRIPTION_AT, g.getDescription());
             groupEntry.put(SchemaConstants.GID_NUMBER_AT, "" + hash(g.getName()));
+
+            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
+
+                for (String gx : crowdClient.getNamesOfNestedChildGroupsOfGroup(group, 0, Integer.MAX_VALUE))
+                    for (String ux : crowdClient.getNamesOfUsersOfGroup(gx, 0, Integer.MAX_VALUE))
+                        if (!users.contains(ux))
+                            users.add(ux);
+            }
 
             for (String u : users) {
                 Dn mdn = new Dn(this.schemaManager, String.format("uid=%s,%s", u, CROWD_USERS_DN));
