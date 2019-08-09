@@ -270,13 +270,13 @@ public class CrowdLDAPServer {
 
     private void addCrowdPartition(DirectoryService directoryService) {
 
-        CrowdPartition partition = new CrowdPartition(crowdClient, serverConfig);
-
-        partition.setId("crowd");
-        partition.setSchemaManager(directoryService.getSchemaManager());
-        partition.initialize();
-
         try {
+
+            CrowdPartition partition = new CrowdPartition(crowdClient, serverConfig);
+
+            partition.setId("crowd");
+            partition.setSchemaManager(directoryService.getSchemaManager());
+            partition.initialize();
 
             directoryService.addPartition(partition);
 
