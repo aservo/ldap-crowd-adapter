@@ -2,22 +2,23 @@ package net.wimpi.crowd.ldap;
 
 import com.atlassian.crowd.embedded.api.SearchRestriction;
 import com.atlassian.crowd.embedded.api.UserWithAttributes;
+import com.atlassian.crowd.exception.*;
 import com.atlassian.crowd.model.group.Group;
+import com.atlassian.crowd.model.group.GroupWithAttributes;
 import com.atlassian.crowd.model.user.User;
 import com.atlassian.crowd.search.query.entity.restriction.MatchMode;
 import com.atlassian.crowd.search.query.entity.restriction.NullRestrictionImpl;
 import com.atlassian.crowd.search.query.entity.restriction.TermRestriction;
+import com.atlassian.crowd.search.query.entity.restriction.constants.GroupTermKeys;
 import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKeys;
 import com.atlassian.crowd.service.client.CrowdClient;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.naming.InvalidNameException;
-import net.wimpi.crowd.ldap.util.LRUCacheMap;
-import net.wimpi.crowd.ldap.util.MemberOfSupport;
-import net.wimpi.crowd.ldap.util.ServerConfiguration;
-import net.wimpi.crowd.ldap.util.Utils;
+import java.util.stream.Stream;
+import net.wimpi.crowd.ldap.util.*;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.EmptyCursor;
 import org.apache.directory.api.ldap.model.cursor.ListCursor;
@@ -26,9 +27,7 @@ import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
-import org.apache.directory.api.ldap.model.filter.EqualityNode;
 import org.apache.directory.api.ldap.model.filter.ExprNode;
-import org.apache.directory.api.ldap.model.filter.OrNode;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.server.core.api.entry.ClonedServerEntry;
@@ -42,28 +41,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-/**
- * A partition that bridges to the CrowdClient/Crowd REST interface.
- * <p>
- * Currently this implementation is read only.
- *
- * @author Dieter Wimberger
- */
 public class CrowdPartition
         extends SimpleReadOnlyPartition {
 
     private final Logger logger = LoggerFactory.getLogger(CrowdPartition.class);
 
     private final CrowdClient crowdClient;
-
     private final ServerConfiguration serverConfig;
-
-    private List<Entry> crowdOneLevelList;
-    private final Pattern UIDFilter = Pattern.compile("\\(0.9.2342.19200300.100.1.1=([^\\)]*)\\)");
-    private final Pattern uidFilter = Pattern.compile("\\(uid=([^\\)]*)\\)");
-    private final Pattern gidFilter = Pattern.compile("\\(gidNumber=([^\\)]*)\\)");
-
     private LRUCacheMap<String, Entry> entryCache;
+    private FilterMatcher filterProcessor;
 
     private Entry crowdEntry;
     private Entry crowdGroupsEntry;
@@ -145,14 +131,56 @@ public class CrowdPartition
         crowdUsersEntry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
         crowdUsersEntry.put("description", "Crowd Users");
 
-        // Prepare list
-        crowdOneLevelList = Collections.unmodifiableList(Arrays.asList(crowdGroupsEntry, crowdUsersEntry));
-
         // Add to cache
         entryCache.put(crowdDn.getName(), crowdEntry);
         entryCache.put(groupDn.getName(), crowdGroupsEntry);
         entryCache.put(usersDn.getName(), crowdUsersEntry);
         logger.debug("<== CrowdPartition::init");
+
+        filterProcessor =
+                new FilterMatcher() {
+
+                    @Nullable
+                    @Override
+                    protected String getAttributeValue(String attribute, String entryId, OuType ouType) {
+
+                        try {
+
+                            if (ouType.equals(OuType.USER)) {
+
+                                try {
+
+                                    String userName = crowdClient.getUser(entryId).getName();
+                                    UserWithAttributes attributes = crowdClient.getUserWithAttributes(userName);
+
+                                    return attributes.getValue(attribute);
+
+                                } catch (UserNotFoundException e) {
+                                }
+
+                            } else if (ouType.equals(OuType.GROUP)) {
+
+                                try {
+
+                                    String groupName = crowdClient.getGroup(entryId).getName();
+                                    GroupWithAttributes attributes = crowdClient.getGroupWithAttributes(groupName);
+
+                                    return attributes.getValue(attribute);
+
+                                } catch (GroupNotFoundException e) {
+                                }
+                            }
+
+                        } catch (OperationFailedException |
+                                ApplicationPermissionException |
+                                InvalidAuthenticationException e) {
+
+                            logger.error("Cannot get value of user attribute.");
+                        }
+
+                        return null;
+                    }
+                };
     }
 
     @Override
@@ -167,21 +195,6 @@ public class CrowdPartition
     public Dn getSuffixDn() {
 
         return crowdEntry.getDn();
-    }
-
-    private boolean isCrowd(Dn dn) {
-
-        return crowdEntry.getDn().equals(dn);
-    }
-
-    private boolean isCrowdGroups(Dn dn) {
-
-        return crowdGroupsEntry.getDn().getName().equals(dn.getName());
-    }
-
-    private boolean isCrowdUsers(Dn dn) {
-
-        return crowdUsersEntry.getDn().getName().equals(dn.getName());
     }
 
     private void enrichForActiveDirectory(String user, Entry userEntry)
@@ -344,7 +357,7 @@ public class CrowdPartition
 
         // one level in DN
         if (dnSize == 1) {
-            if (isCrowd(dn)) {
+            if (crowdEntry.getDn().equals(dn)) {
                 entryCache.put(dn.getName(), crowdEntry);
                 return true;
             }
@@ -354,11 +367,11 @@ public class CrowdPartition
 
         // two levels in DN
         if (dnSize == 2) {
-            if (isCrowdGroups(dn)) {
+            if (crowdGroupsEntry.getDn().equals(dn)) {
                 entryCache.put(dn.getName(), crowdGroupsEntry);
                 return true;
             }
-            if (isCrowdUsers(dn)) {
+            if (crowdUsersEntry.getDn().equals(dn)) {
                 entryCache.put(dn.getName(), crowdUsersEntry);
                 return true;
             }
@@ -375,7 +388,7 @@ public class CrowdPartition
             }
             logger.debug("Prefix={}", prefix);
 
-            if (isCrowdUsers(prefix)) {
+            if (crowdUsersEntry.getDn().equals(prefix)) {
                 Rdn rdn = dn.getRdn(2);
                 String user = rdn.getNormValue();
                 logger.debug("user={}", user);
@@ -383,7 +396,7 @@ public class CrowdPartition
                 return (userEntry != null);
             }
 
-            if (isCrowdGroups(prefix)) {
+            if (crowdGroupsEntry.getDn().equals(prefix)) {
                 Rdn rdn = dn.getRdn(2);
                 String group = rdn.getNormValue();
                 logger.debug("group={}", group);
@@ -400,220 +413,379 @@ public class CrowdPartition
         return false;
     }
 
-    @Override
-    protected EntryFilteringCursor findOne(SearchOperationContext context) {
+    @Nullable
+    private Dn createGroupDn(String groupId) {
 
-        Dn dn = context.getDn();
+        try {
 
-        // 1. Try cache
-        Entry se = entryCache.get(dn.getName());
-        if (se == null) {
-            // no object found
-            return new EntryFilteringCursorImpl(new EmptyCursor<Entry>(), context, this.schemaManager);
+            return new Dn(schemaManager, String.format("cn=%s,%s", groupId, Utils.CROWD_GROUPS_DN));
+
+        } catch (LdapInvalidDnException e) {
+
+            logger.error("Cannot create group DN.", e);
+            return null;
         }
-
-        String filterPreparation = context.getFilter().toString();
-        if (filterPreparation.contains("(memberOf=")) { // memberOf filter is always threaded with AND condition
-            EntryFilteringCursor cursorHelp = filterMemberOf(context, se, filterPreparation);
-            if (cursorHelp != null) {
-                return cursorHelp;
-            }
-
-            return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager); // return an empty result
-        }
-        return new EntryFilteringCursorImpl(new SingletonCursor<>(se), context, this.schemaManager);
-    }
-
-    private EntryFilteringCursor filterMemberOf(SearchOperationContext context, Entry se, String filterPreparation) {
-
-        HashMap<String, String> parsedFilter = new HashMap<>();
-        parsedFilter.put("cn", readValueFromFilter(filterPreparation, "2.5.4.3=")); // cn
-        parsedFilter.put("ou", readValueFromFilter(filterPreparation, "2.5.4.11=")); // organizationalUnitName
-        parsedFilter.put("dc", readValueFromFilter(filterPreparation, "0.9.2342.19200300.100.1.25=")); // domainComponent
-
-        ArrayList<String> member = new ArrayList<>();
-        String parsedRoles = se.get("memberof").toString();
-
-        StringTokenizer tokenizer = new StringTokenizer(parsedRoles, System.getProperty("line.separator"));
-        while (tokenizer.hasMoreTokens()) {
-            member.add(tokenizer.nextToken());
-        }
-
-        for (String memberOf : member) {
-            HashMap<String, String> eachLineCheck = new HashMap<String, String>(1);
-            eachLineCheck.put("cn", readValueFromFilter(memberOf, "cn="));
-            eachLineCheck.put("ou", readValueFromFilter(memberOf, "ou="));
-            eachLineCheck.put("dc", readValueFromFilter(memberOf, "dc="));
-            if (eachLineCheck.equals(parsedFilter)) {
-                SingletonCursor<Entry> singletonCursor = new SingletonCursor<Entry>(se);
-                return new EntryFilteringCursorImpl(singletonCursor, context, this.schemaManager);
-            }
-        }
-        return null;
-    }
-
-    private String readValueFromFilter(String string, String identifier) {
-
-        if (string.length() < identifier.length()) {
-            return "";
-        }
-
-        Integer parseFrom = string.lastIndexOf(identifier) + identifier.length(); // start of parse
-        String pomstring = string.substring(parseFrom);
-        Integer parseTo = pomstring.indexOf(",");
-        if (parseTo == -1) {
-            parseTo = pomstring.indexOf(")");
-        }
-        if (parseTo == -1) {
-            parseTo = pomstring.length();
-        }
-        if (pomstring.length() > 0 && parseTo >= 0 && parseTo <= string.length()) {
-            return pomstring.substring(0, parseTo);
-        } else return "";
     }
 
     @Nullable
-    private Dn createGroupDn(String name) {
+    private Dn createUserDn(String userId) {
 
         try {
-            return new Dn(schemaManager, String.format("uid=%s,%s", name, Utils.CROWD_GROUPS_DN));
+
+            return new Dn(schemaManager, String.format("cn=%s,%s", userId, Utils.CROWD_USERS_DN));
+
         } catch (LdapInvalidDnException e) {
-            logger.error("Cannot create group DN for {}", name, e);
+
+            logger.error("Cannot create user DN.", e);
             return null;
         }
+    }
+
+    private List<String> findGroups() {
+
+        try {
+
+            return crowdClient.searchGroupNames(NullRestrictionImpl.INSTANCE, 0, Integer.MAX_VALUE);
+
+        } catch (OperationFailedException |
+                InvalidAuthenticationException |
+                ApplicationPermissionException e) {
+
+            logger.debug("Cannot receive group information from Crowd.", e);
+
+            return Collections.emptyList();
+        }
+    }
+
+    @Nullable
+    private String findGroup(String attribute, String value) {
+
+        SearchRestriction restriction;
+        List<String> result;
+
+        try {
+
+            switch (attribute) {
+
+                case SchemaConstants.UID_AT:
+                case SchemaConstants.UID_AT_OID:
+                case SchemaConstants.CN_AT:
+                case SchemaConstants.CN_AT_OID:
+                case SchemaConstants.COMMON_NAME_AT:
+
+                    restriction = new TermRestriction<>(GroupTermKeys.NAME, MatchMode.EXACTLY_MATCHES, value);
+
+                    result = crowdClient.searchGroupNames(restriction, 0, Integer.MAX_VALUE);
+
+                    break;
+
+                default:
+
+                    logger.debug("Cannot handle unknown attribute : " + attribute);
+                    return null;
+            }
+
+            if (result.size() > 1) {
+
+                logger.error("Expect unique group for attribute: " + attribute);
+                return null;
+            }
+
+            return result.stream().findAny().orElse(null);
+
+        } catch (OperationFailedException |
+                InvalidAuthenticationException |
+                ApplicationPermissionException e) {
+
+            logger.error("Cannot receive user information from Crowd.", e);
+
+            return null;
+        }
+    }
+
+    private List<String> findUsers() {
+
+        try {
+
+            return crowdClient.searchUserNames(NullRestrictionImpl.INSTANCE, 0, Integer.MAX_VALUE);
+
+        } catch (OperationFailedException |
+                InvalidAuthenticationException |
+                ApplicationPermissionException e) {
+
+            logger.error("Cannot receive user information from Crowd.", e);
+
+            return Collections.emptyList();
+        }
+    }
+
+    @Nullable
+    private String findUser(String attribute, String value) {
+
+        SearchRestriction restriction;
+        List<String> result;
+
+        try {
+
+            switch (attribute) {
+
+                case SchemaConstants.UID_NUMBER_AT:
+                case SchemaConstants.UID_NUMBER_AT_OID:
+
+                    restriction = NullRestrictionImpl.INSTANCE;
+
+                    result = crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE).stream()
+                            .filter((x) -> Utils.calculateHash(x).toString().equals(value))
+                            .collect(Collectors.toList());
+
+                    break;
+
+                case SchemaConstants.UID_AT:
+                case SchemaConstants.UID_AT_OID:
+                case SchemaConstants.CN_AT:
+                case SchemaConstants.CN_AT_OID:
+                case SchemaConstants.COMMON_NAME_AT:
+
+                    restriction = new TermRestriction<>(UserTermKeys.USERNAME, MatchMode.EXACTLY_MATCHES, value);
+
+                    result = crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
+
+                    break;
+
+                case SchemaConstants.MAIL_AT:
+                case SchemaConstants.MAIL_AT_OID:
+
+                    restriction = new TermRestriction<>(UserTermKeys.EMAIL, MatchMode.EXACTLY_MATCHES, value);
+
+                    result = crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
+
+                    break;
+
+                default:
+
+                    logger.warn("Cannot handle unknown attribute : " + attribute);
+                    return null;
+            }
+
+            if (result.size() > 1) {
+
+                logger.error("Expect unique user for attribute: " + attribute);
+                return null;
+            }
+
+            return result.stream().findAny().orElse(null);
+
+        } catch (OperationFailedException |
+                InvalidAuthenticationException |
+                ApplicationPermissionException e) {
+
+            logger.error("Cannot receive user information from Crowd.", e);
+
+            return null;
+        }
+    }
+
+    private List<Entry> createGroupEntryList(List<String> groupIds, ExprNode filter) {
+
+        return groupIds.stream()
+                .filter((x) -> filterProcessor.match(filter, x, OuType.GROUP))
+                .map(this::createGroupDn)
+                .filter(Objects::nonNull)
+                .map(this::createGroupEntry)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private List<Entry> createUserEntryList(List<String> userIds, ExprNode filter) {
+
+        return userIds.stream()
+                .filter((x) -> filterProcessor.match(filter, x, OuType.USER))
+                .map(this::createUserDn)
+                .filter(Objects::nonNull)
+                .map(this::createUserEntry)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    protected EntryFilteringCursor findOne(SearchOperationContext context) {
+
+        logger.debug("findOne()::dn={}", context.getDn().getName());
+
+        if (context.getDn().getParent().equals(crowdGroupsEntry.getDn())) {
+
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+
+            List<String> groupIds = Utils.nullableSingletonList(findGroup(attribute, value));
+            List<Entry> groupEntries = createGroupEntryList(groupIds, context.getFilter());
+
+            return groupEntries.stream().findAny()
+                    .map((entry) -> {
+
+                        return new EntryFilteringCursorImpl(
+                                new SingletonCursor<>(entry),
+                                context,
+                                schemaManager);
+                    })
+                    .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
+
+        } else if (context.getDn().getParent().equals(crowdUsersEntry.getDn())) {
+
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+
+            List<String> userIds = Utils.nullableSingletonList(findUser(attribute, value));
+            List<Entry> userEntries = createUserEntryList(userIds, context.getFilter());
+
+            return userEntries.stream().findAny()
+                    .map((entry) -> {
+
+                        return new EntryFilteringCursorImpl(
+                                new SingletonCursor<>(entry),
+                                context,
+                                schemaManager);
+                    })
+                    .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
+
+        } else if (context.getDn().getParent().equals(crowdEntry.getDn())) {
+
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+            List<Entry> mergedEntries = new LinkedList<>();
+
+            List<String> userIds = Utils.nullableSingletonList(findUser(attribute, value));
+
+            if (!userIds.isEmpty())
+                mergedEntries.addAll(createUserEntryList(userIds, context.getFilter()));
+            else {
+
+                List<String> groupIds = Utils.nullableSingletonList(findGroup(attribute, value));
+
+                if (!groupIds.isEmpty())
+                    mergedEntries.addAll(createGroupEntryList(groupIds, context.getFilter()));
+            }
+
+            return mergedEntries.stream().findAny()
+                    .map((entry) -> {
+
+                        return new EntryFilteringCursorImpl(
+                                new SingletonCursor<>(entry),
+                                context,
+                                schemaManager);
+                    })
+                    .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
+        }
+
+        // return an empty result
+        return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager);
     }
 
     @Override
     protected EntryFilteringCursor findManyOnFirstLevel(SearchOperationContext context)
             throws LdapException {
 
-        Dn dn = context.getDn();
-        Entry se = context.getEntry();
+        logger.debug("findManyOnFirstLevel()::dn={}", context.getDn().getName());
 
-        if (se == null) {
-            String name = dn.getRdn(0).getNormValue();
-            logger.debug("Name={}", name);
-            if ("crowd".equals(name)) {
-                return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager);
-            }
-        }
+        if (context.getDn().equals(crowdGroupsEntry.getDn())) {
 
-        // 1. Organizational Units
-        if (dn.getName().equals(crowdEntry.getDn().getName())) {
+            List<Entry> groupEntryList = createGroupEntryList(findGroups(), context.getFilter());
+
             return new EntryFilteringCursorImpl(
-                    new ListCursor<>(crowdOneLevelList),
+                    new ListCursor<>(groupEntryList),
                     context,
-                    this.schemaManager
+                    schemaManager
             );
-        }
 
-        // 2. Groups
-        if (dn.getName().equals(crowdGroupsEntry.getDn().getName())) {
-            // Retrieve Filter
-            List<Entry> l = new ArrayList<>();
-            try {
-                String searchedMember = getSearchedMember(context.getFilter());
-                if (searchedMember != null) {
-                    l = crowdClient.getGroupsForUser(searchedMember, 0, Integer.MAX_VALUE).stream()
-                            .map(g -> createGroupEntry(createGroupDn(g.getName())))
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
-                } else {
-                    l = crowdClient.searchGroupNames(NullRestrictionImpl.INSTANCE, 0, Integer.MAX_VALUE).stream()
-                            .map(gn -> createGroupEntry(createGroupDn(gn)))
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
-                }
-            } catch (Exception ex) {
-                logger.error("findOneLevel()", ex);
-            }
+        } else if (context.getDn().getParent().equals(crowdGroupsEntry.getDn())) {
+
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+
+            List<String> groupIds = Utils.nullableSingletonList(findGroup(attribute, value));
+            List<Entry> groupEntryList = createGroupEntryList(groupIds, context.getFilter());
+
             return new EntryFilteringCursorImpl(
-                    new ListCursor<>(l),
+                    new ListCursor<>(groupEntryList),
                     context,
-                    this.schemaManager
+                    schemaManager
             );
-        }
 
-        // 3. Users
-        if (dn.getName().equals(crowdUsersEntry.getDn().getName())) {
-            // Retrieve Filter
-            String filter = context.getFilter().toString();
+        } else if (context.getDn().equals(crowdUsersEntry.getDn())) {
 
-            Matcher m = UIDFilter.matcher(filter);
-            String uid = "";
-            if (m.find()) {
-                uid = m.group(1);
-            }
-            Matcher mm = uidFilter.matcher(filter);
-            if (mm.find()) {
-                uid = mm.group(1);
-            }
-            Matcher mmm = gidFilter.matcher(filter);
-            if (mmm.find()) {
-                // HACK: this is not implemented yet we need to search by custom attribute from m_crowdclient
-                return null;
-            }
+            List<Entry> userEntries = createUserEntryList(findUsers(), context.getFilter());
 
-            List<Entry> l = new ArrayList<>();
-            try {
-                SearchRestriction userName;
-                if ("*".equals(uid)) {
-                    // Contains * term restriction does not return any users, so use null one
-                    userName = NullRestrictionImpl.INSTANCE;
-
-                } else {
-                    userName = new TermRestriction<String>(UserTermKeys.USERNAME, MatchMode.EXACTLY_MATCHES, uid);
-                }
-                List<String> list = crowdClient.searchUserNames(userName, 0, Integer.MAX_VALUE);
-                for (String un : list) {
-                    Dn udn = new Dn(this.schemaManager, String.format("uid=%s,%s", un, Utils.CROWD_USERS_DN));
-                    l.add(createUserEntry(udn));
-                }
-            } catch (Exception ex) {
-                logger.error("findOneLevel()", ex);
-            }
             return new EntryFilteringCursorImpl(
-                    new ListCursor<>(l),
+                    new ListCursor<>(userEntries),
                     context,
-                    this.schemaManager
+                    schemaManager
+            );
+
+        } else if (context.getDn().getParent().equals(crowdUsersEntry.getDn())) {
+
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+
+            List<String> userIds = Utils.nullableSingletonList(findUser(attribute, value));
+            List<Entry> userEntries = createUserEntryList(userIds, context.getFilter());
+
+            return new EntryFilteringCursorImpl(
+                    new ListCursor<>(userEntries),
+                    context,
+                    schemaManager
+            );
+
+        } else if (context.getDn().equals(crowdEntry.getDn())) {
+
+            List<Entry> groupEntries = createGroupEntryList(findGroups(), context.getFilter());
+            List<Entry> userEntries = createUserEntryList(findUsers(), context.getFilter());
+
+            List<Entry> mergedEntries =
+                    Stream.concat(groupEntries.stream(), userEntries.stream())
+                            .collect(Collectors.toList());
+
+            return new EntryFilteringCursorImpl(
+                    new ListCursor<>(mergedEntries),
+                    context,
+                    schemaManager
+            );
+
+        } else if (context.getDn().getParent().equals(crowdEntry.getDn())) {
+
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+            List<Entry> mergedEntries = new LinkedList<>();
+
+            List<String> userIds = Utils.nullableSingletonList(findUser(attribute, value));
+
+            if (!userIds.isEmpty())
+                mergedEntries.addAll(createUserEntryList(userIds, context.getFilter()));
+            else {
+
+                List<String> groupIds = Utils.nullableSingletonList(findGroup(attribute, value));
+
+                if (!groupIds.isEmpty())
+                    mergedEntries.addAll(createGroupEntryList(groupIds, context.getFilter()));
+            }
+
+            return new EntryFilteringCursorImpl(
+                    new ListCursor<>(mergedEntries),
+                    context,
+                    schemaManager
             );
         }
 
         // return an empty result
-        return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager);
-    }
-
-    private String getSearchedMember(ExprNode filter) {
-
-        if (filter instanceof EqualityNode) {
-            EqualityNode equalityNode = (EqualityNode) filter;
-            if (SchemaConstants.MEMBER_AT.equals(equalityNode.getAttribute()) ||
-                    SchemaConstants.MEMBER_AT_OID.equals(equalityNode.toString())) {
-                String value = equalityNode.getValue().toString();
-                if (value.startsWith(SchemaConstants.UID_AT_OID)) {
-                    String[] parts = value.split(",");
-                    return parts[0].substring(SchemaConstants.UID_AT_OID.length() + 1);
-                }
-            }
-        } else if (filter instanceof OrNode) {
-            OrNode orNode = (OrNode) filter;
-            return orNode.getChildren().stream()
-                    .map(this::getSearchedMember)
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(null);
-        }
-        return null;
+        return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager);
     }
 
     @Override
     protected EntryFilteringCursor findManyOnMultipleLevels(SearchOperationContext context)
             throws LdapException {
 
-        Dn dn = context.getDn();
+        logger.debug("findManyOnMultipleLevels()::dn={}", context.getDn().getName());
 
-        logger.debug("findSubTree()::dn={}", dn.getName());
-        // Will only search at one level
+        // will only search at one level
         return findManyOnFirstLevel(context);
     }
 }
