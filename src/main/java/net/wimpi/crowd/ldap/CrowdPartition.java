@@ -71,10 +71,11 @@ public class CrowdPartition
 
     public CrowdPartition(CrowdClient crowdClient, ServerConfiguration serverConfig) {
 
+        super("crowd");
+
         this.crowdClient = crowdClient;
         this.serverConfig = serverConfig;
-
-        entryCache = new LRUCacheMap<>(300);
+        this.entryCache = new LRUCacheMap<>(300);
     }
 
     @Override

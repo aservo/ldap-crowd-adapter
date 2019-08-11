@@ -274,7 +274,6 @@ public class CrowdLDAPServer {
 
             CrowdPartition partition = new CrowdPartition(crowdClient, serverConfig);
 
-            partition.setId("crowd");
             partition.setSchemaManager(directoryService.getSchemaManager());
             partition.initialize();
 

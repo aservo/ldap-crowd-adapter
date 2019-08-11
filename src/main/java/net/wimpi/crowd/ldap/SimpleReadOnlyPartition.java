@@ -17,7 +17,6 @@ import org.apache.directory.server.core.api.filtering.EntryFilteringCursorImpl;
 import org.apache.directory.server.core.api.interceptor.context.*;
 import org.apache.directory.server.core.api.partition.Partition;
 import org.apache.directory.server.core.api.partition.Subordinates;
-import org.apache.directory.server.i18n.I18n;
 
 
 public abstract class SimpleReadOnlyPartition
@@ -25,9 +24,14 @@ public abstract class SimpleReadOnlyPartition
 
     private static final String MODIFICATION_NOT_ALLOWED_MSG = "This simple partition does not allow modification.";
 
-    protected String id;
+    protected final String id;
     protected SchemaManager schemaManager;
     private boolean initialized;
+
+    protected SimpleReadOnlyPartition(String id) {
+
+        this.id = id;
+    }
 
     public final void initialize()
             throws LdapException {
@@ -69,12 +73,6 @@ public abstract class SimpleReadOnlyPartition
         return this.id;
     }
 
-    public void setId(String id) {
-
-        this.checkInitialized("id");
-        this.id = id;
-    }
-
     public final SchemaManager getSchemaManager() {
 
         return this.schemaManager;
@@ -83,12 +81,6 @@ public abstract class SimpleReadOnlyPartition
     public void setSchemaManager(SchemaManager schemaManager) {
 
         this.schemaManager = schemaManager;
-    }
-
-    protected void checkInitialized(String property) {
-
-        if (this.initialized)
-            throw new IllegalStateException(I18n.err(I18n.ERR_576, new Object[]{property}));
     }
 
     public EntryFilteringCursor search(SearchOperationContext context)
@@ -128,6 +120,11 @@ public abstract class SimpleReadOnlyPartition
 
     protected abstract EntryFilteringCursor findManyOnMultipleLevels(SearchOperationContext context)
             throws LdapException;
+
+    public void setId(String id) {
+
+        throw new RuntimeException(new OperationNotSupportedException("Cannot set partition ID outside object."));
+    }
 
     public void setSuffixDn(Dn dn)
             throws LdapInvalidDnException {
