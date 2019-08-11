@@ -68,74 +68,48 @@ public class CrowdPartition
     protected void doInit()
             throws Exception {
 
-        logger.debug("==> CrowdPartition::init");
-        logger.info("Initializing {} with suffix {}", this.getClass().getSimpleName(), Utils.CROWD_DN);
-
-        // Create LDAP Dn
-        Dn crowdDn;
-        try {
-            crowdDn = new Dn(schemaManager, Utils.CROWD_DN);
-        } catch (LdapInvalidDnException e) {
-            logger.error("Cannot create crowd DN", e);
-            return;
-        }
-
-        Rdn rdn = crowdDn.getRdn();
-
-        // Create crowd entry
-        // dn: dc=example,dc=com
+        // create crowd entry
+        // dn: dc=crowd
         // objectclass: top
         // objectclass: domain
-        // dc: crowd
         // description: Crowd Domain
+        Dn crowdDn = new Dn(schemaManager, Utils.CROWD_DN);
         crowdEntry = new DefaultEntry(schemaManager, crowdDn);
+        crowdEntry.put(SchemaConstants.OBJECT_CLASS_AT,
+                SchemaConstants.TOP_OC, SchemaConstants.DOMAIN_OC);
+        crowdEntry.put(SchemaConstants.DC_AT, crowdDn.getRdn().getAva().getValue().toString());
+        crowdEntry.put(SchemaConstants.DESCRIPTION_AT, "Crowd Domain");
 
-        crowdEntry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC, SchemaConstants.DOMAIN_OC);
-        crowdEntry.put(SchemaConstants.DC_AT, rdn.getAva().getValue().toString());
-        crowdEntry.put("description", "Crowd Domain");
-
-        // Create group entry
+        // create groups entry
         // dn: ou=groups, dc=crowd
         // objectClass: top
         // objectClass: organizationalUnit
         // ou: groups
-
-        Dn groupDn;
-        try {
-            groupDn = new Dn(schemaManager, Utils.CROWD_GROUPS_DN);
-        } catch (LdapInvalidDnException e) {
-            logger.error("Cannot create group DN", e);
-            return;
-        }
-
+        // description: Crowd Groups
+        Dn groupDn = new Dn(schemaManager, Utils.CROWD_GROUPS_DN);
         crowdGroupsEntry = new DefaultEntry(schemaManager, groupDn);
-        crowdGroupsEntry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
+        crowdGroupsEntry.put(SchemaConstants.OBJECT_CLASS_AT,
+                SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
         crowdGroupsEntry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
-        crowdGroupsEntry.put("description", "Crowd Groups");
+        crowdGroupsEntry.put(SchemaConstants.DESCRIPTION_AT, "Crowd Groups");
 
-        // Create users entry
+        // create users entry
         // dn: ou=users, dc=crowd
         // objectClass: top
         // objectClass: organizationalUnit
         // ou: users
-        Dn usersDn;
-        try {
-            usersDn = new Dn(this.schemaManager, Utils.CROWD_USERS_DN);
-        } catch (LdapInvalidDnException e) {
-            logger.error("Cannot create users DN", e);
-            return;
-        }
-
+        // description: Crowd Users
+        Dn usersDn = new Dn(schemaManager, Utils.CROWD_USERS_DN);
         crowdUsersEntry = new DefaultEntry(schemaManager, usersDn);
-        crowdUsersEntry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
+        crowdUsersEntry.put(SchemaConstants.OBJECT_CLASS_AT,
+                SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
         crowdUsersEntry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
-        crowdUsersEntry.put("description", "Crowd Users");
+        crowdUsersEntry.put(SchemaConstants.DESCRIPTION_AT, "Crowd Users");
 
-        // Add to cache
+        // add to cache
         entryCache.put(crowdDn.getName(), crowdEntry);
         entryCache.put(groupDn.getName(), crowdGroupsEntry);
         entryCache.put(usersDn.getName(), crowdUsersEntry);
-        logger.debug("<== CrowdPartition::init");
 
         filterProcessor =
                 new FilterMatcher() {
@@ -197,135 +171,185 @@ public class CrowdPartition
         return crowdEntry.getDn();
     }
 
-    private void enrichForActiveDirectory(String user, Entry userEntry)
-            throws Exception {
+    @Nullable
+    private Entry createGroupEntry(Dn dn) {
 
-        // ActiveDirectory emulation is not enabled
-        if (!serverConfig.getMemberOfSupport().allowMemberOfAttribute())
-            return;
+        Entry entry = entryCache.get(dn.getName());
 
-        List<String> groups = crowdClient.getNamesOfGroupsForUser(user, 0, Integer.MAX_VALUE);
+        if (entry != null)
+            return entry;
 
-        if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS)) {
+        try {
 
-            List<String> result = crowdClient.getNamesOfGroupsForNestedUser(user, 0, Integer.MAX_VALUE);
+            String groupId = dn.getRdn().getNormValue();
+            Group group = crowdClient.getGroup(groupId);
 
-            for (String g : result)
-                if (!groups.contains(g))
-                    groups.add(g);
+            entry = new DefaultEntry(schemaManager, dn);
 
-        } else if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC);
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.GROUP_OF_NAMES_OC);
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC);
+            entry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
+            entry.put(SchemaConstants.CN_AT, group.getName());
+            entry.put(SchemaConstants.DESCRIPTION_AT, group.getDescription());
 
-            List<String> flatGroupList = new LinkedList<>(groups);
+            List<Dn> userDns = findMembers(groupId).stream()
+                    .map(this::createUserDn)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
 
-            for (String group : flatGroupList) {
+            for (Dn userDn : userDns)
+                entry.add(SchemaConstants.MEMBER_AT, userDn.getName());
 
-                // works transitive
-                List<String> result = crowdClient.getNamesOfParentGroupsForNestedGroup(group, 0, Integer.MAX_VALUE);
+            // add to cache
+            entryCache.put(dn.getName(), entry);
 
-                for (String g : result)
-                    if (!groups.contains(g))
-                        groups.add(g);
-            }
+        } catch (GroupNotFoundException |
+                ApplicationPermissionException |
+                InvalidAuthenticationException |
+                OperationFailedException e) {
+
+            logger.debug("Could not create group entry because of problems with Crowd request.", e);
+            return null;
+
+        } catch (LdapException e) {
+
+            logger.debug("Could not create group entry because of an incorrect build.", e);
+            return null;
         }
 
-        for (String group : groups) {
-
-            Dn mdn = new Dn(schemaManager, String.format("cn=%s,%s", group, Utils.CROWD_GROUPS_DN));
-
-            if (!userEntry.contains(Utils.MEMBER_OF_AT, mdn.getName()))
-                userEntry.add(Utils.MEMBER_OF_AT, mdn.getName());
-        }
+        return entry;
     }
 
     @Nullable
     private Entry createUserEntry(Dn dn) {
 
-        Entry userEntry = entryCache.get(dn.getName());
-        if (userEntry != null) {
-            return userEntry;
-        }
+        Entry entry = entryCache.get(dn.getName());
+
+        if (entry != null)
+            return entry;
 
         try {
-            // 1. Obtain from Crowd
-            Rdn rdn = dn.getRdn(0);
-            String user = rdn.getNormValue();
 
-            User u = crowdClient.getUser(user);
-            UserWithAttributes uu = crowdClient.getUserWithAttributes(user);
-            if (u == null || uu == null) {
-                return null;
-            }
+            String userId = dn.getRdn().getNormValue();
+            User user = crowdClient.getUser(userId);
 
-            // 2. Create entry
-            userEntry = new DefaultEntry(schemaManager, dn);
-            userEntry.put(SchemaConstants.OBJECT_CLASS, SchemaConstants.INET_ORG_PERSON_OC);
-            userEntry.put(SchemaConstants.OBJECT_CLASS_AT,
-                    SchemaConstants.TOP_OC,
-                    SchemaConstants.ORGANIZATIONAL_PERSON_OC,
-                    SchemaConstants.PERSON_OC,
-                    SchemaConstants.INET_ORG_PERSON_OC);
-            userEntry.put(SchemaConstants.UID_AT, user);
-            userEntry.put(SchemaConstants.CN_AT, u.getDisplayName());
-            userEntry.put(SchemaConstants.COMMON_NAME_AT, u.getDisplayName());
-            userEntry.put(SchemaConstants.GN_AT, u.getFirstName());
-            userEntry.put(SchemaConstants.GIVENNAME_AT, u.getFirstName());
-            userEntry.put(SchemaConstants.SN_AT, u.getLastName());
-            userEntry.put(SchemaConstants.SURNAME_AT, u.getLastName());
-            userEntry.put(SchemaConstants.MAIL_AT, u.getEmailAddress());
-            userEntry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
-            userEntry.put(SchemaConstants.UID_NUMBER_AT, Utils.calculateHash(user).toString());
+            entry = new DefaultEntry(schemaManager, dn);
 
-            // Note: Emulate AD memberof attribute
-            enrichForActiveDirectory(user, userEntry);
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC);
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.PERSON_OC);
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.ORGANIZATIONAL_PERSON_OC);
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.INET_ORG_PERSON_OC);
+            entry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
+            entry.put(SchemaConstants.UID_AT, user.getName());
+            entry.put(SchemaConstants.CN_AT, user.getName());
+            entry.put(SchemaConstants.COMMON_NAME_AT, user.getName());
+            entry.put(SchemaConstants.GN_AT, user.getFirstName());
+            entry.put(SchemaConstants.GIVENNAME_AT, user.getFirstName());
+            entry.put(SchemaConstants.SN_AT, user.getLastName());
+            entry.put(SchemaConstants.SURNAME_AT, user.getLastName());
+            entry.put(SchemaConstants.DISPLAY_NAME_AT, user.getDisplayName());
+            entry.put(SchemaConstants.MAIL_AT, user.getEmailAddress());
+            entry.put(SchemaConstants.UID_NUMBER_AT, Utils.calculateHash(userId).toString());
 
-            logger.debug(userEntry.toString());
+            List<Dn> groupDns = findGroupsForMemberOf(userId).stream()
+                    .map(this::createGroupDn)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
 
-            entryCache.put(dn.getName(), userEntry);
-        } catch (Exception ex) {
-            logger.debug("createUserEntry()", ex);
+            for (Dn groupDn : groupDns)
+                entry.add(Utils.MEMBER_OF_AT, groupDn.getName());
+
+            // add to cache
+            entryCache.put(dn.getName(), entry);
+
+        } catch (UserNotFoundException |
+                ApplicationPermissionException |
+                InvalidAuthenticationException |
+                OperationFailedException e) {
+
+            logger.debug("Could not create user entry because of problems with Crowd request.", e);
+            return null;
+
+        } catch (LdapException e) {
+
+            logger.debug("Could not create user entry because of an incorrect build.", e);
+            return null;
         }
-        return userEntry;
+
+        return entry;
     }
 
-    private Entry createGroupEntry(Dn dn) {
-
-        Entry groupEntry = entryCache.get(dn.getName());
-        if (groupEntry != null) {
-            return groupEntry;
-        }
+    private List<String> findMembers(String groupId) {
 
         try {
-            // 1. Obtain from crowd
-            Rdn rdn = dn.getRdn(0);
-            String group = rdn.getNormValue();
 
-            Group g = crowdClient.getGroup(group);
-            List<String> users = crowdClient.getNamesOfUsersOfGroup(group, 0, Integer.MAX_VALUE);
-
-            groupEntry = new DefaultEntry(schemaManager, dn);
-            groupEntry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.GROUP_OF_NAMES_OC);
-            groupEntry.put(SchemaConstants.CN_AT, g.getName());
-            groupEntry.put(SchemaConstants.DESCRIPTION_AT, g.getDescription());
-            groupEntry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
+            List<String> userIds = crowdClient.getNamesOfUsersOfGroup(groupId, 0, Integer.MAX_VALUE);
 
             if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
 
-                for (String gx : crowdClient.getNamesOfNestedChildGroupsOfGroup(group, 0, Integer.MAX_VALUE))
-                    for (String ux : crowdClient.getNamesOfUsersOfGroup(gx, 0, Integer.MAX_VALUE))
-                        if (!users.contains(ux))
-                            users.add(ux);
+                // works transitive
+                for (String y : crowdClient.getNamesOfNestedChildGroupsOfGroup(groupId, 0, Integer.MAX_VALUE))
+                    for (String x : crowdClient.getNamesOfUsersOfGroup(y, 0, Integer.MAX_VALUE))
+                        if (!userIds.contains(x))
+                            userIds.add(x);
             }
 
-            for (String u : users) {
-                Dn mdn = new Dn(this.schemaManager, String.format("uid=%s,%s", u, Utils.CROWD_USERS_DN));
-                groupEntry.add(SchemaConstants.MEMBER_AT, mdn.getName());
-            }
-            entryCache.put(dn.getName(), groupEntry);
-        } catch (Exception ex) {
-            logger.debug("createGroupEntry()", ex);
+            return userIds;
+
+        } catch (GroupNotFoundException |
+                ApplicationPermissionException |
+                InvalidAuthenticationException |
+                OperationFailedException e) {
+
+            logger.debug("Could not collect group members because of problems with Crowd request.", e);
+            return Collections.emptyList();
         }
-        return groupEntry;
+    }
+
+    private List<String> findGroupsForMemberOf(String userId) {
+
+        try {
+
+            List<String> groupIds = new LinkedList<>();
+
+            if (serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
+
+                groupIds.addAll(crowdClient.getNamesOfGroupsForUser(userId, 0, Integer.MAX_VALUE));
+
+                if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS)) {
+
+                    for (String x : crowdClient.getNamesOfGroupsForNestedUser(userId, 0, Integer.MAX_VALUE))
+                        if (!groupIds.contains(x))
+                            groupIds.add(x);
+
+                } else if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
+
+                    List<String> flatGroupList = new LinkedList<>(groupIds);
+
+                    for (String y : flatGroupList) {
+
+                        // works transitive
+                        List<String> result = crowdClient.getNamesOfParentGroupsForNestedGroup(y, 0, Integer.MAX_VALUE);
+
+                        for (String x : result)
+                            if (!groupIds.contains(x))
+                                groupIds.add(x);
+                    }
+                }
+            }
+
+            return groupIds;
+
+        } catch (UserNotFoundException |
+                GroupNotFoundException |
+                ApplicationPermissionException |
+                InvalidAuthenticationException |
+                OperationFailedException e) {
+
+            logger.debug("Could not collect groups for a member because of problems with Crowd request.", e);
+            return Collections.emptyList();
+        }
     }
 
     @Override
