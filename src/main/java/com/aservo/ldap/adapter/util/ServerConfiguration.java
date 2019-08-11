@@ -28,6 +28,8 @@ public class ServerConfiguration {
 
     public static final String CONFIG_CACHE_DIR = "cache-directory";
     public static final String CONFIG_BIND_ADDRESS = "bind.address";
+    public static final String CONFIG_ENTRY_CACHE_ENABLED = "entry-cache.enabled";
+    public static final String CONFIG_ENTRY_CACHE_MAX_SIZE = "entry-cache.max-size";
     public static final String CONFIG_SSL_ENABLED = "ssl.enabled";
     public static final String CONFIG_SSL_KEY_STORE = "ssl.keystore";
     public static final String CONFIG_SSL_CERTIFICATE_PW = "ssl.certificate.password";
@@ -38,6 +40,8 @@ public class ServerConfiguration {
     private final File cacheDir;
     private final String host;
     private final int port;
+    private final boolean entryCacheEnabled;
+    private final int entryCacheMaxSize;
     private final boolean sslEnabled;
     private final String keyStore;
     private final String certificatePassword;
@@ -77,6 +81,10 @@ public class ServerConfiguration {
 
         host = bindAddressParts[0];
         port = Integer.parseInt(bindAddressParts[1]);
+
+        // entry-cache support
+        entryCacheEnabled = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_ENTRY_CACHE_ENABLED, "false"));
+        entryCacheMaxSize = Integer.parseInt(serverProperties.getProperty(CONFIG_ENTRY_CACHE_MAX_SIZE, "300"));
 
         // SSL support
         sslEnabled = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_SSL_ENABLED, "false"));
@@ -126,6 +134,16 @@ public class ServerConfiguration {
     public int getPort() {
 
         return port;
+    }
+
+    public boolean isEntryCacheEnabled() {
+
+        return entryCacheEnabled;
+    }
+
+    public int getEntryCacheMaxSize() {
+
+        return entryCacheMaxSize;
     }
 
     public boolean isSslEnabled() {

@@ -84,7 +84,7 @@ public class CrowdPartition
 
         this.crowdClient = crowdClient;
         this.serverConfig = serverConfig;
-        this.entryCache = new LRUCacheMap<>(300);
+        this.entryCache = new LRUCacheMap<>(serverConfig.getEntryCacheMaxSize());
     }
 
     @Override
@@ -130,9 +130,12 @@ public class CrowdPartition
         crowdUsersEntry.put(SchemaConstants.DESCRIPTION_AT, "Crowd Users");
 
         // add to cache
-        entryCache.put(crowdDn.getName(), crowdEntry);
-        entryCache.put(groupDn.getName(), crowdGroupsEntry);
-        entryCache.put(usersDn.getName(), crowdUsersEntry);
+        if (serverConfig.isEntryCacheEnabled()) {
+
+            entryCache.put(crowdDn.getName(), crowdEntry);
+            entryCache.put(groupDn.getName(), crowdGroupsEntry);
+            entryCache.put(usersDn.getName(), crowdUsersEntry);
+        }
 
         filterProcessor =
                 new FilterMatcher() {
@@ -225,7 +228,8 @@ public class CrowdPartition
                 entry.add(SchemaConstants.MEMBER_AT, userDn.getName());
 
             // add to cache
-            entryCache.put(dn.getName(), entry);
+            if (serverConfig.isEntryCacheEnabled())
+                entryCache.put(dn.getName(), entry);
 
         } catch (GroupNotFoundException |
                 ApplicationPermissionException |
@@ -284,7 +288,8 @@ public class CrowdPartition
                 entry.add(Utils.MEMBER_OF_AT, groupDn.getName());
 
             // add to cache
-            entryCache.put(dn.getName(), entry);
+            if (serverConfig.isEntryCacheEnabled())
+                entryCache.put(dn.getName(), entry);
 
         } catch (UserNotFoundException |
                 ApplicationPermissionException |
@@ -378,6 +383,9 @@ public class CrowdPartition
     @Override
     public ClonedServerEntry lookup(LookupOperationContext context) {
 
+        if (!serverConfig.isEntryCacheEnabled())
+            return null;
+
         Dn dn = context.getDn();
         Entry se = entryCache.get(context.getDn().getName());
         if (se == null) {
@@ -393,6 +401,9 @@ public class CrowdPartition
     @Override
     public boolean hasEntry(HasEntryOperationContext context)
             throws LdapException {
+
+        if (!serverConfig.isEntryCacheEnabled())
+            return false;
 
         Dn dn = context.getDn();
 
