@@ -264,40 +264,9 @@ public class CrowdPartition
             userEntry.put(SchemaConstants.MAIL_AT, u.getEmailAddress());
             userEntry.put(SchemaConstants.OU_AT, "users");
             userEntry.put(SchemaConstants.UID_NUMBER_AT, uu.getValue("uidNumber"));
-            userEntry.put(SchemaConstants.HOME_DIRECTORY_AT, "/home/" + user + "/");
-            userEntry.put(SchemaConstants.LOGIN_SHELL_AT, "/bin/bash");
-            userEntry.put(SchemaConstants.GECOS_AT, "crowd user");
 
             // Note: Emulate AD memberof attribute
             enrichForActiveDirectory(user, userEntry);
-
-            if (uu.getValue("gidNumber") != null) {
-                userEntry.put(SchemaConstants.GID_NUMBER_AT, uu.getValue("gidNumber"));
-            } else {
-                // try to get gidNumber from memberOf attributes
-                HashMap<String, String> selectedGroup = new HashMap<>();
-                selectedGroup.put("cn", serverConfig.getGidCn());
-                selectedGroup.put("dc", serverConfig.getGidDc());
-                selectedGroup.put("ou", serverConfig.getGidOu());
-
-                ArrayList<String> member = new ArrayList<>();
-                String parsedRoles = userEntry.get("memberof").toString();
-
-                StringTokenizer tokenizer = new StringTokenizer(parsedRoles, System.getProperty("line.separator"));
-                while (tokenizer.hasMoreTokens()) {
-                    member.add(tokenizer.nextToken());
-                }
-
-                for (String memberOf : member) {
-                    HashMap<String, String> eachLineCheck = new HashMap<>();
-                    eachLineCheck.put("cn", readValueFromFilter(memberOf, "cn="));
-                    eachLineCheck.put("dc", readValueFromFilter(memberOf, "dc="));
-                    eachLineCheck.put("ou", readValueFromFilter(memberOf, "ou="));
-                    if (eachLineCheck.equals(selectedGroup)) {
-                        userEntry.put(SchemaConstants.GID_NUMBER_AT, String.valueOf(serverConfig.getGid()));
-                    }
-                }
-            }
 
             logger.debug(userEntry.toString());
 
@@ -327,7 +296,6 @@ public class CrowdPartition
             groupEntry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.GROUP_OF_NAMES_OC);
             groupEntry.put(SchemaConstants.CN_AT, g.getName());
             groupEntry.put(SchemaConstants.DESCRIPTION_AT, g.getDescription());
-            groupEntry.put(SchemaConstants.GID_NUMBER_AT, "" + ((Math.abs(Objects.hash(g.getName())) % 100000) + 1));
 
             if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
 

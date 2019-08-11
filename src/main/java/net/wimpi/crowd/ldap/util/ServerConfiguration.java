@@ -15,10 +15,6 @@ public class ServerConfiguration {
     public static final String CONFIG_SSL_KEY_STORE = "ssl.keystore";
     public static final String CONFIG_SSL_CERTIFICATE_PW = "ssl.certificate.password";
     public static final String CONFIG_SUPPORT_MEMBER_OF = "support.member-of";
-    public static final String MEMBER_OF_GID_CN = "map.member.cn";
-    public static final String MEMBER_OF_GID_OU = "map.member.ou";
-    public static final String MEMBER_OF_GID_DC = "map.member.dc";
-    public static final String MEMBER_OF_GID = "map.member.gid";
 
     private final Properties serverProperties;
     private final Properties crowdProperties;
@@ -29,10 +25,6 @@ public class ServerConfiguration {
     private final String keyStore;
     private final String certificatePassword;
     private final MemberOfSupport memberOfSupport;
-    private final String gidCn;
-    private final String gidDc;
-    private final String gidOu;
-    private final Integer gid;
 
     public ServerConfiguration(Properties serverProperties, Properties crowdProperties) {
 
@@ -92,26 +84,6 @@ public class ServerConfiguration {
 
         String memberOfSupportValue = serverProperties.getProperty(CONFIG_SUPPORT_MEMBER_OF, "normal");
         memberOfSupport = MemberOfSupport.valueOf(memberOfSupportValue.toUpperCase().replace('-', '_'));
-
-        gidCn = serverProperties.getProperty(MEMBER_OF_GID_CN);
-        gidDc = serverProperties.getProperty(MEMBER_OF_GID_DC);
-        gidOu = serverProperties.getProperty(MEMBER_OF_GID_OU);
-
-        if (gidCn == null)
-            throw new IllegalArgumentException("Expect value for " + MEMBER_OF_GID_CN);
-
-        if (gidDc == null)
-            throw new IllegalArgumentException("Expect value for " + MEMBER_OF_GID_DC);
-
-        if (gidOu == null)
-            throw new IllegalArgumentException("Expect value for " + MEMBER_OF_GID_OU);
-
-        String gidValue = serverProperties.getProperty(MEMBER_OF_GID);
-
-        if (gidValue != null)
-            gid = Integer.parseInt(gidValue);
-        else
-            gid = null;
     }
 
     public Properties getServerProperties() {
@@ -157,25 +129,5 @@ public class ServerConfiguration {
     public MemberOfSupport getMemberOfSupport() {
 
         return memberOfSupport;
-    }
-
-    public String getGidCn() {
-
-        return gidCn;
-    }
-
-    public String getGidDc() {
-
-        return gidDc;
-    }
-
-    public String getGidOu() {
-
-        return gidOu;
-    }
-
-    public Integer getGid() {
-
-        return gid;
     }
 }
