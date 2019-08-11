@@ -17,6 +17,7 @@ import javax.naming.InvalidNameException;
 import net.wimpi.crowd.ldap.util.LRUCacheMap;
 import net.wimpi.crowd.ldap.util.MemberOfSupport;
 import net.wimpi.crowd.ldap.util.ServerConfiguration;
+import net.wimpi.crowd.ldap.util.Utils;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.EmptyCursor;
 import org.apache.directory.api.ldap.model.cursor.ListCursor;
@@ -51,10 +52,6 @@ import org.slf4j.LoggerFactory;
 public class CrowdPartition
         extends SimpleReadOnlyPartition {
 
-    private static final String CROWD_DN = "dc=crowd";
-    private static final String CROWD_GROUPS_DN = "ou=groups,dc=crowd";
-    private static final String CROWD_USERS_DN = "ou=users,dc=crowd";
-
     private final Logger logger = LoggerFactory.getLogger(CrowdPartition.class);
 
     private final CrowdClient crowdClient;
@@ -85,12 +82,12 @@ public class CrowdPartition
             throws Exception {
 
         logger.debug("==> CrowdPartition::init");
-        logger.info("Initializing {} with suffix {}", this.getClass().getSimpleName(), CROWD_DN);
+        logger.info("Initializing {} with suffix {}", this.getClass().getSimpleName(), Utils.CROWD_DN);
 
         // Create LDAP Dn
         Dn crowdDn;
         try {
-            crowdDn = new Dn(schemaManager, CROWD_DN);
+            crowdDn = new Dn(schemaManager, Utils.CROWD_DN);
         } catch (LdapInvalidDnException e) {
             logger.error("Cannot create crowd DN", e);
             return;
@@ -118,7 +115,7 @@ public class CrowdPartition
 
         Dn groupDn;
         try {
-            groupDn = new Dn(schemaManager, CROWD_GROUPS_DN);
+            groupDn = new Dn(schemaManager, Utils.CROWD_GROUPS_DN);
         } catch (LdapInvalidDnException e) {
             logger.error("Cannot create group DN", e);
             return;
@@ -126,7 +123,7 @@ public class CrowdPartition
 
         crowdGroupsEntry = new DefaultEntry(schemaManager, groupDn);
         crowdGroupsEntry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
-        crowdGroupsEntry.put(SchemaConstants.OU_AT, "groups");
+        crowdGroupsEntry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
         crowdGroupsEntry.put("description", "Crowd Groups");
 
         // Create users entry
@@ -136,7 +133,7 @@ public class CrowdPartition
         // ou: users
         Dn usersDn;
         try {
-            usersDn = new Dn(this.schemaManager, CROWD_USERS_DN);
+            usersDn = new Dn(this.schemaManager, Utils.CROWD_USERS_DN);
         } catch (LdapInvalidDnException e) {
             logger.error("Cannot create users DN", e);
             return;
@@ -144,7 +141,7 @@ public class CrowdPartition
 
         crowdUsersEntry = new DefaultEntry(schemaManager, usersDn);
         crowdUsersEntry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
-        crowdUsersEntry.put(SchemaConstants.OU_AT, "users");
+        crowdUsersEntry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
         crowdUsersEntry.put("description", "Crowd Users");
 
         // Prepare list
@@ -220,10 +217,10 @@ public class CrowdPartition
 
         for (String group : groups) {
 
-            Dn mdn = new Dn(schemaManager, String.format("cn=%s,%s", group, CROWD_GROUPS_DN));
+            Dn mdn = new Dn(schemaManager, String.format("cn=%s,%s", group, Utils.CROWD_GROUPS_DN));
 
-            if (!userEntry.contains("memberof", mdn.getName()))
-                userEntry.add("memberof", mdn.getName());
+            if (!userEntry.contains(Utils.MEMBER_OF_AT, mdn.getName()))
+                userEntry.add(Utils.MEMBER_OF_AT, mdn.getName());
         }
     }
 
@@ -262,8 +259,8 @@ public class CrowdPartition
             userEntry.put(SchemaConstants.SN_AT, u.getLastName());
             userEntry.put(SchemaConstants.SURNAME_AT, u.getLastName());
             userEntry.put(SchemaConstants.MAIL_AT, u.getEmailAddress());
-            userEntry.put(SchemaConstants.OU_AT, "users");
-            userEntry.put(SchemaConstants.UID_NUMBER_AT, uu.getValue("uidNumber"));
+            userEntry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
+            userEntry.put(SchemaConstants.UID_NUMBER_AT, Utils.calculateHash(user).toString());
 
             // Note: Emulate AD memberof attribute
             enrichForActiveDirectory(user, userEntry);
@@ -296,6 +293,7 @@ public class CrowdPartition
             groupEntry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.GROUP_OF_NAMES_OC);
             groupEntry.put(SchemaConstants.CN_AT, g.getName());
             groupEntry.put(SchemaConstants.DESCRIPTION_AT, g.getDescription());
+            groupEntry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
 
             if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
 
@@ -306,7 +304,7 @@ public class CrowdPartition
             }
 
             for (String u : users) {
-                Dn mdn = new Dn(this.schemaManager, String.format("uid=%s,%s", u, CROWD_USERS_DN));
+                Dn mdn = new Dn(this.schemaManager, String.format("uid=%s,%s", u, Utils.CROWD_USERS_DN));
                 groupEntry.add(SchemaConstants.MEMBER_AT, mdn.getName());
             }
             entryCache.put(dn.getName(), groupEntry);
@@ -477,7 +475,7 @@ public class CrowdPartition
     private Dn createGroupDn(String name) {
 
         try {
-            return new Dn(schemaManager, String.format("uid=%s,%s", name, CROWD_GROUPS_DN));
+            return new Dn(schemaManager, String.format("uid=%s,%s", name, Utils.CROWD_GROUPS_DN));
         } catch (LdapInvalidDnException e) {
             logger.error("Cannot create group DN for {}", name, e);
             return null;
@@ -567,7 +565,7 @@ public class CrowdPartition
                 }
                 List<String> list = crowdClient.searchUserNames(userName, 0, Integer.MAX_VALUE);
                 for (String un : list) {
-                    Dn udn = new Dn(this.schemaManager, String.format("uid=%s,%s", un, CROWD_USERS_DN));
+                    Dn udn = new Dn(this.schemaManager, String.format("uid=%s,%s", un, Utils.CROWD_USERS_DN));
                     l.add(createUserEntry(udn));
                 }
             } catch (Exception ex) {
