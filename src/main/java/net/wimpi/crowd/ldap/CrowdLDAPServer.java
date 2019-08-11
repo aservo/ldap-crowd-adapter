@@ -252,7 +252,7 @@ public class CrowdLDAPServer {
                     logger.debug("Interceptor: {}", interceptor.getName());
                     AuthenticationInterceptor ai = (AuthenticationInterceptor) interceptor;
                     Set<Authenticator> auths = new HashSet<Authenticator>();
-                    auths.add(new CrowdAuthenticator(crowdClient, directoryService));
+                    auths.add(new CrowdAuthenticator(crowdClient, directoryService.getSchemaManager()));
                     ai.setAuthenticators(auths);
                 }
             }
