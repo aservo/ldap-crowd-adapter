@@ -1,109 +1,38 @@
-# Crowd LDAP Server
+Crowd LDAP Server
+=================
 
-Implementation of an LDAP server that delegates authentication to an Atlassian Crowd installation
-using the Crowd REST API. 
+Implementation of an LDAP server that delegates authentication to an Atlassian Crowd installation using the Crowd
+REST API. The LDAP implementation is based on the Apache Directory Server.
 
-This service allows your favourite SSO authentication source to be used from many legacy devices, appliances and systems.
+### Configuration
 
-The LDAP implementation is based on the Apache Directory Server v1.5.7,  which is distributed under the Apache v2.0 License.
+* etc/crowd.properties
+* etc/crowd-ldap-server.properties
+* etc/log4j.properties
 
-## Configuration
+### Run
 
-Crowd-LDAP-Server searcher for file `crowd-ldap-server.properties` in `etc` directory relative to current working directory.
-See example in the distro.
+	sbt run
 
-Available properties:
+### Maintenance history
 
-| Name                        | Description | Default |
-|-----------------------------| ------------|---------|
-| `listener.port`             | Port the server listens to | 10389 |
-| `ssl.enabled`               | LDAPS enabled? | false |
-| `ssl.keystore`              | Path to keystore file | `etc/crowd-ldap-server.keystore` |
-| `ssl.certificate.password`  | Certificate password | `changeit` |
-| `emulate.ad.memberof`       | emulate ActiveDirectory | false |
-| `emulate.ad.include.nested` | emulate nested groups for ActiveDirectory | false |
-| `map.member.cn`             | | |
-| `map.member.ou`             | | |
-| `map.member.dc`             | | |
-| `map.member.gid`            | | |
+* 2012 Dieter Wimberger (dwimberger)
+* 2016 Jan Zdarsky (OneB1t)
+* 2017 Alik Kurdyukov (akurdyukov)
+* 2019 Eric Löffler (brettaufheber)
 
-## Reference
+### License
 
-* fork from [dwimberger/crowd-ldap-server](https://github.com/dwimberger/crowd-ldap-server)
-* used for [Gerrit](http://wiki.li3huo.com/Gerrit) LDAP
+Copyright (c) 2019 ASERVO Software GmbH
 
-## Build
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-```
-	mvn package
-```
+_http://www.apache.org/licenses/LICENSE-2.0_
 
-## Configuration
-
-### Crowd Server
-
-![Password](doc/Password.png)
-
-![Addresses](doc/Remote_Addresses.png)
-
-### Crowd LDAP Server
-vi etc/crowd.properties
-
-	#Crowd Server Configuration
-	session.lastvalidation=session.lastvalidation
-	session.isauthenticated=session.isauthenticated
-	application.password=<crowd application password>
-	application.name=crowd-openid-server
-	session.validationinterval=0
-	crowd.server.url=http://127.0.0.1/crowd/services/
-	session.tokenkey=session.tokenkey
-	application.login.url=http://127.0.0.1/crowd/console/
-
-
-## Run
-
-	./run
-
-## Test
-
-	➜  crowd-ldap-server git:(master) ldapsearch -x -D 'uid=jira,ou=users,dc=crowd' -W -H ldap://localhost:10389 -b ou=users,dc=crowd uid=jira
-	ldap_initialize( ldap://localhost:10389/??base )
-	Enter LDAP Password: 
-	filter: uid=jira
-	requesting: All userApplication attributes
-	# extended LDIF
-	#
-	# LDAPv3
-	# base <ou=users,dc=crowd> with scope subtree
-	# filter: uid=jira
-	# requesting: ALL
-	#
-
-	# jira, users, crowd
-	dn: dn=jira,ou=users,dc=crowd
-	uid: jira
-	sn: jira
-	mail: jira@...
-
-	➜  crowd-ldap-server git:(master) ✗ ldapsearch -x -D "uid=jira,ou=users,dc=crowd" -W -H ldap://localhost:10389 -b 'ou=users,dc=crowd' '(uid=liyan)' uid displayName mail cn
-	Enter LDAP Password: 
-	# extended LDIF
-	#
-	# LDAPv3
-	# base <ou=users,dc=crowd> with scope subtree
-	# filter: (uid=liyan)
-	# requesting: uid displayName mail cn 
-	#
-
-	# liyan, users, crowd
-	dn: dn=liyan,ou=users,dc=crowd
-	uid: liyan
-	mail: liyan@facebook.com
-	cn:: 5p2OIOeEsQ==
-
-	# search result
-	search: 2
-	result: 0 Success
-
-	# numResponses: 2
-	# numEntries: 1
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

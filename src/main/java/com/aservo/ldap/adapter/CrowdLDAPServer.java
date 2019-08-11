@@ -1,22 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Initiator:
+ * Copyright (c) 2012 Dieter Wimberger
+ * http://dieter.wimpi.net
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ * Maintenance:
+ * Copyright (c) 2019 ASERVO Software GmbH
+ * contact@aservo.com
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package net.wimpi.crowd.ldap;
+
+package com.aservo.ldap.adapter;
 
 import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;
 import com.atlassian.crowd.service.client.ClientProperties;
@@ -28,7 +32,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import net.wimpi.crowd.ldap.util.ServerConfiguration;
+import com.aservo.ldap.adapter.util.ServerConfiguration;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.ldap.model.schema.registries.SchemaLoader;
@@ -154,7 +158,7 @@ public class CrowdLDAPServer {
             // memberOf Support
             if (serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
                 File memberOfLDIF = new File(attributeTypesDir, "m-oid=1.2.840.113556.1.2.102.ldif");
-                copyStream("net/wimpi/crowd/ldap/memberof.ldif", memberOfLDIF);
+                copyStream("com/aservo/ldap/adapter/memberof.ldif", memberOfLDIF);
             }
 
             File rf2307bisSchemaDir =
@@ -171,7 +175,7 @@ public class CrowdLDAPServer {
 
             for (String name : filenames) {
                 File rf2307bisSchema = new File(attributeTypesDir, name + ".ldif");
-                copyStream("net/wimpi/crowd/ldap/rfc2307/" + name + ".ldif", rf2307bisSchema);
+                copyStream("com/aservo/ldap/adapter/rfc2307/" + name + ".ldif", rf2307bisSchema);
             }
 
         } catch (IOException e) {
