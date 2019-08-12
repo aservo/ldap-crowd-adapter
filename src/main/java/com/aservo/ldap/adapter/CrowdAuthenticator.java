@@ -22,11 +22,11 @@
 
 package com.aservo.ldap.adapter;
 
+import com.aservo.ldap.adapter.util.Utils;
 import com.atlassian.crowd.model.user.User;
 import com.atlassian.crowd.service.client.CrowdClient;
 import java.nio.charset.StandardCharsets;
 import javax.naming.AuthenticationException;
-import com.aservo.ldap.adapter.util.Utils;
 import org.apache.directory.api.ldap.model.constants.AuthenticationLevel;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
@@ -63,12 +63,14 @@ public class CrowdAuthenticator
     public LdapPrincipal authenticate(BindOperationContext context)
             throws Exception {
 
+        String attribute = Utils.normalizeAttribute(context.getDn().getRdn().getType());
+
         if ((context.getDn().getParent().equals(usersDn) || context.getDn().getParent().equals(crowdDn)) && (
-                context.getDn().getRdn().getType().equals(SchemaConstants.UID_AT) ||
-                        context.getDn().getRdn().getType().equals(SchemaConstants.UID_AT_OID) ||
-                        context.getDn().getRdn().getType().equals(SchemaConstants.CN_AT) ||
-                        context.getDn().getRdn().getType().equals(SchemaConstants.CN_AT_OID) ||
-                        context.getDn().getRdn().getType().equals(SchemaConstants.COMMON_NAME_AT))) {
+                attribute.equals(SchemaConstants.UID_AT) ||
+                        attribute.equals(SchemaConstants.UID_AT_OID) ||
+                        attribute.equals(SchemaConstants.CN_AT) ||
+                        attribute.equals(SchemaConstants.CN_AT_OID) ||
+                        attribute.equals(SchemaConstants.COMMON_NAME_AT))) {
 
             String userId = context.getDn().getRdn().getNormValue();
             String password = new String(context.getCredentials(), StandardCharsets.UTF_8);

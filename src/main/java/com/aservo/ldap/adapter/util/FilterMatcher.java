@@ -17,6 +17,8 @@
 
 package com.aservo.ldap.adapter.util;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiFunction;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.filter.*;
@@ -77,24 +79,26 @@ public abstract class FilterMatcher {
                                @Nullable String value,
                                String entryId,
                                OuType ouType,
-                               BiFunction<String, String, Boolean> compare) {
+                               BiFunction<String, List<String>, Boolean> compare) {
 
-        switch (attribute) {
+        switch (Utils.normalizeAttribute(attribute)) {
 
             case SchemaConstants.OBJECT_CLASS_AT:
             case SchemaConstants.OBJECT_CLASS_AT_OID:
 
-                if (ouType.equals(OuType.GROUP) && (
-                        compare.apply(value, SchemaConstants.GROUP_OF_NAMES_OC) ||
-                                compare.apply(value, SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC) ||
-                                compare.apply(value, SchemaConstants.TOP_OC)))
+                if (ouType.equals(OuType.GROUP) &&
+                        compare.apply(value, Arrays.asList(
+                                SchemaConstants.GROUP_OF_NAMES_OC,
+                                SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC,
+                                SchemaConstants.TOP_OC)))
                     return true;
 
-                if (ouType.equals(OuType.USER) && (
-                        compare.apply(value, SchemaConstants.INET_ORG_PERSON_OC) ||
-                                compare.apply(value, SchemaConstants.ORGANIZATIONAL_PERSON_OC) ||
-                                compare.apply(value, SchemaConstants.PERSON_OC) ||
-                                compare.apply(value, SchemaConstants.TOP_OC)))
+                if (ouType.equals(OuType.USER) &&
+                        compare.apply(value, Arrays.asList(
+                                SchemaConstants.INET_ORG_PERSON_OC,
+                                SchemaConstants.ORGANIZATIONAL_PERSON_OC,
+                                SchemaConstants.PERSON_OC,
+                                SchemaConstants.TOP_OC)))
                     return true;
 
                 break;
@@ -103,7 +107,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.UID_NUMBER_AT_OID:
 
                 if (ouType.equals(OuType.USER) &&
-                        compare.apply(value, Utils.calculateHash(entryId).toString()))
+                        compare.apply(value, Utils.nullableSingletonList(Utils.calculateHash(entryId).toString())))
                     return true;
 
                 break;
@@ -112,7 +116,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.UID_AT_OID:
 
                 if (ouType.equals(OuType.USER) &&
-                        compare.apply(value, entryId))
+                        compare.apply(value, Utils.nullableSingletonList(entryId)))
                     return true;
 
                 break;
@@ -121,11 +125,11 @@ public abstract class FilterMatcher {
             case SchemaConstants.OU_AT_OID:
 
                 if (ouType.equals(OuType.GROUP) &&
-                        compare.apply(value, Utils.OU_GROUPS))
+                        compare.apply(value, Utils.nullableSingletonList(Utils.OU_GROUPS)))
                     return true;
 
                 if (ouType.equals(OuType.USER) &&
-                        compare.apply(value, Utils.OU_USERS))
+                        compare.apply(value, Utils.nullableSingletonList(Utils.OU_USERS)))
                     return true;
 
                 break;
@@ -135,7 +139,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.COMMON_NAME_AT:
 
                 if ((ouType.equals(OuType.GROUP) || ouType.equals(OuType.USER)) &&
-                        compare.apply(value, getAttributeValue(SchemaConstants.CN_AT, entryId, ouType)))
+                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -145,7 +149,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.GIVENNAME_AT:
 
                 if (ouType.equals(OuType.USER) &&
-                        compare.apply(value, getAttributeValue(SchemaConstants.GN_AT, entryId, ouType)))
+                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -155,7 +159,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.SURNAME_AT:
 
                 if (ouType.equals(OuType.USER) &&
-                        compare.apply(value, getAttributeValue(SchemaConstants.SN_AT, entryId, ouType)))
+                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -164,7 +168,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.DISPLAY_NAME_AT_OID:
 
                 if (ouType.equals(OuType.USER) &&
-                        compare.apply(value, getAttributeValue(SchemaConstants.DISPLAY_NAME_AT, entryId, ouType)))
+                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -173,7 +177,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.MAIL_AT_OID:
 
                 if (ouType.equals(OuType.USER) &&
-                        compare.apply(value, getAttributeValue(SchemaConstants.MAIL_AT, entryId, ouType)))
+                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -182,7 +186,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.DESCRIPTION_AT_OID:
 
                 if (ouType.equals(OuType.GROUP) &&
-                        compare.apply(value, getAttributeValue(SchemaConstants.DESCRIPTION_AT, entryId, ouType)))
+                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -193,7 +197,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.UNIQUE_MEMBER_AT_OID:
 
                 if (ouType.equals(OuType.GROUP) &&
-                        compare.apply(value, getAttributeValue(SchemaConstants.MEMBER_AT, entryId, ouType)))
+                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -201,7 +205,7 @@ public abstract class FilterMatcher {
             case Utils.MEMBER_OF_AT:
 
                 if (ouType.equals(OuType.USER) &&
-                        compare.apply(value, getAttributeValue(Utils.MEMBER_OF_AT, entryId, ouType)))
+                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -213,16 +217,15 @@ public abstract class FilterMatcher {
         return false;
     }
 
-    private boolean compareEquality(String a, String b) {
+    private boolean compareEquality(String value, List<String> alternatives) {
 
-        return a != null && a.equalsIgnoreCase(b);
+        return value != null && alternatives.stream().anyMatch((x) -> x.equalsIgnoreCase(value));
     }
 
-    private boolean comparePresence(String a, String b) {
+    private boolean comparePresence(String value, List<String> alternatives) {
 
-        return a == null && b != null;
+        return value == null && !alternatives.isEmpty();
     }
 
-    @Nullable
-    protected abstract String getAttributeValue(String attribute, String entryId, OuType ouType);
+    protected abstract List<String> getValuesFromAttribute(String attribute, String entryId, OuType ouType);
 }

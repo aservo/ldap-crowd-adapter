@@ -25,10 +25,8 @@ package com.aservo.ldap.adapter;
 import com.aservo.crowd.ldap.util.*;
 import com.aservo.ldap.adapter.util.*;
 import com.atlassian.crowd.embedded.api.SearchRestriction;
-import com.atlassian.crowd.embedded.api.UserWithAttributes;
 import com.atlassian.crowd.exception.*;
 import com.atlassian.crowd.model.group.Group;
-import com.atlassian.crowd.model.group.GroupWithAttributes;
 import com.atlassian.crowd.model.user.User;
 import com.atlassian.crowd.search.query.entity.restriction.MatchMode;
 import com.atlassian.crowd.search.query.entity.restriction.NullRestrictionImpl;
@@ -140,43 +138,13 @@ public class CrowdPartition
         filterProcessor =
                 new FilterMatcher() {
 
-                    @Nullable
                     @Override
-                    protected String getAttributeValue(String attribute, String entryId, OuType ouType) {
+                    protected List<String> getValuesFromAttribute(String attribute, String entryId, OuType ouType) {
 
-                        try {
-
-                            if (ouType.equals(OuType.USER)) {
-
-                                try {
-
-                                    String userName = crowdClient.getUser(entryId).getName();
-                                    UserWithAttributes attributes = crowdClient.getUserWithAttributes(userName);
-
-                                    return attributes.getValue(attribute);
-
-                                } catch (UserNotFoundException e) {
-                                }
-
-                            } else if (ouType.equals(OuType.GROUP)) {
-
-                                try {
-
-                                    String groupName = crowdClient.getGroup(entryId).getName();
-                                    GroupWithAttributes attributes = crowdClient.getGroupWithAttributes(groupName);
-
-                                    return attributes.getValue(attribute);
-
-                                } catch (GroupNotFoundException e) {
-                                }
-                            }
-
-                        } catch (OperationFailedException |
-                                ApplicationPermissionException |
-                                InvalidAuthenticationException e) {
-
-                            logger.error("Cannot get value of user attribute.");
-                        }
+                        if (ouType.equals(OuType.GROUP))
+                            return getGroupValueFromAttribute(attribute, entryId);
+                        else if (ouType.equals(OuType.USER))
+                            return getUserValueFromAttribute(attribute, entryId);
 
                         return null;
                     }
@@ -195,6 +163,99 @@ public class CrowdPartition
     public Dn getSuffixDn() {
 
         return crowdEntry.getDn();
+    }
+
+    private List<String> getGroupValueFromAttribute(String attribute, String groupId) {
+
+        try {
+
+            Group group = crowdClient.getGroup(groupId);
+
+            switch (Utils.normalizeAttribute(attribute)) {
+
+                case SchemaConstants.CN_AT:
+                case SchemaConstants.CN_AT_OID:
+                case SchemaConstants.COMMON_NAME_AT:
+
+                    return Utils.nullableSingletonList(group.getName());
+
+                case SchemaConstants.DESCRIPTION_AT:
+
+                    return Utils.nullableSingletonList(group.getDescription());
+
+                case SchemaConstants.MEMBER_AT:
+                case SchemaConstants.MEMBER_AT_OID:
+                case SchemaConstants.UNIQUE_MEMBER_AT:
+                case SchemaConstants.UNIQUE_MEMBER_AT_OID:
+
+                    return findMembers(groupId);
+
+                default:
+                    return Collections.emptyList();
+            }
+
+        } catch (GroupNotFoundException |
+                OperationFailedException |
+                ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            logger.error("Cannot get value of user attribute.", e);
+            return Collections.emptyList();
+        }
+    }
+
+    private List<String> getUserValueFromAttribute(String attribute, String userId) {
+
+        try {
+
+            User user = crowdClient.getUser(userId);
+
+            switch (Utils.normalizeAttribute(attribute)) {
+
+                case SchemaConstants.CN_AT:
+                case SchemaConstants.CN_AT_OID:
+                case SchemaConstants.COMMON_NAME_AT:
+
+                    return Utils.nullableSingletonList(user.getName());
+
+                case SchemaConstants.GN_AT:
+                case SchemaConstants.GN_AT_OID:
+                case SchemaConstants.GIVENNAME_AT:
+
+                    return Utils.nullableSingletonList(user.getFirstName());
+
+                case SchemaConstants.SN_AT:
+                case SchemaConstants.SN_AT_OID:
+                case SchemaConstants.SURNAME_AT:
+
+                    return Utils.nullableSingletonList(user.getLastName());
+
+                case SchemaConstants.DISPLAY_NAME_AT:
+                case SchemaConstants.DISPLAY_NAME_AT_OID:
+
+                    return Utils.nullableSingletonList(user.getDisplayName());
+
+                case SchemaConstants.MAIL_AT:
+                case SchemaConstants.MAIL_AT_OID:
+
+                    return Utils.nullableSingletonList(user.getEmailAddress());
+
+                case Utils.MEMBER_OF_AT:
+
+                    return findGroupsForMemberOf(userId);
+
+                default:
+                    return Collections.emptyList();
+            }
+
+        } catch (UserNotFoundException |
+                OperationFailedException |
+                ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            logger.error("Cannot get value of user attribute.", e);
+            return Collections.emptyList();
+        }
     }
 
     @Nullable
@@ -523,10 +584,8 @@ public class CrowdPartition
 
         try {
 
-            switch (attribute) {
+            switch (Utils.normalizeAttribute(attribute)) {
 
-                case SchemaConstants.UID_AT:
-                case SchemaConstants.UID_AT_OID:
                 case SchemaConstants.CN_AT:
                 case SchemaConstants.CN_AT_OID:
                 case SchemaConstants.COMMON_NAME_AT:
@@ -585,7 +644,7 @@ public class CrowdPartition
 
         try {
 
-            switch (attribute) {
+            switch (Utils.normalizeAttribute(attribute)) {
 
                 case SchemaConstants.UID_NUMBER_AT:
                 case SchemaConstants.UID_NUMBER_AT_OID:
