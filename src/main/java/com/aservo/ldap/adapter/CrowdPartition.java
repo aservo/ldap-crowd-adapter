@@ -34,10 +34,7 @@ import com.atlassian.crowd.search.query.entity.restriction.TermRestriction;
 import com.atlassian.crowd.search.query.entity.restriction.constants.GroupTermKeys;
 import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKeys;
 import com.atlassian.crowd.service.client.CrowdClient;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
@@ -373,16 +370,18 @@ public class CrowdPartition
 
         try {
 
-            List<String> userIds = crowdClient.getNamesOfUsersOfGroup(groupId, 0, Integer.MAX_VALUE);
+            List<String> userIds = new ArrayList<>();
+            List<String> groupIds = new ArrayList<>();
 
-            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
+            groupIds.add(groupId);
 
-                // works transitive
-                for (String y : crowdClient.getNamesOfNestedChildGroupsOfGroup(groupId, 0, Integer.MAX_VALUE))
-                    for (String x : crowdClient.getNamesOfUsersOfGroup(y, 0, Integer.MAX_VALUE))
-                        if (!userIds.contains(x))
-                            userIds.add(x);
-            }
+            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING))
+                resolveGroupsDownwards(groupId, groupIds);
+
+            for (String y : groupIds)
+                for (String x : crowdClient.getNamesOfUsersOfGroup(y, 0, Integer.MAX_VALUE))
+                    if (!userIds.contains(x))
+                        userIds.add(x);
 
             return userIds;
 
@@ -406,25 +405,11 @@ public class CrowdPartition
 
                 groupIds.addAll(crowdClient.getNamesOfGroupsForUser(userId, 0, Integer.MAX_VALUE));
 
-                if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS)) {
+                if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS) ||
+                        serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
 
-                    for (String x : crowdClient.getNamesOfGroupsForNestedUser(userId, 0, Integer.MAX_VALUE))
-                        if (!groupIds.contains(x))
-                            groupIds.add(x);
-
-                } else if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
-
-                    List<String> flatGroupList = new LinkedList<>(groupIds);
-
-                    for (String y : flatGroupList) {
-
-                        // works transitive
-                        List<String> result = crowdClient.getNamesOfParentGroupsForNestedGroup(y, 0, Integer.MAX_VALUE);
-
-                        for (String x : result)
-                            if (!groupIds.contains(x))
-                                groupIds.add(x);
-                    }
+                    for (String x : new ArrayList<>(groupIds))
+                        resolveGroupsUpwards(x, groupIds);
                 }
             }
 
@@ -439,6 +424,38 @@ public class CrowdPartition
             logger.debug("Could not collect groups for a member because of problems with Crowd request.", e);
             return Collections.emptyList();
         }
+    }
+
+    private void resolveGroupsDownwards(String groupId, List<String> accu)
+            throws ApplicationPermissionException,
+            GroupNotFoundException,
+            OperationFailedException,
+            InvalidAuthenticationException {
+
+        List<String> result = crowdClient.getNamesOfNestedChildGroupsOfGroup(groupId, 0, Integer.MAX_VALUE);
+
+        for (String x : result)
+            if (!accu.contains(x))
+                accu.add(x);
+
+        for (String x : result)
+            resolveGroupsDownwards(x, accu);
+    }
+
+    private void resolveGroupsUpwards(String groupId, List<String> accu)
+            throws ApplicationPermissionException,
+            GroupNotFoundException,
+            OperationFailedException,
+            InvalidAuthenticationException {
+
+        List<String> result = crowdClient.getNamesOfParentGroupsForNestedGroup(groupId, 0, Integer.MAX_VALUE);
+
+        for (String x : result)
+            if (!accu.contains(x))
+                accu.add(x);
+
+        for (String x : result)
+            resolveGroupsUpwards(x, accu);
     }
 
     @Override
