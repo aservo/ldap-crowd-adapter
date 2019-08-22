@@ -40,17 +40,17 @@ public class Main {
         PropertyConfigurator.configure(loggingProperties);
 
         // load server configuration
-        Properties serverProperties = loadConfigFile(new File(configDir, "crowd-ldap-server.properties"));
+        Properties serverProperties = loadConfigFile(new File(configDir, "server.properties"));
         serverProperties.putAll(System.getProperties());
 
-        // load crowd configuration
-        Properties crowdProperties = loadConfigFile(new File(configDir, "crowd.properties"));
-        crowdProperties.putAll(System.getProperties());
+        // load backend configuration
+        Properties backendProperties = loadConfigFile(new File(configDir, "backend.properties"));
+        backendProperties.putAll(System.getProperties());
 
         // create object network
         Logger logger = LoggerFactory.getLogger("Bootloader");
-        ServerConfiguration serverConfig = new ServerConfiguration(serverProperties, crowdProperties);
-        CrowdLDAPServer server = new CrowdLDAPServer(serverConfig);
+        ServerConfiguration serverConfig = new ServerConfiguration(serverProperties, backendProperties);
+        CommonLdapServer server = new CommonLdapServer(serverConfig);
 
         // boot process
         server.start();

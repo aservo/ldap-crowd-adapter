@@ -22,18 +22,10 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.crowd.ldap.util.*;
+import com.aservo.ldap.adapter.exception.DirectoryAccessFailureException;
+import com.aservo.ldap.adapter.exception.EntryNotFoundException;
+import com.aservo.ldap.adapter.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.util.*;
-import com.atlassian.crowd.embedded.api.SearchRestriction;
-import com.atlassian.crowd.exception.*;
-import com.atlassian.crowd.model.group.Group;
-import com.atlassian.crowd.model.user.User;
-import com.atlassian.crowd.search.query.entity.restriction.MatchMode;
-import com.atlassian.crowd.search.query.entity.restriction.NullRestrictionImpl;
-import com.atlassian.crowd.search.query.entity.restriction.TermRestriction;
-import com.atlassian.crowd.search.query.entity.restriction.constants.GroupTermKeys;
-import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKeys;
-import com.atlassian.crowd.service.client.CrowdClient;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -59,25 +51,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class CrowdPartition
+public class CommonPartition
         extends SimpleReadOnlyPartition {
 
-    private final Logger logger = LoggerFactory.getLogger(CrowdPartition.class);
+    private final Logger logger = LoggerFactory.getLogger(CommonPartition.class);
 
-    private final CrowdClient crowdClient;
+    private final DirectoryBackend directoryBackend;
     private final ServerConfiguration serverConfig;
     private LRUCacheMap<String, Entry> entryCache;
     private FilterMatcher filterProcessor;
 
-    private Entry crowdEntry;
-    private Entry crowdGroupsEntry;
-    private Entry crowdUsersEntry;
+    private Entry rootEntry;
+    private Entry groupsEntry;
+    private Entry usersEntry;
 
-    public CrowdPartition(CrowdClient crowdClient, ServerConfiguration serverConfig) {
+    public CommonPartition(DirectoryBackend directoryBackend, ServerConfiguration serverConfig) {
 
-        super("crowd");
+        super(directoryBackend.getId());
 
-        this.crowdClient = crowdClient;
+        this.directoryBackend = directoryBackend;
         this.serverConfig = serverConfig;
         this.entryCache = new LRUCacheMap<>(serverConfig.getEntryCacheMaxSize());
     }
@@ -86,50 +78,50 @@ public class CrowdPartition
     protected void doInit()
             throws Exception {
 
-        // create crowd entry
-        // dn: dc=crowd
+        // create root entry
+        // dn: dc=<domain>
         // objectclass: top
         // objectclass: domain
-        // description: Crowd Domain
-        Dn crowdDn = new Dn(schemaManager, Utils.CROWD_DN);
-        crowdEntry = new DefaultEntry(schemaManager, crowdDn);
-        crowdEntry.put(SchemaConstants.OBJECT_CLASS_AT,
+        // description: <id> Domain
+        Dn rootDn = new Dn(schemaManager, directoryBackend.getRootDnString());
+        rootEntry = new DefaultEntry(schemaManager, rootDn);
+        rootEntry.put(SchemaConstants.OBJECT_CLASS_AT,
                 SchemaConstants.TOP_OC, SchemaConstants.DOMAIN_OC);
-        crowdEntry.put(SchemaConstants.DC_AT, crowdDn.getRdn().getAva().getValue().toString());
-        crowdEntry.put(SchemaConstants.DESCRIPTION_AT, "Crowd Domain");
+        rootEntry.put(SchemaConstants.DC_AT, rootDn.getRdn().getAva().getValue().toString());
+        rootEntry.put(SchemaConstants.DESCRIPTION_AT, directoryBackend.getId() + " Domain");
 
         // create groups entry
-        // dn: ou=groups, dc=crowd
+        // dn: ou=groups, dc=<domain>
         // objectClass: top
         // objectClass: organizationalUnit
         // ou: groups
-        // description: Crowd Groups
-        Dn groupDn = new Dn(schemaManager, Utils.CROWD_GROUPS_DN);
-        crowdGroupsEntry = new DefaultEntry(schemaManager, groupDn);
-        crowdGroupsEntry.put(SchemaConstants.OBJECT_CLASS_AT,
+        // description: <id> Groups
+        Dn groupDn = new Dn(schemaManager, directoryBackend.getGroupDnString());
+        groupsEntry = new DefaultEntry(schemaManager, groupDn);
+        groupsEntry.put(SchemaConstants.OBJECT_CLASS_AT,
                 SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
-        crowdGroupsEntry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
-        crowdGroupsEntry.put(SchemaConstants.DESCRIPTION_AT, "Crowd Groups");
+        groupsEntry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
+        groupsEntry.put(SchemaConstants.DESCRIPTION_AT, directoryBackend.getId() + " Groups");
 
         // create users entry
-        // dn: ou=users, dc=crowd
+        // dn: ou=users, dc=<domain>
         // objectClass: top
         // objectClass: organizationalUnit
         // ou: users
-        // description: Crowd Users
-        Dn usersDn = new Dn(schemaManager, Utils.CROWD_USERS_DN);
-        crowdUsersEntry = new DefaultEntry(schemaManager, usersDn);
-        crowdUsersEntry.put(SchemaConstants.OBJECT_CLASS_AT,
+        // description: <id> Users
+        Dn usersDn = new Dn(schemaManager, directoryBackend.getUserDnString());
+        usersEntry = new DefaultEntry(schemaManager, usersDn);
+        usersEntry.put(SchemaConstants.OBJECT_CLASS_AT,
                 SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
-        crowdUsersEntry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
-        crowdUsersEntry.put(SchemaConstants.DESCRIPTION_AT, "Crowd Users");
+        usersEntry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
+        usersEntry.put(SchemaConstants.DESCRIPTION_AT, directoryBackend.getId() + " Users");
 
         // add to cache
         if (serverConfig.isEntryCacheEnabled()) {
 
-            entryCache.put(crowdDn.getName(), crowdEntry);
-            entryCache.put(groupDn.getName(), crowdGroupsEntry);
-            entryCache.put(usersDn.getName(), crowdUsersEntry);
+            entryCache.put(rootDn.getName(), rootEntry);
+            entryCache.put(groupDn.getName(), groupsEntry);
+            entryCache.put(usersDn.getName(), usersEntry);
         }
 
         filterProcessor =
@@ -153,20 +145,20 @@ public class CrowdPartition
             throws Exception {
 
         logger.info("destroying partition");
-        crowdClient.shutdown();
+        directoryBackend.shutdown();
     }
 
     @Override
     public Dn getSuffixDn() {
 
-        return crowdEntry.getDn();
+        return rootEntry.getDn();
     }
 
     private List<String> getGroupValueFromAttribute(String attribute, String groupId) {
 
         try {
 
-            Group group = crowdClient.getGroup(groupId);
+            Map<String, String> groupInfo = directoryBackend.getGroupInfo(groupId);
 
             switch (Utils.normalizeAttribute(attribute)) {
 
@@ -174,11 +166,11 @@ public class CrowdPartition
                 case SchemaConstants.CN_AT_OID:
                 case SchemaConstants.COMMON_NAME_AT:
 
-                    return Utils.nullableSingletonList(group.getName());
+                    return Utils.nullableSingletonList(groupInfo.get(DirectoryBackend.GROUP_ID));
 
                 case SchemaConstants.DESCRIPTION_AT:
 
-                    return Utils.nullableSingletonList(group.getDescription());
+                    return Utils.nullableSingletonList(groupInfo.get(DirectoryBackend.GROUP_DESCRIPTION));
 
                 case SchemaConstants.MEMBER_AT:
                 case SchemaConstants.MEMBER_AT_OID:
@@ -191,10 +183,9 @@ public class CrowdPartition
                     return Collections.emptyList();
             }
 
-        } catch (GroupNotFoundException |
-                OperationFailedException |
-                ApplicationPermissionException |
-                InvalidAuthenticationException e) {
+        } catch (EntryNotFoundException |
+                SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
             logger.error("Cannot get value of user attribute.", e);
             return Collections.emptyList();
@@ -205,7 +196,7 @@ public class CrowdPartition
 
         try {
 
-            User user = crowdClient.getUser(userId);
+            Map<String, String> userInfo = directoryBackend.getUserInfo(userId);
 
             switch (Utils.normalizeAttribute(attribute)) {
 
@@ -213,29 +204,29 @@ public class CrowdPartition
                 case SchemaConstants.CN_AT_OID:
                 case SchemaConstants.COMMON_NAME_AT:
 
-                    return Utils.nullableSingletonList(user.getName());
+                    return Utils.nullableSingletonList(userInfo.get(DirectoryBackend.USER_ID));
 
                 case SchemaConstants.GN_AT:
                 case SchemaConstants.GN_AT_OID:
                 case SchemaConstants.GIVENNAME_AT:
 
-                    return Utils.nullableSingletonList(user.getFirstName());
+                    return Utils.nullableSingletonList(userInfo.get(DirectoryBackend.USER_FIRST_NAME));
 
                 case SchemaConstants.SN_AT:
                 case SchemaConstants.SN_AT_OID:
                 case SchemaConstants.SURNAME_AT:
 
-                    return Utils.nullableSingletonList(user.getLastName());
+                    return Utils.nullableSingletonList(userInfo.get(DirectoryBackend.USER_LAST_NAME));
 
                 case SchemaConstants.DISPLAY_NAME_AT:
                 case SchemaConstants.DISPLAY_NAME_AT_OID:
 
-                    return Utils.nullableSingletonList(user.getDisplayName());
+                    return Utils.nullableSingletonList(userInfo.get(DirectoryBackend.USER_DISPLAY_NAME));
 
                 case SchemaConstants.MAIL_AT:
                 case SchemaConstants.MAIL_AT_OID:
 
-                    return Utils.nullableSingletonList(user.getEmailAddress());
+                    return Utils.nullableSingletonList(userInfo.get(DirectoryBackend.USER_EMAIL_ADDRESS));
 
                 case Utils.MEMBER_OF_AT:
 
@@ -245,10 +236,9 @@ public class CrowdPartition
                     return Collections.emptyList();
             }
 
-        } catch (UserNotFoundException |
-                OperationFailedException |
-                ApplicationPermissionException |
-                InvalidAuthenticationException e) {
+        } catch (EntryNotFoundException |
+                SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
             logger.error("Cannot get value of user attribute.", e);
             return Collections.emptyList();
@@ -266,7 +256,7 @@ public class CrowdPartition
         try {
 
             String groupId = dn.getRdn().getNormValue();
-            Group group = crowdClient.getGroup(groupId);
+            Map<String, String> groupInfo = directoryBackend.getGroupInfo(groupId);
 
             entry = new DefaultEntry(schemaManager, dn);
 
@@ -274,8 +264,8 @@ public class CrowdPartition
             entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.GROUP_OF_NAMES_OC);
             entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC);
             entry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
-            entry.put(SchemaConstants.CN_AT, group.getName());
-            entry.put(SchemaConstants.DESCRIPTION_AT, group.getDescription());
+            entry.put(SchemaConstants.CN_AT, groupInfo.get(DirectoryBackend.GROUP_ID));
+            entry.put(SchemaConstants.DESCRIPTION_AT, groupInfo.get(DirectoryBackend.GROUP_DESCRIPTION));
 
             List<Dn> userDns = findMembers(groupId).stream()
                     .map(this::createUserDn)
@@ -289,12 +279,11 @@ public class CrowdPartition
             if (serverConfig.isEntryCacheEnabled())
                 entryCache.put(dn.getName(), entry);
 
-        } catch (GroupNotFoundException |
-                ApplicationPermissionException |
-                InvalidAuthenticationException |
-                OperationFailedException e) {
+        } catch (EntryNotFoundException |
+                SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
-            logger.debug("Could not create group entry because of problems with Crowd request.", e);
+            logger.debug("Could not create group entry because of problems with directory query.", e);
             return null;
 
         } catch (LdapException e) {
@@ -317,7 +306,7 @@ public class CrowdPartition
         try {
 
             String userId = dn.getRdn().getNormValue();
-            User user = crowdClient.getUser(userId);
+            Map<String, String> userInfo = directoryBackend.getUserInfo(userId);
 
             entry = new DefaultEntry(schemaManager, dn);
 
@@ -326,15 +315,15 @@ public class CrowdPartition
             entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.ORGANIZATIONAL_PERSON_OC);
             entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.INET_ORG_PERSON_OC);
             entry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
-            entry.put(SchemaConstants.UID_AT, user.getName());
-            entry.put(SchemaConstants.CN_AT, user.getName());
-            entry.put(SchemaConstants.COMMON_NAME_AT, user.getName());
-            entry.put(SchemaConstants.GN_AT, user.getFirstName());
-            entry.put(SchemaConstants.GIVENNAME_AT, user.getFirstName());
-            entry.put(SchemaConstants.SN_AT, user.getLastName());
-            entry.put(SchemaConstants.SURNAME_AT, user.getLastName());
-            entry.put(SchemaConstants.DISPLAY_NAME_AT, user.getDisplayName());
-            entry.put(SchemaConstants.MAIL_AT, user.getEmailAddress());
+            entry.put(SchemaConstants.UID_AT, userInfo.get(DirectoryBackend.USER_ID));
+            entry.put(SchemaConstants.CN_AT, userInfo.get(DirectoryBackend.USER_ID));
+            entry.put(SchemaConstants.COMMON_NAME_AT, userInfo.get(DirectoryBackend.USER_ID));
+            entry.put(SchemaConstants.GN_AT, userInfo.get(DirectoryBackend.USER_FIRST_NAME));
+            entry.put(SchemaConstants.GIVENNAME_AT, userInfo.get(DirectoryBackend.USER_FIRST_NAME));
+            entry.put(SchemaConstants.SN_AT, userInfo.get(DirectoryBackend.USER_LAST_NAME));
+            entry.put(SchemaConstants.SURNAME_AT, userInfo.get(DirectoryBackend.USER_LAST_NAME));
+            entry.put(SchemaConstants.DISPLAY_NAME_AT, userInfo.get(DirectoryBackend.USER_DISPLAY_NAME));
+            entry.put(SchemaConstants.MAIL_AT, userInfo.get(DirectoryBackend.USER_EMAIL_ADDRESS));
             entry.put(SchemaConstants.UID_NUMBER_AT, Utils.calculateHash(userId).toString());
 
             List<Dn> groupDns = findGroupsForMemberOf(userId).stream()
@@ -349,12 +338,11 @@ public class CrowdPartition
             if (serverConfig.isEntryCacheEnabled())
                 entryCache.put(dn.getName(), entry);
 
-        } catch (UserNotFoundException |
-                ApplicationPermissionException |
-                InvalidAuthenticationException |
-                OperationFailedException e) {
+        } catch (EntryNotFoundException |
+                SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
-            logger.debug("Could not create user entry because of problems with Crowd request.", e);
+            logger.debug("Could not create user entry because of problems with directory query.", e);
             return null;
 
         } catch (LdapException e) {
@@ -379,18 +367,17 @@ public class CrowdPartition
                 resolveGroupsDownwards(groupId, groupIds);
 
             for (String y : groupIds)
-                for (String x : crowdClient.getNamesOfUsersOfGroup(y, 0, Integer.MAX_VALUE))
+                for (String x : directoryBackend.getUsersOfGroup(y))
                     if (!userIds.contains(x))
                         userIds.add(x);
 
             return userIds;
 
-        } catch (GroupNotFoundException |
-                ApplicationPermissionException |
-                InvalidAuthenticationException |
-                OperationFailedException e) {
+        } catch (EntryNotFoundException |
+                SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
-            logger.debug("Could not collect group members because of problems with Crowd request.", e);
+            logger.debug("Could not collect group members because of problems with directory query.", e);
             return Collections.emptyList();
         }
     }
@@ -403,7 +390,7 @@ public class CrowdPartition
 
             if (serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
 
-                groupIds.addAll(crowdClient.getNamesOfGroupsForUser(userId, 0, Integer.MAX_VALUE));
+                groupIds.addAll(directoryBackend.getGroupsOfUser(userId));
 
                 if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS) ||
                         serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
@@ -415,24 +402,19 @@ public class CrowdPartition
 
             return groupIds;
 
-        } catch (UserNotFoundException |
-                GroupNotFoundException |
-                ApplicationPermissionException |
-                InvalidAuthenticationException |
-                OperationFailedException e) {
+        } catch (EntryNotFoundException |
+                SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
-            logger.debug("Could not collect groups for a member because of problems with Crowd request.", e);
+            logger.debug("Could not collect groups for a member because of problems with directory query.", e);
             return Collections.emptyList();
         }
     }
 
     private void resolveGroupsDownwards(String groupId, List<String> accu)
-            throws ApplicationPermissionException,
-            GroupNotFoundException,
-            OperationFailedException,
-            InvalidAuthenticationException {
+            throws DirectoryAccessFailureException, EntryNotFoundException, SecurityProblemException {
 
-        List<String> result = crowdClient.getNamesOfNestedChildGroupsOfGroup(groupId, 0, Integer.MAX_VALUE);
+        List<String> result = directoryBackend.getChildGroups(groupId);
 
         for (String x : result)
             if (!accu.contains(x))
@@ -443,12 +425,9 @@ public class CrowdPartition
     }
 
     private void resolveGroupsUpwards(String groupId, List<String> accu)
-            throws ApplicationPermissionException,
-            GroupNotFoundException,
-            OperationFailedException,
-            InvalidAuthenticationException {
+            throws DirectoryAccessFailureException, EntryNotFoundException, SecurityProblemException {
 
-        List<String> result = crowdClient.getNamesOfParentGroupsForNestedGroup(groupId, 0, Integer.MAX_VALUE);
+        List<String> result = directoryBackend.getParentGroups(groupId);
 
         for (String x : result)
             if (!accu.contains(x))
@@ -493,8 +472,8 @@ public class CrowdPartition
 
         // one level in DN
         if (dnSize == 1) {
-            if (crowdEntry.getDn().equals(dn)) {
-                entryCache.put(dn.getName(), crowdEntry);
+            if (rootEntry.getDn().equals(dn)) {
+                entryCache.put(dn.getName(), rootEntry);
                 return true;
             }
 
@@ -503,12 +482,12 @@ public class CrowdPartition
 
         // two levels in DN
         if (dnSize == 2) {
-            if (crowdGroupsEntry.getDn().equals(dn)) {
-                entryCache.put(dn.getName(), crowdGroupsEntry);
+            if (groupsEntry.getDn().equals(dn)) {
+                entryCache.put(dn.getName(), groupsEntry);
                 return true;
             }
-            if (crowdUsersEntry.getDn().equals(dn)) {
-                entryCache.put(dn.getName(), crowdUsersEntry);
+            if (usersEntry.getDn().equals(dn)) {
+                entryCache.put(dn.getName(), usersEntry);
                 return true;
             }
             return false;
@@ -524,7 +503,7 @@ public class CrowdPartition
             }
             logger.debug("Prefix={}", prefix);
 
-            if (crowdUsersEntry.getDn().equals(prefix)) {
+            if (usersEntry.getDn().equals(prefix)) {
                 Rdn rdn = dn.getRdn(2);
                 String user = rdn.getNormValue();
                 logger.debug("user={}", user);
@@ -532,7 +511,7 @@ public class CrowdPartition
                 return (userEntry != null);
             }
 
-            if (crowdGroupsEntry.getDn().equals(prefix)) {
+            if (groupsEntry.getDn().equals(prefix)) {
                 Rdn rdn = dn.getRdn(2);
                 String group = rdn.getNormValue();
                 logger.debug("group={}", group);
@@ -541,8 +520,8 @@ public class CrowdPartition
             }
 
             logger.debug("Prefix is neither users nor groups");
-            logger.debug("Crowd Users = {}", crowdUsersEntry.getDn());
-            logger.debug("Crowd Groups = {}", crowdGroupsEntry.getDn().toString());
+            logger.debug("Users = {}", usersEntry.getDn());
+            logger.debug("Groups = {}", groupsEntry.getDn().toString());
             return false;
         }
 
@@ -554,7 +533,7 @@ public class CrowdPartition
 
         try {
 
-            return new Dn(schemaManager, String.format("cn=%s,%s", groupId, Utils.CROWD_GROUPS_DN));
+            return new Dn(schemaManager, String.format("cn=%s,%s", groupId, directoryBackend.getGroupDnString()));
 
         } catch (LdapInvalidDnException e) {
 
@@ -568,7 +547,7 @@ public class CrowdPartition
 
         try {
 
-            return new Dn(schemaManager, String.format("cn=%s,%s", userId, Utils.CROWD_USERS_DN));
+            return new Dn(schemaManager, String.format("cn=%s,%s", userId, directoryBackend.getUserDnString()));
 
         } catch (LdapInvalidDnException e) {
 
@@ -581,13 +560,12 @@ public class CrowdPartition
 
         try {
 
-            return crowdClient.searchGroupNames(NullRestrictionImpl.INSTANCE, 0, Integer.MAX_VALUE);
+            return directoryBackend.getGroups();
 
-        } catch (OperationFailedException |
-                InvalidAuthenticationException |
-                ApplicationPermissionException e) {
+        } catch (SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
-            logger.debug("Cannot receive group information from Crowd.", e);
+            logger.debug("Cannot receive group information from directory backend.", e);
 
             return Collections.emptyList();
         }
@@ -596,7 +574,6 @@ public class CrowdPartition
     @Nullable
     private String findGroup(String attribute, String value) {
 
-        SearchRestriction restriction;
         List<String> result;
 
         try {
@@ -607,9 +584,7 @@ public class CrowdPartition
                 case SchemaConstants.CN_AT_OID:
                 case SchemaConstants.COMMON_NAME_AT:
 
-                    restriction = new TermRestriction<>(GroupTermKeys.NAME, MatchMode.EXACTLY_MATCHES, value);
-
-                    result = crowdClient.searchGroupNames(restriction, 0, Integer.MAX_VALUE);
+                    result = directoryBackend.getGroupsByAttribute(DirectoryBackend.GROUP_ID, value);
 
                     break;
 
@@ -627,11 +602,10 @@ public class CrowdPartition
 
             return result.stream().findAny().orElse(null);
 
-        } catch (OperationFailedException |
-                InvalidAuthenticationException |
-                ApplicationPermissionException e) {
+        } catch (SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
-            logger.error("Cannot receive user information from Crowd.", e);
+            logger.error("Cannot receive user information from directory backend.", e);
 
             return null;
         }
@@ -641,13 +615,12 @@ public class CrowdPartition
 
         try {
 
-            return crowdClient.searchUserNames(NullRestrictionImpl.INSTANCE, 0, Integer.MAX_VALUE);
+            return directoryBackend.getUsers();
 
-        } catch (OperationFailedException |
-                InvalidAuthenticationException |
-                ApplicationPermissionException e) {
+        } catch (SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
-            logger.error("Cannot receive user information from Crowd.", e);
+            logger.error("Cannot receive user information from directory backend.", e);
 
             return Collections.emptyList();
         }
@@ -656,7 +629,6 @@ public class CrowdPartition
     @Nullable
     private String findUser(String attribute, String value) {
 
-        SearchRestriction restriction;
         List<String> result;
 
         try {
@@ -666,9 +638,7 @@ public class CrowdPartition
                 case SchemaConstants.UID_NUMBER_AT:
                 case SchemaConstants.UID_NUMBER_AT_OID:
 
-                    restriction = NullRestrictionImpl.INSTANCE;
-
-                    result = crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE).stream()
+                    result = directoryBackend.getUsers().stream()
                             .filter((x) -> Utils.calculateHash(x).toString().equals(value))
                             .collect(Collectors.toList());
 
@@ -680,18 +650,14 @@ public class CrowdPartition
                 case SchemaConstants.CN_AT_OID:
                 case SchemaConstants.COMMON_NAME_AT:
 
-                    restriction = new TermRestriction<>(UserTermKeys.USERNAME, MatchMode.EXACTLY_MATCHES, value);
-
-                    result = crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
+                    result = directoryBackend.getUsersByAttribute(DirectoryBackend.USER_ID, value);
 
                     break;
 
                 case SchemaConstants.MAIL_AT:
                 case SchemaConstants.MAIL_AT_OID:
 
-                    restriction = new TermRestriction<>(UserTermKeys.EMAIL, MatchMode.EXACTLY_MATCHES, value);
-
-                    result = crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
+                    result = directoryBackend.getUsersByAttribute(DirectoryBackend.USER_EMAIL_ADDRESS, value);
 
                     break;
 
@@ -709,11 +675,10 @@ public class CrowdPartition
 
             return result.stream().findAny().orElse(null);
 
-        } catch (OperationFailedException |
-                InvalidAuthenticationException |
-                ApplicationPermissionException e) {
+        } catch (SecurityProblemException |
+                DirectoryAccessFailureException e) {
 
-            logger.error("Cannot receive user information from Crowd.", e);
+            logger.error("Cannot receive user information from directory backend.", e);
 
             return null;
         }
@@ -746,7 +711,7 @@ public class CrowdPartition
 
         logger.debug("findOne()::dn={}", context.getDn().getName());
 
-        if (context.getDn().getParent().equals(crowdGroupsEntry.getDn())) {
+        if (context.getDn().getParent().equals(groupsEntry.getDn())) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -764,7 +729,7 @@ public class CrowdPartition
                     })
                     .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
 
-        } else if (context.getDn().getParent().equals(crowdUsersEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(usersEntry.getDn())) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -782,7 +747,7 @@ public class CrowdPartition
                     })
                     .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
 
-        } else if (context.getDn().getParent().equals(crowdEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(rootEntry.getDn())) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -821,7 +786,7 @@ public class CrowdPartition
 
         logger.debug("findManyOnFirstLevel()::dn={}", context.getDn().getName());
 
-        if (context.getDn().equals(crowdGroupsEntry.getDn())) {
+        if (context.getDn().equals(groupsEntry.getDn())) {
 
             List<Entry> groupEntryList = createGroupEntryList(findGroups(), context.getFilter());
 
@@ -831,7 +796,7 @@ public class CrowdPartition
                     schemaManager
             );
 
-        } else if (context.getDn().getParent().equals(crowdGroupsEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(groupsEntry.getDn())) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -845,7 +810,7 @@ public class CrowdPartition
                     schemaManager
             );
 
-        } else if (context.getDn().equals(crowdUsersEntry.getDn())) {
+        } else if (context.getDn().equals(usersEntry.getDn())) {
 
             List<Entry> userEntries = createUserEntryList(findUsers(), context.getFilter());
 
@@ -855,7 +820,7 @@ public class CrowdPartition
                     schemaManager
             );
 
-        } else if (context.getDn().getParent().equals(crowdUsersEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(usersEntry.getDn())) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -869,7 +834,7 @@ public class CrowdPartition
                     schemaManager
             );
 
-        } else if (context.getDn().equals(crowdEntry.getDn())) {
+        } else if (context.getDn().equals(rootEntry.getDn())) {
 
             List<Entry> groupEntries = createGroupEntryList(findGroups(), context.getFilter());
             List<Entry> userEntries = createUserEntryList(findUsers(), context.getFilter());
@@ -884,7 +849,7 @@ public class CrowdPartition
                     schemaManager
             );
 
-        } else if (context.getDn().getParent().equals(crowdEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(rootEntry.getDn())) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();

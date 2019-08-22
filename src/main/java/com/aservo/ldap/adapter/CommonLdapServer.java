@@ -22,17 +22,14 @@
 
 package com.aservo.ldap.adapter;
 
-import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;
-import com.atlassian.crowd.service.client.ClientProperties;
-import com.atlassian.crowd.service.client.ClientPropertiesImpl;
-import com.atlassian.crowd.service.client.CrowdClient;
+import com.aservo.ldap.adapter.util.DirectoryBackend;
+import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.ldap.model.schema.registries.SchemaLoader;
@@ -58,19 +55,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class CrowdLDAPServer {
+public class CommonLdapServer {
 
-    private final Logger logger = LoggerFactory.getLogger(CrowdLDAPServer.class);
+    private final Logger logger = LoggerFactory.getLogger(CommonLdapServer.class);
 
     private final ServerConfiguration serverConfig;
-    private final CrowdClient crowdClient;
+    private final DirectoryBackend directoryBackend;
     private final DirectoryService directoryService;
 
-    public CrowdLDAPServer(ServerConfiguration serverConfig) {
+    public CommonLdapServer(ServerConfiguration serverConfig) {
 
         this.serverConfig = serverConfig;
-        ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(serverConfig.getCrowdProperties());
-        crowdClient = new RestCrowdClientFactory().newInstance(props);
+        this.directoryBackend = serverConfig.getDirectoryBackend();
+
         createNewLoaders();
         directoryService = initDirectoryService();
     }
@@ -84,7 +81,7 @@ public class CrowdLDAPServer {
 
         try {
 
-            crowdClient.testConnection();
+            directoryBackend.startup();
             directoryService.startup();
 
             LdapServer server = new LdapServer();
@@ -256,13 +253,13 @@ public class CrowdLDAPServer {
                     logger.debug("Interceptor: {}", interceptor.getName());
                     AuthenticationInterceptor ai = (AuthenticationInterceptor) interceptor;
                     Set<Authenticator> auths = new HashSet<Authenticator>();
-                    auths.add(new CrowdAuthenticator(crowdClient, directoryService.getSchemaManager()));
+                    auths.add(new CommonAuthenticator(directoryBackend, directoryService.getSchemaManager()));
                     ai.setAuthenticators(auths);
                 }
             }
 
-            // add Crowd Partition
-            addCrowdPartition(directoryService);
+            // add Partition
+            addPartition(directoryService);
 
             return directoryService;
 
@@ -272,11 +269,11 @@ public class CrowdLDAPServer {
         }
     }
 
-    private void addCrowdPartition(DirectoryService directoryService) {
+    private void addPartition(DirectoryService directoryService) {
 
         try {
 
-            CrowdPartition partition = new CrowdPartition(crowdClient, serverConfig);
+            CommonPartition partition = new CommonPartition(directoryBackend, serverConfig);
 
             partition.setSchemaManager(directoryService.getSchemaManager());
             partition.initialize();

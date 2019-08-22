@@ -22,10 +22,10 @@
 
 package com.aservo.ldap.adapter;
 
+import com.aservo.ldap.adapter.util.DirectoryBackend;
 import com.aservo.ldap.adapter.util.Utils;
-import com.atlassian.crowd.model.user.User;
-import com.atlassian.crowd.service.client.CrowdClient;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import javax.naming.AuthenticationException;
 import org.apache.directory.api.ldap.model.constants.AuthenticationLevel;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
@@ -39,25 +39,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class CrowdAuthenticator
+public class CommonAuthenticator
         extends AbstractAuthenticator {
 
-    private final Logger logger = LoggerFactory.getLogger(CrowdAuthenticator.class);
+    private final Logger logger = LoggerFactory.getLogger(CommonAuthenticator.class);
 
-    private final CrowdClient crowdClient;
+    private final DirectoryBackend directoryBackend;
     private final SchemaManager schemaManager;
-    private final Dn crowdDn;
+    private final Dn rootDn;
     private final Dn usersDn;
 
-    public CrowdAuthenticator(CrowdClient crowdClient, SchemaManager schemaManager)
+    public CommonAuthenticator(DirectoryBackend directoryBackend, SchemaManager schemaManager)
             throws LdapInvalidDnException {
 
         super(AuthenticationLevel.SIMPLE);
-        this.crowdClient = crowdClient;
+        this.directoryBackend = directoryBackend;
         this.schemaManager = schemaManager;
 
-        this.crowdDn = new Dn(schemaManager, Utils.CROWD_DN);
-        this.usersDn = new Dn(schemaManager, Utils.CROWD_USERS_DN);
+        this.rootDn = new Dn(schemaManager, directoryBackend.getRootDnString());
+        this.usersDn = new Dn(schemaManager, directoryBackend.getUserDnString());
     }
 
     public LdapPrincipal authenticate(BindOperationContext context)
@@ -65,7 +65,7 @@ public class CrowdAuthenticator
 
         String attribute = Utils.normalizeAttribute(context.getDn().getRdn().getType());
 
-        if ((context.getDn().getParent().equals(usersDn) || context.getDn().getParent().equals(crowdDn)) && (
+        if ((context.getDn().getParent().equals(usersDn) || context.getDn().getParent().equals(rootDn)) && (
                 attribute.equals(SchemaConstants.UID_AT) ||
                         attribute.equals(SchemaConstants.UID_AT_OID) ||
                         attribute.equals(SchemaConstants.CN_AT) ||
@@ -77,9 +77,11 @@ public class CrowdAuthenticator
 
             try {
 
-                User user = crowdClient.authenticateUser(userId, password);
+                Map<String, String> userInfo = directoryBackend.getInfoFromAuthenticatedUser(userId, password);
 
-                logger.debug("The user {} has been successfully authenticated.", user);
+                logger.debug("The user {} has been successfully authenticated.",
+                        userInfo.get(DirectoryBackend.USER_ID));
+
                 return new LdapPrincipal(schemaManager, context.getDn(), AuthenticationLevel.SIMPLE);
 
             } catch (Exception e) {

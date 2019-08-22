@@ -28,10 +28,6 @@ public class Utils {
     public static final String OU_GROUPS = "groups";
     public static final String OU_USERS = "users";
 
-    public static final String CROWD_DN = "dc=crowd";
-    public static final String CROWD_GROUPS_DN = "ou=" + Utils.OU_GROUPS + ",dc=crowd";
-    public static final String CROWD_USERS_DN = "ou=" + Utils.OU_USERS + ",dc=crowd";
-
     public static final String MEMBER_OF_AT = "memberOf";
 
     public static Integer calculateHash(@Nullable String value) {

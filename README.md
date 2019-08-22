@@ -6,9 +6,9 @@ REST API. The LDAP implementation is based on the Apache Directory Server.
 
 ### Configuration
 
-* etc/crowd.properties
-* etc/crowd-ldap-server.properties
-* etc/log4j.properties
+* etc/backend.properties (Crowd)
+* etc/log4j.properties (Logging)
+* etc/server.properties (Crowd-LDAP-Adapter)
 
 ### Run
 

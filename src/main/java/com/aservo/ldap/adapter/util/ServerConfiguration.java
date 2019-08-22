@@ -34,9 +34,8 @@ public class ServerConfiguration {
     public static final String CONFIG_SSL_KEY_STORE = "ssl.keystore";
     public static final String CONFIG_SSL_CERTIFICATE_PW = "ssl.certificate.password";
     public static final String CONFIG_SUPPORT_MEMBER_OF = "support.member-of";
+    public static final String CONFIG_DIRECTORY_BACKEND = "directory-backend";
 
-    private final Properties serverProperties;
-    private final Properties crowdProperties;
     private final File cacheDir;
     private final String host;
     private final int port;
@@ -46,11 +45,9 @@ public class ServerConfiguration {
     private final String keyStore;
     private final String certificatePassword;
     private final MemberOfSupport memberOfSupport;
+    private final DirectoryBackend directoryBackend;
 
-    public ServerConfiguration(Properties serverProperties, Properties crowdProperties) {
-
-        this.serverProperties = serverProperties;
-        this.crowdProperties = crowdProperties;
+    public ServerConfiguration(Properties serverProperties, Properties backendProperties) {
 
         cacheDir = new File(serverProperties.getProperty(CONFIG_CACHE_DIR));
 
@@ -109,16 +106,24 @@ public class ServerConfiguration {
 
         String memberOfSupportValue = serverProperties.getProperty(CONFIG_SUPPORT_MEMBER_OF, "normal");
         memberOfSupport = MemberOfSupport.valueOf(memberOfSupportValue.toUpperCase().replace('-', '_'));
-    }
 
-    public Properties getServerProperties() {
+        String directoryBackendClassValue = serverProperties.getProperty(CONFIG_DIRECTORY_BACKEND);
 
-        return serverProperties;
-    }
+        if (directoryBackendClassValue == null || directoryBackendClassValue.isEmpty())
+            throw new IllegalArgumentException("Missing value for " + CONFIG_DIRECTORY_BACKEND);
 
-    public Properties getCrowdProperties() {
+        try {
 
-        return crowdProperties;
+            directoryBackend =
+                    (DirectoryBackend) Class.forName(directoryBackendClassValue)
+                            .getConstructor(Properties.class)
+                            .newInstance(backendProperties);
+
+        } catch (Exception e) {
+
+            throw new IllegalArgumentException("Cannot handle incorrect directory backend: " +
+                    directoryBackendClassValue, e);
+        }
     }
 
     public File getCacheDir() {
@@ -164,5 +169,10 @@ public class ServerConfiguration {
     public MemberOfSupport getMemberOfSupport() {
 
         return memberOfSupport;
+    }
+
+    public DirectoryBackend getDirectoryBackend() {
+
+        return directoryBackend;
     }
 }
