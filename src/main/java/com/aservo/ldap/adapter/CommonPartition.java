@@ -144,7 +144,7 @@ public class CommonPartition
     protected void doDestroy()
             throws Exception {
 
-        logger.info("destroying partition");
+        logger.info("Destroy partition: {}", id);
         directoryBackend.shutdown();
     }
 
@@ -187,7 +187,7 @@ public class CommonPartition
                 SecurityProblemException |
                 DirectoryAccessFailureException e) {
 
-            logger.error("Cannot get value of user attribute.", e);
+            logger.error("Cannot get value of group attribute.", e);
             return Collections.emptyList();
         }
     }
@@ -447,10 +447,10 @@ public class CommonPartition
         Entry se = entryCache.get(context.getDn().getName());
         if (se == null) {
             //todo
-            logger.debug("lookup()::No cached entry found for " + dn.getName());
+            logger.debug("Could not find cached entry for {}", dn.getName());
             return null;
         } else {
-            logger.debug("lookup()::Cached entry found for " + dn.getName());
+            logger.debug("Could find cached entry for {}", dn.getName());
             return new ClonedServerEntry(se);
         }
     }
@@ -605,7 +605,7 @@ public class CommonPartition
         } catch (SecurityProblemException |
                 DirectoryAccessFailureException e) {
 
-            logger.error("Cannot receive user information from directory backend.", e);
+            logger.error("Cannot receive group information from directory backend.", e);
 
             return null;
         }
@@ -686,30 +686,44 @@ public class CommonPartition
 
     private List<Entry> createGroupEntryList(List<String> groupIds, ExprNode filter) {
 
-        return groupIds.stream()
-                .filter((x) -> filterProcessor.match(filter, x, OuType.GROUP))
-                .map(this::createGroupDn)
-                .filter(Objects::nonNull)
-                .map(this::createGroupEntry)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        List<Entry> entries =
+                groupIds.stream()
+                        .filter((x) -> filterProcessor.match(filter, x, OuType.GROUP))
+                        .map(this::createGroupDn)
+                        .filter(Objects::nonNull)
+                        .map(this::createGroupEntry)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+
+        for (Entry x : entries)
+            logger.debug("Return with group \n{}", x);
+
+        return entries;
     }
 
     private List<Entry> createUserEntryList(List<String> userIds, ExprNode filter) {
 
-        return userIds.stream()
-                .filter((x) -> filterProcessor.match(filter, x, OuType.USER))
-                .map(this::createUserDn)
-                .filter(Objects::nonNull)
-                .map(this::createUserEntry)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        List<Entry> entries =
+                userIds.stream()
+                        .filter((x) -> filterProcessor.match(filter, x, OuType.USER))
+                        .map(this::createUserDn)
+                        .filter(Objects::nonNull)
+                        .map(this::createUserEntry)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+
+        for (Entry x : entries)
+            logger.debug("Return with user \n{}", x);
+
+        return entries;
     }
 
     @Override
     protected EntryFilteringCursor findOne(SearchOperationContext context) {
 
-        logger.debug("findOne()::dn={}", context.getDn().getName());
+        logger.debug("Try to find one entry with dn={} and filter={}",
+                context.getDn().getName(),
+                context.getFilter());
 
         if (context.getDn().getParent().equals(groupsEntry.getDn())) {
 
@@ -784,7 +798,9 @@ public class CommonPartition
     protected EntryFilteringCursor findManyOnFirstLevel(SearchOperationContext context)
             throws LdapException {
 
-        logger.debug("findManyOnFirstLevel()::dn={}", context.getDn().getName());
+        logger.debug("Try to find many entries on first level with dn={} and filter={}",
+                context.getDn().getName(),
+                context.getFilter());
 
         if (context.getDn().equals(groupsEntry.getDn())) {
 
@@ -882,7 +898,9 @@ public class CommonPartition
     protected EntryFilteringCursor findManyOnMultipleLevels(SearchOperationContext context)
             throws LdapException {
 
-        logger.debug("findManyOnMultipleLevels()::dn={}", context.getDn().getName());
+        logger.debug("Try to find many entries on multiple levels with dn={} and filter={}",
+                context.getDn().getName(),
+                context.getFilter());
 
         // will only search at one level
         return findManyOnFirstLevel(context);
