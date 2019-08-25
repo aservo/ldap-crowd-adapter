@@ -23,12 +23,11 @@
 package com.aservo.ldap.adapter;
 
 import com.aservo.ldap.adapter.util.DirectoryBackend;
-import com.aservo.ldap.adapter.util.Utils;
+import com.aservo.ldap.adapter.util.LdapHelper;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import javax.naming.AuthenticationException;
 import org.apache.directory.api.ldap.model.constants.AuthenticationLevel;
-import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
@@ -63,16 +62,10 @@ public class CommonAuthenticator
     public LdapPrincipal authenticate(BindOperationContext context)
             throws Exception {
 
-        String attribute = Utils.normalizeAttribute(context.getDn().getRdn().getType());
+        String userId = LdapHelper.getUserFromDn(rootDn, usersDn, context.getDn());
 
-        if ((context.getDn().getParent().equals(usersDn) || context.getDn().getParent().equals(rootDn)) && (
-                attribute.equals(SchemaConstants.UID_AT) ||
-                        attribute.equals(SchemaConstants.UID_AT_OID) ||
-                        attribute.equals(SchemaConstants.CN_AT) ||
-                        attribute.equals(SchemaConstants.CN_AT_OID) ||
-                        attribute.equals(SchemaConstants.COMMON_NAME_AT))) {
+        if (userId != null) {
 
-            String userId = context.getDn().getRdn().getNormValue();
             String password = new String(context.getCredentials(), StandardCharsets.UTF_8);
 
             try {
