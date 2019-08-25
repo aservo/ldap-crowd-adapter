@@ -197,7 +197,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.UNIQUE_MEMBER_AT_OID:
 
                 if (ouType.equals(OuType.GROUP) &&
-                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
+                        compare.apply(getUserFromDn(value), getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -205,7 +205,7 @@ public abstract class FilterMatcher {
             case Utils.MEMBER_OF_AT:
 
                 if (ouType.equals(OuType.USER) &&
-                        compare.apply(value, getValuesFromAttribute(attribute, entryId, ouType)))
+                        compare.apply(getGroupFromDn(value), getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 
                 break;
@@ -217,15 +217,21 @@ public abstract class FilterMatcher {
         return false;
     }
 
-    private boolean compareEquality(String value, List<String> alternatives) {
+    private boolean compareEquality(@Nullable String value, List<String> alternatives) {
 
         return value != null && alternatives.stream().anyMatch((x) -> x.equalsIgnoreCase(value));
     }
 
-    private boolean comparePresence(String value, List<String> alternatives) {
+    private boolean comparePresence(@Nullable String value, List<String> alternatives) {
 
         return value == null && !alternatives.isEmpty();
     }
 
     protected abstract List<String> getValuesFromAttribute(String attribute, String entryId, OuType ouType);
+
+    @Nullable
+    protected abstract String getGroupFromDn(@Nullable String value);
+
+    @Nullable
+    protected abstract String getUserFromDn(@Nullable String value);
 }

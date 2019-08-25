@@ -137,6 +137,40 @@ public class CommonPartition
 
                         return null;
                     }
+
+                    @Nullable
+                    @Override
+                    protected String getGroupFromDn(@Nullable String value) {
+
+                        if (value == null)
+                            return null;
+
+                        try {
+
+                            return LdapHelper.getGroupFromDn(rootDn, groupDn, new Dn(schemaManager, value));
+
+                        } catch (LdapInvalidDnException e) {
+
+                            return null;
+                        }
+                    }
+
+                    @Nullable
+                    @Override
+                    protected String getUserFromDn(@Nullable String value) {
+
+                        if (value == null)
+                            return null;
+
+                        try {
+
+                            return LdapHelper.getUserFromDn(rootDn, usersDn, new Dn(schemaManager, value));
+
+                        } catch (LdapInvalidDnException e) {
+
+                            return null;
+                        }
+                    }
                 };
     }
 
