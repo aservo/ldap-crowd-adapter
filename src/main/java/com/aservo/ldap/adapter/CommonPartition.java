@@ -401,7 +401,7 @@ public class CommonPartition
                 resolveGroupsDownwards(groupId, groupIds);
 
             for (String y : groupIds)
-                for (String x : directoryBackend.getUsersOfGroup(y))
+                for (String x : directoryBackend.getDirectUsersOfGroup(y))
                     if (!userIds.contains(x))
                         userIds.add(x);
 
@@ -424,7 +424,7 @@ public class CommonPartition
 
             if (serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
 
-                groupIds.addAll(directoryBackend.getGroupsOfUser(userId));
+                groupIds.addAll(directoryBackend.getDirectGroupsOfUser(userId));
 
                 if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS) ||
                         serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
@@ -448,7 +448,7 @@ public class CommonPartition
     private void resolveGroupsDownwards(String groupId, List<String> accu)
             throws DirectoryAccessFailureException, EntryNotFoundException, SecurityProblemException {
 
-        List<String> result = directoryBackend.getChildGroups(groupId);
+        List<String> result = directoryBackend.getTransitiveChildGroupsOfGroup(groupId);
 
         for (String x : result)
             if (!accu.contains(x))
@@ -461,7 +461,7 @@ public class CommonPartition
     private void resolveGroupsUpwards(String groupId, List<String> accu)
             throws DirectoryAccessFailureException, EntryNotFoundException, SecurityProblemException {
 
-        List<String> result = directoryBackend.getParentGroups(groupId);
+        List<String> result = directoryBackend.getTransitiveParentGroupsOfGroup(groupId);
 
         for (String x : result)
             if (!accu.contains(x))
@@ -594,7 +594,7 @@ public class CommonPartition
 
         try {
 
-            return directoryBackend.getGroups();
+            return directoryBackend.getAllGroups();
 
         } catch (SecurityProblemException |
                 DirectoryAccessFailureException e) {
@@ -649,7 +649,7 @@ public class CommonPartition
 
         try {
 
-            return directoryBackend.getUsers();
+            return directoryBackend.getAllUsers();
 
         } catch (SecurityProblemException |
                 DirectoryAccessFailureException e) {
@@ -672,7 +672,7 @@ public class CommonPartition
                 case SchemaConstants.UID_NUMBER_AT:
                 case SchemaConstants.UID_NUMBER_AT_OID:
 
-                    result = directoryBackend.getUsers().stream()
+                    result = directoryBackend.getAllUsers().stream()
                             .filter((x) -> Utils.calculateHash(x).toString().equals(value))
                             .collect(Collectors.toList());
 

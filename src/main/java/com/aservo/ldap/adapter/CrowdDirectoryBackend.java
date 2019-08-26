@@ -80,7 +80,7 @@ public class CrowdDirectoryBackend
     }
 
     public void startup()
-            throws SecurityProblemException, DirectoryAccessFailureException {
+            throws DirectoryAccessFailureException, SecurityProblemException {
 
         try {
 
@@ -98,24 +98,17 @@ public class CrowdDirectoryBackend
     }
 
     public void shutdown()
-            throws SecurityProblemException, DirectoryAccessFailureException {
+            throws DirectoryAccessFailureException, SecurityProblemException {
 
         crowdClient.shutdown();
     }
 
     public Map<String, String> getGroupInfo(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException {
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
         try {
 
-            Group group = crowdClient.getGroup(id);
-
-            Map<String, String> map = new HashMap<>();
-
-            map.put(GROUP_ID, group.getName());
-            map.put(GROUP_DESCRIPTION, group.getDescription());
-
-            return map;
+            return mapGroupInfo(crowdClient.getGroup(id));
 
         } catch (GroupNotFoundException e) {
 
@@ -133,21 +126,11 @@ public class CrowdDirectoryBackend
     }
 
     public Map<String, String> getUserInfo(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException {
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
         try {
 
-            User user = crowdClient.getUser(id);
-
-            Map<String, String> map = new HashMap<>();
-
-            map.put(USER_ID, user.getName());
-            map.put(USER_FIRST_NAME, user.getFirstName());
-            map.put(USER_LAST_NAME, user.getLastName());
-            map.put(USER_DISPLAY_NAME, user.getDisplayName());
-            map.put(USER_EMAIL_ADDRESS, user.getEmailAddress());
-
-            return map;
+            return mapUserInfo(crowdClient.getUser(id));
 
         } catch (UserNotFoundException e) {
 
@@ -165,21 +148,11 @@ public class CrowdDirectoryBackend
     }
 
     public Map<String, String> getInfoFromAuthenticatedUser(String id, String password)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException {
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
         try {
 
-            User user = crowdClient.authenticateUser(id, password);
-
-            Map<String, String> map = new HashMap<>();
-
-            map.put(USER_ID, user.getName());
-            map.put(USER_FIRST_NAME, user.getFirstName());
-            map.put(USER_LAST_NAME, user.getLastName());
-            map.put(USER_DISPLAY_NAME, user.getDisplayName());
-            map.put(USER_EMAIL_ADDRESS, user.getEmailAddress());
-
-            return map;
+            return mapUserInfo(crowdClient.authenticateUser(id, password));
 
         } catch (UserNotFoundException e) {
 
@@ -198,8 +171,31 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getGroups()
-            throws SecurityProblemException, DirectoryAccessFailureException {
+    private Map<String, String> mapGroupInfo(Group group) {
+
+        Map<String, String> map = new HashMap<>();
+
+        map.put(GROUP_ID, group.getName());
+        map.put(GROUP_DESCRIPTION, group.getDescription());
+
+        return map;
+    }
+
+    private Map<String, String> mapUserInfo(User user) {
+
+        Map<String, String> map = new HashMap<>();
+
+        map.put(USER_ID, user.getName());
+        map.put(USER_FIRST_NAME, user.getFirstName());
+        map.put(USER_LAST_NAME, user.getLastName());
+        map.put(USER_DISPLAY_NAME, user.getDisplayName());
+        map.put(USER_EMAIL_ADDRESS, user.getEmailAddress());
+
+        return map;
+    }
+
+    public List<String> getAllGroups()
+            throws DirectoryAccessFailureException, SecurityProblemException {
 
         try {
 
@@ -216,8 +212,8 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getUsers()
-            throws SecurityProblemException, DirectoryAccessFailureException {
+    public List<String> getAllUsers()
+            throws DirectoryAccessFailureException, SecurityProblemException {
 
         try {
 
@@ -235,7 +231,7 @@ public class CrowdDirectoryBackend
     }
 
     public List<String> getGroupsByAttribute(String attribute, String value)
-            throws SecurityProblemException, DirectoryAccessFailureException {
+            throws DirectoryAccessFailureException, SecurityProblemException {
 
         try {
 
@@ -270,7 +266,7 @@ public class CrowdDirectoryBackend
     }
 
     public List<String> getUsersByAttribute(String attribute, String value)
-            throws SecurityProblemException, DirectoryAccessFailureException {
+            throws DirectoryAccessFailureException, SecurityProblemException {
 
         try {
 
@@ -325,8 +321,8 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getUsersOfGroup(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException {
+    public List<String> getDirectUsersOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
         try {
 
@@ -347,8 +343,8 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getGroupsOfUser(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException {
+    public List<String> getDirectGroupsOfUser(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
         try {
 
@@ -369,12 +365,38 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getChildGroups(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException {
+    public List<String> getTransitiveUsersOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        List<String> userIds = getDirectUsersOfGroup(id);
+
+        for (String y : getTransitiveChildGroupsOfGroup(id))
+            for (String x : getDirectUsersOfGroup(y))
+                if (!userIds.contains(x))
+                    userIds.add(x);
+
+        return userIds;
+    }
+
+    public List<String> getTransitiveGroupsOfUser(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        List<String> groupIds = getDirectGroupsOfUser(id);
+
+        for (String y : new ArrayList<>(groupIds))
+            for (String x : getTransitiveParentGroupsOfGroup(y))
+                if (!groupIds.contains(x))
+                    groupIds.add(x);
+
+        return groupIds;
+    }
+
+    public List<String> getDirectChildGroupsOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
         try {
 
-            return crowdClient.getNamesOfNestedChildGroupsOfGroup(id, 0, Integer.MAX_VALUE);
+            return crowdClient.getNamesOfChildGroupsOfGroup(id, 0, Integer.MAX_VALUE);
 
         } catch (GroupNotFoundException e) {
 
@@ -391,14 +413,195 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getParentGroups(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException {
+    public List<String> getDirectParentGroupsOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
         try {
 
-            return crowdClient.getNamesOfParentGroupsForNestedGroup(id, 0, Integer.MAX_VALUE);
+            return crowdClient.getNamesOfParentGroupsForGroup(id, 0, Integer.MAX_VALUE);
 
         } catch (GroupNotFoundException e) {
+
+            throw new EntryNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    public List<String> getTransitiveChildGroupsOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        List<String> groupIds = new ArrayList<>();
+
+        groupIds.add(id);
+        resolveGroupsDownwards(id, groupIds);
+        groupIds.remove(id);
+
+        return groupIds;
+    }
+
+    public List<String> getTransitiveParentGroupsOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        List<String> groupIds = new ArrayList<>();
+
+        groupIds.add(id);
+        resolveGroupsUpwards(id, groupIds);
+        groupIds.remove(id);
+
+        return groupIds;
+    }
+
+    private void resolveGroupsDownwards(String id, List<String> acc)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        try {
+
+            List<String> result = crowdClient.getNamesOfChildGroupsOfGroup(id, 0, Integer.MAX_VALUE);
+
+            for (String x : result)
+                if (!acc.contains(x))
+                    acc.add(x);
+
+            for (String x : result)
+                resolveGroupsDownwards(x, acc);
+
+        } catch (GroupNotFoundException e) {
+
+            throw new EntryNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    private void resolveGroupsUpwards(String id, List<String> acc)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        try {
+
+            List<String> result = crowdClient.getNamesOfParentGroupsForGroup(id, 0, Integer.MAX_VALUE);
+
+            for (String x : result)
+                if (!acc.contains(x))
+                    acc.add(x);
+
+            for (String x : result)
+                resolveGroupsUpwards(x, acc);
+
+        } catch (GroupNotFoundException e) {
+
+            throw new EntryNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    public boolean isGroupDirectGroupMember(String groupId1, String groupId2)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        try {
+
+            crowdClient.getGroup(groupId1);
+            crowdClient.getGroup(groupId2);
+
+            return crowdClient.isGroupDirectGroupMember(groupId1, groupId2);
+
+        } catch (GroupNotFoundException e) {
+
+            throw new EntryNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    public boolean isUserDirectGroupMember(String userId, String groupId)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        try {
+
+            crowdClient.getUser(userId);
+            crowdClient.getGroup(groupId);
+
+            return crowdClient.isUserDirectGroupMember(userId, groupId);
+
+        } catch (GroupNotFoundException |
+                UserNotFoundException e) {
+
+            throw new EntryNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        try {
+
+            crowdClient.getGroup(groupId1);
+
+            return getTransitiveParentGroupsOfGroup(groupId2).contains(groupId1);
+
+        } catch (GroupNotFoundException e) {
+
+            throw new EntryNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    public boolean isUserTransitiveGroupMember(String userId, String groupId)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        try {
+
+            crowdClient.getUser(userId);
+
+            return getTransitiveUsersOfGroup(groupId).contains(userId);
+
+        } catch (UserNotFoundException e) {
 
             throw new EntryNotFoundException(e);
 

@@ -44,41 +44,65 @@ public interface DirectoryBackend {
     String getUserDnString();
 
     void startup()
-            throws SecurityProblemException, DirectoryAccessFailureException;
+            throws DirectoryAccessFailureException, SecurityProblemException;
 
     void shutdown()
-            throws SecurityProblemException, DirectoryAccessFailureException;
+            throws DirectoryAccessFailureException, SecurityProblemException;
 
     Map<String, String> getGroupInfo(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException;
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
 
     Map<String, String> getUserInfo(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException;
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
 
     Map<String, String> getInfoFromAuthenticatedUser(String id, String password)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException;
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
 
-    List<String> getGroups()
-            throws SecurityProblemException, DirectoryAccessFailureException;
+    List<String> getAllGroups()
+            throws DirectoryAccessFailureException, SecurityProblemException;
 
-    List<String> getUsers()
-            throws SecurityProblemException, DirectoryAccessFailureException;
+    List<String> getAllUsers()
+            throws DirectoryAccessFailureException, SecurityProblemException;
 
     List<String> getGroupsByAttribute(String attribute, String value)
-            throws SecurityProblemException, DirectoryAccessFailureException;
+            throws DirectoryAccessFailureException, SecurityProblemException;
 
     List<String> getUsersByAttribute(String attribute, String value)
-            throws SecurityProblemException, DirectoryAccessFailureException;
+            throws DirectoryAccessFailureException, SecurityProblemException;
 
-    List<String> getUsersOfGroup(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException;
+    List<String> getDirectUsersOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
 
-    List<String> getGroupsOfUser(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException;
+    List<String> getDirectGroupsOfUser(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
 
-    List<String> getChildGroups(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException;
+    List<String> getTransitiveUsersOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
 
-    List<String> getParentGroups(String id)
-            throws EntryNotFoundException, SecurityProblemException, DirectoryAccessFailureException;
+    List<String> getTransitiveGroupsOfUser(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+
+    List<String> getDirectChildGroupsOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+
+    List<String> getDirectParentGroupsOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+
+    List<String> getTransitiveChildGroupsOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+
+    List<String> getTransitiveParentGroupsOfGroup(String id)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+
+    boolean isGroupDirectGroupMember(String groupId1, String groupId2)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+
+    boolean isUserDirectGroupMember(String userId, String groupId)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+
+    boolean isGroupTransitiveGroupMember(String groupId1, String groupId2)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+
+    boolean isUserTransitiveGroupMember(String userId, String groupId)
+            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
 }
