@@ -28,7 +28,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import javax.naming.AuthenticationException;
 import org.apache.directory.api.ldap.model.constants.AuthenticationLevel;
-import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.server.core.api.LdapPrincipal;
@@ -48,15 +47,14 @@ public class CommonAuthenticator
     private final Dn rootDn;
     private final Dn usersDn;
 
-    public CommonAuthenticator(DirectoryBackend directoryBackend, SchemaManager schemaManager)
-            throws LdapInvalidDnException {
+    public CommonAuthenticator(DirectoryBackend directoryBackend, SchemaManager schemaManager) {
 
         super(AuthenticationLevel.SIMPLE);
         this.directoryBackend = directoryBackend;
         this.schemaManager = schemaManager;
 
-        this.rootDn = new Dn(schemaManager, directoryBackend.getRootDnString());
-        this.usersDn = new Dn(schemaManager, directoryBackend.getUserDnString());
+        this.rootDn = LdapHelper.createRootDn(schemaManager, directoryBackend.getId());
+        this.usersDn = LdapHelper.createUsersDn(schemaManager, directoryBackend.getId());
     }
 
     public LdapPrincipal authenticate(BindOperationContext context)

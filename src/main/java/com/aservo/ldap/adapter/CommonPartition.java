@@ -83,7 +83,7 @@ public class CommonPartition
         // objectclass: top
         // objectclass: domain
         // description: <id> Domain
-        Dn rootDn = new Dn(schemaManager, directoryBackend.getRootDnString());
+        Dn rootDn = LdapHelper.createRootDn(schemaManager, directoryBackend.getId());
         rootEntry = new DefaultEntry(schemaManager, rootDn);
         rootEntry.put(SchemaConstants.OBJECT_CLASS_AT,
                 SchemaConstants.TOP_OC, SchemaConstants.DOMAIN_OC);
@@ -96,7 +96,7 @@ public class CommonPartition
         // objectClass: organizationalUnit
         // ou: groups
         // description: <id> Groups
-        Dn groupDn = new Dn(schemaManager, directoryBackend.getGroupDnString());
+        Dn groupDn = LdapHelper.createGroupsDn(schemaManager, directoryBackend.getId());
         groupsEntry = new DefaultEntry(schemaManager, groupDn);
         groupsEntry.put(SchemaConstants.OBJECT_CLASS_AT,
                 SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
@@ -109,7 +109,7 @@ public class CommonPartition
         // objectClass: organizationalUnit
         // ou: users
         // description: <id> Users
-        Dn usersDn = new Dn(schemaManager, directoryBackend.getUserDnString());
+        Dn usersDn = LdapHelper.createUsersDn(schemaManager, directoryBackend.getId());
         usersEntry = new DefaultEntry(schemaManager, usersDn);
         usersEntry.put(SchemaConstants.OBJECT_CLASS_AT,
                 SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
@@ -302,8 +302,7 @@ public class CommonPartition
             entry.put(SchemaConstants.DESCRIPTION_AT, groupInfo.get(DirectoryBackend.GROUP_DESCRIPTION));
 
             List<Dn> userDns = findMembers(groupId).stream()
-                    .map(this::createUserDn)
-                    .filter(Objects::nonNull)
+                    .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersEntry.getDn(), x))
                     .collect(Collectors.toList());
 
             for (Dn userDn : userDns)
@@ -361,8 +360,7 @@ public class CommonPartition
             entry.put(SchemaConstants.UID_NUMBER_AT, Utils.calculateHash(userId).toString());
 
             List<Dn> groupDns = findGroupsForMemberOf(userId).stream()
-                    .map(this::createGroupDn)
-                    .filter(Objects::nonNull)
+                    .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
                     .collect(Collectors.toList());
 
             for (Dn groupDn : groupDns)
@@ -562,34 +560,6 @@ public class CommonPartition
         return false;
     }
 
-    @Nullable
-    private Dn createGroupDn(String groupId) {
-
-        try {
-
-            return new Dn(schemaManager, String.format("cn=%s,%s", groupId, directoryBackend.getGroupDnString()));
-
-        } catch (LdapInvalidDnException e) {
-
-            logger.error("Cannot create group DN.", e);
-            return null;
-        }
-    }
-
-    @Nullable
-    private Dn createUserDn(String userId) {
-
-        try {
-
-            return new Dn(schemaManager, String.format("cn=%s,%s", userId, directoryBackend.getUserDnString()));
-
-        } catch (LdapInvalidDnException e) {
-
-            logger.error("Cannot create user DN.", e);
-            return null;
-        }
-    }
-
     private List<String> findGroups() {
 
         try {
@@ -723,8 +693,7 @@ public class CommonPartition
         List<Entry> entries =
                 groupIds.stream()
                         .filter((x) -> filterProcessor.match(filter, x, OuType.GROUP))
-                        .map(this::createGroupDn)
-                        .filter(Objects::nonNull)
+                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
                         .map(this::createGroupEntry)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -740,8 +709,7 @@ public class CommonPartition
         List<Entry> entries =
                 userIds.stream()
                         .filter((x) -> filterProcessor.match(filter, x, OuType.USER))
-                        .map(this::createUserDn)
-                        .filter(Objects::nonNull)
+                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersEntry.getDn(), x))
                         .map(this::createUserEntry)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());

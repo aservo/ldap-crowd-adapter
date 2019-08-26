@@ -37,12 +37,6 @@ public interface DirectoryBackend {
 
     String getId();
 
-    String getRootDnString();
-
-    String getGroupDnString();
-
-    String getUserDnString();
-
     void startup()
             throws DirectoryAccessFailureException, SecurityProblemException;
 

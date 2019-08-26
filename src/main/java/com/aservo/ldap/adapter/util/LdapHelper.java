@@ -18,11 +18,45 @@
 package com.aservo.ldap.adapter.util;
 
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
 import org.apache.directory.api.ldap.model.name.Dn;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.jetbrains.annotations.Nullable;
 
 
 public class LdapHelper {
+
+    public static Dn createDn(SchemaManager schemaManager, String dnString) {
+
+        try {
+
+            return new Dn(schemaManager, dnString);
+
+        } catch (LdapInvalidDnException e) {
+
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Dn createDnWithCn(SchemaManager schemaManager, Dn suffixDn, String entryId) {
+
+        return createDn(schemaManager, String.format("cn=%s,%s", entryId, suffixDn.getName()));
+    }
+
+    public static Dn createRootDn(SchemaManager schemaManager, String id) {
+
+        return createDn(schemaManager, "dc=" + id.toLowerCase());
+    }
+
+    public static Dn createGroupsDn(SchemaManager schemaManager, String id) {
+
+        return createDn(schemaManager, "ou=" + Utils.OU_GROUPS + ",dc=" + id.toLowerCase());
+    }
+
+    public static Dn createUsersDn(SchemaManager schemaManager, String id) {
+
+        return createDn(schemaManager, "ou=" + Utils.OU_USERS + ",dc=" + id.toLowerCase());
+    }
 
     @Nullable
     public static String getGroupFromDn(Dn rootDn, Dn groupDn, Dn queryDn) {

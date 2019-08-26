@@ -21,7 +21,6 @@ import com.aservo.ldap.adapter.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.exception.EntryNotFoundException;
 import com.aservo.ldap.adapter.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.util.DirectoryBackend;
-import com.aservo.ldap.adapter.util.Utils;
 import com.atlassian.crowd.embedded.api.SearchRestriction;
 import com.atlassian.crowd.exception.*;
 import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;
@@ -42,18 +41,11 @@ public class CrowdDirectoryBackend
         implements DirectoryBackend {
 
     private final String id;
-    private final String rootDnString;
-    private final String groupDnString;
-    private final String userDnString;
-
     private final CrowdClient crowdClient;
 
     public CrowdDirectoryBackend(Properties properties) {
 
         id = "Crowd";
-        rootDnString = "dc=" + getId().toLowerCase();
-        groupDnString = "ou=" + Utils.OU_GROUPS + ",dc=" + getId().toLowerCase();
-        userDnString = "ou=" + Utils.OU_USERS + ",dc=" + getId().toLowerCase();
 
         ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(properties);
         crowdClient = new RestCrowdClientFactory().newInstance(props);
@@ -62,21 +54,6 @@ public class CrowdDirectoryBackend
     public String getId() {
 
         return id;
-    }
-
-    public String getRootDnString() {
-
-        return rootDnString;
-    }
-
-    public String getGroupDnString() {
-
-        return groupDnString;
-    }
-
-    public String getUserDnString() {
-
-        return userDnString;
     }
 
     public void startup()
