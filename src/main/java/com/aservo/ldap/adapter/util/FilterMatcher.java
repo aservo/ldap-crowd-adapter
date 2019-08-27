@@ -19,7 +19,9 @@ package com.aservo.ldap.adapter.util;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.filter.*;
 import org.jetbrains.annotations.Nullable;
@@ -197,14 +199,26 @@ public abstract class FilterMatcher {
             case SchemaConstants.UNIQUE_MEMBER_AT_OID:
 
                 if (ouType.equals(OuType.GROUP) &&
-                        compare.apply(getUserFromDn(value), getValuesFromAttribute(attribute, entryId, ouType)))
+                        compare.apply(getUserFromDn(value),
+                                getValuesFromAttribute(attribute, entryId, ouType).stream()
+                                        .map(this::getUserFromDn)
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList())))
+                    return true;
+
+                if (ouType.equals(OuType.GROUP) &&
+                        compare.apply(getGroupFromDn(value),
+                                getValuesFromAttribute(attribute, entryId, ouType).stream()
+                                        .map(this::getGroupFromDn)
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList())))
                     return true;
 
                 break;
 
             case Utils.MEMBER_OF_AT:
 
-                if (ouType.equals(OuType.USER) &&
+                if ((ouType.equals(OuType.GROUP) || ouType.equals(OuType.USER)) &&
                         compare.apply(getGroupFromDn(value), getValuesFromAttribute(attribute, entryId, ouType)))
                     return true;
 

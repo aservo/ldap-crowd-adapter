@@ -211,7 +211,11 @@ public class CommonPartition
                 case SchemaConstants.UNIQUE_MEMBER_AT:
                 case SchemaConstants.UNIQUE_MEMBER_AT_OID:
 
-                    return findMembers(groupId);
+                    return collectMemberDn(groupId);
+
+                case Utils.MEMBER_OF_AT:
+
+                    return collectMemberOfDnForUser(groupId);
 
                 default:
                     return Collections.emptyList();
@@ -264,7 +268,7 @@ public class CommonPartition
 
                 case Utils.MEMBER_OF_AT:
 
-                    return findGroupsForMemberOf(userId);
+                    return collectMemberOfDnForUser(userId);
 
                 default:
                     return Collections.emptyList();
@@ -301,12 +305,11 @@ public class CommonPartition
             entry.put(SchemaConstants.CN_AT, groupInfo.get(DirectoryBackend.GROUP_ID));
             entry.put(SchemaConstants.DESCRIPTION_AT, groupInfo.get(DirectoryBackend.GROUP_DESCRIPTION));
 
-            List<Dn> userDns = findMembers(groupId).stream()
-                    .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersEntry.getDn(), x))
-                    .collect(Collectors.toList());
+            for (String memberDn : collectMemberDn(groupId))
+                entry.add(SchemaConstants.MEMBER_AT, memberDn);
 
-            for (Dn userDn : userDns)
-                entry.add(SchemaConstants.MEMBER_AT, userDn.getName());
+            for (String memberOfDn : collectMemberOfDnForGroup(groupId))
+                entry.add(Utils.MEMBER_OF_AT, memberOfDn);
 
             // add to cache
             if (serverConfig.isEntryCacheEnabled())
@@ -359,12 +362,8 @@ public class CommonPartition
             entry.put(SchemaConstants.MAIL_AT, userInfo.get(DirectoryBackend.USER_EMAIL_ADDRESS));
             entry.put(SchemaConstants.UID_NUMBER_AT, Utils.calculateHash(userId).toString());
 
-            List<Dn> groupDns = findGroupsForMemberOf(userId).stream()
-                    .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
-                    .collect(Collectors.toList());
-
-            for (Dn groupDn : groupDns)
-                entry.add(Utils.MEMBER_OF_AT, groupDn.getName());
+            for (String memberOfDn : collectMemberOfDnForUser(userId))
+                entry.add(Utils.MEMBER_OF_AT, memberOfDn);
 
             // add to cache
             if (serverConfig.isEntryCacheEnabled())
@@ -386,24 +385,42 @@ public class CommonPartition
         return entry;
     }
 
-    private List<String> findMembers(String groupId) {
+    private List<String> collectMemberDn(String groupId) {
+
+        return Stream.concat(
+                findUserMembers(groupId).stream()
+                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersEntry.getDn(), x)),
+                findGroupMembers(groupId).stream()
+                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
+        )
+                .map(Dn::getName)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> collectMemberOfDnForGroup(String groupId) {
+
+        return findGroupMembersReverse(groupId).stream()
+                .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
+                .map(Dn::getName)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> collectMemberOfDnForUser(String userId) {
+
+        return findUserMembersReverse(userId).stream()
+                .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
+                .map(Dn::getName)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> findGroupMembers(String groupId) {
 
         try {
 
-            List<String> userIds = new ArrayList<>();
-            List<String> groupIds = new ArrayList<>();
+            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS))
+                return directoryBackend.getDirectChildGroupsOfGroup(groupId);
 
-            groupIds.add(groupId);
-
-            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING))
-                resolveGroupsDownwards(groupId, groupIds);
-
-            for (String y : groupIds)
-                for (String x : directoryBackend.getDirectUsersOfGroup(y))
-                    if (!userIds.contains(x))
-                        userIds.add(x);
-
-            return userIds;
+            return Collections.emptyList();
 
         } catch (EntryNotFoundException |
                 SecurityProblemException |
@@ -414,59 +431,64 @@ public class CommonPartition
         }
     }
 
-    private List<String> findGroupsForMemberOf(String userId) {
+    private List<String> findUserMembers(String groupId) {
 
         try {
 
-            List<String> groupIds = new LinkedList<>();
+            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING))
+                return directoryBackend.getTransitiveUsersOfGroup(groupId);
 
-            if (serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
-
-                groupIds.addAll(directoryBackend.getDirectGroupsOfUser(userId));
-
-                if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS) ||
-                        serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING)) {
-
-                    for (String x : new ArrayList<>(groupIds))
-                        resolveGroupsUpwards(x, groupIds);
-                }
-            }
-
-            return groupIds;
+            return directoryBackend.getDirectUsersOfGroup(groupId);
 
         } catch (EntryNotFoundException |
                 SecurityProblemException |
                 DirectoryAccessFailureException e) {
 
-            logger.debug("Could not collect groups for a member because of problems with directory query.", e);
+            logger.debug("Could not collect user members because of problems with directory query.", e);
             return Collections.emptyList();
         }
     }
 
-    private void resolveGroupsDownwards(String groupId, List<String> accu)
-            throws DirectoryAccessFailureException, EntryNotFoundException, SecurityProblemException {
+    private List<String> findGroupMembersReverse(String groupId) {
 
-        List<String> result = directoryBackend.getTransitiveChildGroupsOfGroup(groupId);
+        try {
 
-        for (String x : result)
-            if (!accu.contains(x))
-                accu.add(x);
+            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING))
+                return directoryBackend.getTransitiveParentGroupsOfGroup(groupId);
 
-        for (String x : result)
-            resolveGroupsDownwards(x, accu);
+            if (serverConfig.getMemberOfSupport().allowMemberOfAttribute())
+                return directoryBackend.getDirectParentGroupsOfGroup(groupId);
+
+            return Collections.emptyList();
+
+        } catch (EntryNotFoundException |
+                SecurityProblemException |
+                DirectoryAccessFailureException e) {
+
+            logger.debug("Could not collect groups for a group member because of problems with directory query.", e);
+            return Collections.emptyList();
+        }
     }
 
-    private void resolveGroupsUpwards(String groupId, List<String> accu)
-            throws DirectoryAccessFailureException, EntryNotFoundException, SecurityProblemException {
+    private List<String> findUserMembersReverse(String userId) {
 
-        List<String> result = directoryBackend.getTransitiveParentGroupsOfGroup(groupId);
+        try {
 
-        for (String x : result)
-            if (!accu.contains(x))
-                accu.add(x);
+            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING))
+                return directoryBackend.getTransitiveGroupsOfUser(userId);
 
-        for (String x : result)
-            resolveGroupsUpwards(x, accu);
+            if (serverConfig.getMemberOfSupport().allowMemberOfAttribute())
+                return directoryBackend.getDirectGroupsOfUser(userId);
+
+            return Collections.emptyList();
+
+        } catch (EntryNotFoundException |
+                SecurityProblemException |
+                DirectoryAccessFailureException e) {
+
+            logger.debug("Could not collect groups for an user member because of problems with directory query.", e);
+            return Collections.emptyList();
+        }
     }
 
     @Override
