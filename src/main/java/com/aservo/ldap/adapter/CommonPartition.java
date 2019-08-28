@@ -453,10 +453,7 @@ public class CommonPartition
 
         try {
 
-            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING))
-                return directoryBackend.getTransitiveParentGroupsOfGroup(groupId);
-
-            if (serverConfig.getMemberOfSupport().allowMemberOfAttribute())
+            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS))
                 return directoryBackend.getDirectParentGroupsOfGroup(groupId);
 
             return Collections.emptyList();
