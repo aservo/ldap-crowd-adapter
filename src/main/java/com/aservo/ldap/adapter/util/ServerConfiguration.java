@@ -20,6 +20,7 @@ package com.aservo.ldap.adapter.util;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 
@@ -30,6 +31,7 @@ public class ServerConfiguration {
     public static final String CONFIG_BIND_ADDRESS = "bind.address";
     public static final String CONFIG_ENTRY_CACHE_ENABLED = "entry-cache.enabled";
     public static final String CONFIG_ENTRY_CACHE_MAX_SIZE = "entry-cache.max-size";
+    public static final String CONFIG_ENTRY_CACHE_MAX_AGE = "entry-cache.max-age";
     public static final String CONFIG_SSL_ENABLED = "ssl.enabled";
     public static final String CONFIG_SSL_KEY_STORE = "ssl.keystore";
     public static final String CONFIG_SSL_CERTIFICATE_PW = "ssl.certificate.password";
@@ -41,6 +43,7 @@ public class ServerConfiguration {
     private final int port;
     private final boolean entryCacheEnabled;
     private final int entryCacheMaxSize;
+    private final Duration entryCacheMaxAge;
     private final boolean sslEnabled;
     private final String keyStore;
     private final String certificatePassword;
@@ -82,6 +85,13 @@ public class ServerConfiguration {
         // entry-cache support
         entryCacheEnabled = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_ENTRY_CACHE_ENABLED, "false"));
         entryCacheMaxSize = Integer.parseInt(serverProperties.getProperty(CONFIG_ENTRY_CACHE_MAX_SIZE, "300"));
+        entryCacheMaxAge = Duration.parse(serverProperties.getProperty(CONFIG_ENTRY_CACHE_MAX_AGE, "PT1H"));
+
+        if (entryCacheMaxSize <= 0)
+            throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_SIZE);
+
+        if (entryCacheMaxAge.isNegative() || entryCacheMaxAge.isZero())
+            throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_AGE);
 
         // SSL support
         sslEnabled = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_SSL_ENABLED, "false"));
@@ -149,6 +159,11 @@ public class ServerConfiguration {
     public int getEntryCacheMaxSize() {
 
         return entryCacheMaxSize;
+    }
+
+    public Duration getEntryCacheMaxAge() {
+
+        return entryCacheMaxAge;
     }
 
     public boolean isSslEnabled() {

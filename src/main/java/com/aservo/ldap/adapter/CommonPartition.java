@@ -58,7 +58,7 @@ public class CommonPartition
 
     private final DirectoryBackend directoryBackend;
     private final ServerConfiguration serverConfig;
-    private LRUCacheMap<String, Entry> entryCache;
+    private LruCacheMap<String, Entry> entryCache;
     private FilterMatcher filterProcessor;
 
     private Entry rootEntry;
@@ -71,7 +71,7 @@ public class CommonPartition
 
         this.directoryBackend = directoryBackend;
         this.serverConfig = serverConfig;
-        this.entryCache = new LRUCacheMap<>(serverConfig.getEntryCacheMaxSize());
+        this.entryCache = new LruCacheMap<>(serverConfig.getEntryCacheMaxSize(), serverConfig.getEntryCacheMaxAge());
     }
 
     @Override
@@ -179,6 +179,8 @@ public class CommonPartition
             throws Exception {
 
         logger.info("Destroy partition: {}", id);
+
+        entryCache.clear();
         directoryBackend.shutdown();
     }
 
