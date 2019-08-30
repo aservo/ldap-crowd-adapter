@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.util;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
@@ -45,12 +46,26 @@ public class Utils {
         return (Math.abs(hash) % 9999999) + 1;
     }
 
+    // disallow add
     public static <T> List<T> nullableSingletonList(T value) {
 
         if (value == null)
             return Collections.emptyList();
 
         return Collections.singletonList(value);
+    }
+
+    // allow add
+    public static <T> List<T> nullableOneElementList(T value) {
+
+        List<T> list = new ArrayList<>();
+
+        if (value == null)
+            return list;
+
+        list.add(value);
+
+        return list;
     }
 
     public static String normalizeAttribute(String attribute) {

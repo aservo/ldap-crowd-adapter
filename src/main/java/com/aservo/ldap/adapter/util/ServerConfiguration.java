@@ -37,6 +37,9 @@ public class ServerConfiguration {
     public static final String CONFIG_SSL_CERTIFICATE_PW = "ssl.certificate.password";
     public static final String CONFIG_SUPPORT_MEMBER_OF = "support.member-of";
     public static final String CONFIG_DIRECTORY_BACKEND = "directory-backend";
+    public static final String CONFIG_BASE_DN_DESCRIPTION = "base-dn.description";
+    public static final String CONFIG_BASE_DN_GROUPS_DESCRIPTION = "base-dn-groups.description";
+    public static final String CONFIG_BASE_DN_USERS_DESCRIPTION = "base-dn-users.description";
 
     private final File cacheDir;
     private final String host;
@@ -49,6 +52,9 @@ public class ServerConfiguration {
     private final String certificatePassword;
     private final MemberOfSupport memberOfSupport;
     private final DirectoryBackend directoryBackend;
+    private final String baseDnDescription;
+    private final String baseDnGroupsDescription;
+    private final String baseDnUsersDescription;
 
     public ServerConfiguration(Properties serverProperties, Properties backendProperties) {
 
@@ -134,6 +140,10 @@ public class ServerConfiguration {
             throw new IllegalArgumentException("Cannot handle incorrect directory backend: " +
                     directoryBackendClassValue, e);
         }
+
+        baseDnDescription = serverProperties.getProperty(CONFIG_BASE_DN_DESCRIPTION, "");
+        baseDnGroupsDescription = serverProperties.getProperty(CONFIG_BASE_DN_GROUPS_DESCRIPTION, "");
+        baseDnUsersDescription = serverProperties.getProperty(CONFIG_BASE_DN_USERS_DESCRIPTION, "");
     }
 
     public File getCacheDir() {
@@ -189,5 +199,20 @@ public class ServerConfiguration {
     public DirectoryBackend getDirectoryBackend() {
 
         return directoryBackend;
+    }
+
+    public String getBaseDnDescription() {
+
+        return baseDnDescription;
+    }
+
+    public String getBaseDnGroupsDescription() {
+
+        return baseDnGroupsDescription;
+    }
+
+    public String getBaseDnUsersDescription() {
+
+        return baseDnUsersDescription;
     }
 }

@@ -18,13 +18,13 @@
 package com.aservo.ldap.adapter.util;
 
 
-public enum OuType {
+public enum EntryType {
 
-    GROUP(Utils.OU_GROUPS), USER(Utils.OU_USERS), UNDEFINED(null);
+    GROUP(Utils.OU_GROUPS), USER(Utils.OU_USERS), UNIT("unit"), DOMAIN("domain"), UNDEFINED(null);
 
     private final String text;
 
-    OuType(String text) {
+    EntryType(String text) {
 
         this.text = text;
     }

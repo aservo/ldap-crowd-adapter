@@ -60,9 +60,9 @@ public class CommonPartition
     private LruCacheMap<Dn, Entry> entryCache;
     private FilterMatcher filterProcessor;
 
-    private Entry rootEntry;
-    private Entry groupsEntry;
-    private Entry usersEntry;
+    private Dn rootDn;
+    private Dn groupsDn;
+    private Dn usersDn;
 
     public CommonPartition(DirectoryBackend directoryBackend, ServerConfiguration serverConfig) {
 
@@ -77,61 +77,25 @@ public class CommonPartition
     protected void doInit()
             throws LdapException {
 
-        // create root entry
-        // dn: dc=<domain>
-        // objectclass: top
-        // objectclass: domain
-        // description: <id> Domain
-        Dn rootDn = LdapHelper.createRootDn(schemaManager, directoryBackend.getId());
-        rootEntry = new DefaultEntry(schemaManager, rootDn);
-        rootEntry.put(SchemaConstants.OBJECT_CLASS_AT,
-                SchemaConstants.TOP_OC, SchemaConstants.DOMAIN_OC);
-        rootEntry.put(SchemaConstants.DC_AT, rootDn.getRdn().getAva().getValue().toString());
-        rootEntry.put(SchemaConstants.DESCRIPTION_AT, directoryBackend.getId() + " Domain");
-
-        // create groups entry
-        // dn: ou=groups, dc=<domain>
-        // objectClass: top
-        // objectClass: organizationalUnit
-        // ou: groups
-        // description: <id> Groups
-        Dn groupDn = LdapHelper.createGroupsDn(schemaManager, directoryBackend.getId());
-        groupsEntry = new DefaultEntry(schemaManager, groupDn);
-        groupsEntry.put(SchemaConstants.OBJECT_CLASS_AT,
-                SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
-        groupsEntry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
-        groupsEntry.put(SchemaConstants.DESCRIPTION_AT, directoryBackend.getId() + " Groups");
-
-        // create users entry
-        // dn: ou=users, dc=<domain>
-        // objectClass: top
-        // objectClass: organizationalUnit
-        // ou: users
-        // description: <id> Users
-        Dn usersDn = LdapHelper.createUsersDn(schemaManager, directoryBackend.getId());
-        usersEntry = new DefaultEntry(schemaManager, usersDn);
-        usersEntry.put(SchemaConstants.OBJECT_CLASS_AT,
-                SchemaConstants.TOP_OC, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
-        usersEntry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
-        usersEntry.put(SchemaConstants.DESCRIPTION_AT, directoryBackend.getId() + " Users");
-
-        // add to cache
-        if (serverConfig.isEntryCacheEnabled()) {
-
-            entryCache.put(rootDn, rootEntry);
-            entryCache.put(groupDn, groupsEntry);
-            entryCache.put(usersDn, usersEntry);
-        }
+        rootDn = LdapHelper.createRootDn(schemaManager, directoryBackend.getId());
+        groupsDn = LdapHelper.createGroupsDn(schemaManager, directoryBackend.getId());
+        usersDn = LdapHelper.createUsersDn(schemaManager, directoryBackend.getId());
 
         filterProcessor =
                 new FilterMatcher() {
 
                     @Override
-                    protected List<String> getValuesFromAttribute(String attribute, String entryId, OuType ouType) {
+                    protected List<String> getValuesFromAttribute(String attribute,
+                                                                  String entryId,
+                                                                  EntryType entryType) {
 
-                        if (ouType.equals(OuType.GROUP))
+                        if (entryType.equals(EntryType.DOMAIN))
+                            return getDomainValueFromAttribute(attribute, entryId);
+                        else if (entryType.equals(EntryType.UNIT))
+                            return getUnitValueFromAttribute(attribute, entryId);
+                        else if (entryType.equals(EntryType.GROUP))
                             return getGroupValueFromAttribute(attribute, entryId);
-                        else if (ouType.equals(OuType.USER))
+                        else if (entryType.equals(EntryType.USER))
                             return getUserValueFromAttribute(attribute, entryId);
 
                         return null;
@@ -146,7 +110,7 @@ public class CommonPartition
 
                         try {
 
-                            return LdapHelper.getGroupFromDn(rootDn, groupDn, new Dn(schemaManager, value));
+                            return LdapHelper.getGroupFromDn(rootDn, groupsDn, new Dn(schemaManager, value));
 
                         } catch (LdapInvalidDnException e) {
 
@@ -183,7 +147,48 @@ public class CommonPartition
     @Override
     public Dn getSuffixDn() {
 
-        return rootEntry.getDn();
+        return rootDn;
+    }
+
+    private List<String> getDomainValueFromAttribute(String attribute, String entryId) {
+
+        switch (Utils.normalizeAttribute(attribute)) {
+
+            case SchemaConstants.DESCRIPTION_AT:
+            case SchemaConstants.DESCRIPTION_AT_OID:
+
+                if (entryId.equalsIgnoreCase(getId()))
+                    return Utils.nullableSingletonList(serverConfig.getBaseDnDescription());
+
+                break;
+
+            default:
+                break;
+        }
+
+        return Collections.emptyList();
+    }
+
+    private List<String> getUnitValueFromAttribute(String attribute, String entryId) {
+
+        switch (Utils.normalizeAttribute(attribute)) {
+
+            case SchemaConstants.DESCRIPTION_AT:
+            case SchemaConstants.DESCRIPTION_AT_OID:
+
+                if (entryId.equalsIgnoreCase(Utils.OU_GROUPS))
+                    return Utils.nullableSingletonList(serverConfig.getBaseDnGroupsDescription());
+
+                if (entryId.equalsIgnoreCase(Utils.OU_USERS))
+                    return Utils.nullableSingletonList(serverConfig.getBaseDnUsersDescription());
+
+                break;
+
+            default:
+                break;
+        }
+
+        return Collections.emptyList();
     }
 
     private List<String> getGroupValueFromAttribute(String attribute, String groupId) {
@@ -279,6 +284,78 @@ public class CommonPartition
             logger.error("Cannot get value of user attribute.", e);
             return Collections.emptyList();
         }
+    }
+
+    private Entry createSystemEntry(Dn dn) {
+
+        Entry entry = entryCache.get(dn);
+
+        if (entry != null)
+            return entry;
+
+        if (dn.equals(rootDn)) {
+
+            // create root entry
+            // dn: dc=<domain>
+            // objectclass: top
+            // objectclass: domain
+            // description: <id> Domain
+
+            entry = new DefaultEntry(schemaManager, rootDn);
+
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC);
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.DOMAIN_OC);
+            entry.put(SchemaConstants.DC_AT, rootDn.getRdn().getAva().getValue().toString());
+            entry.put(SchemaConstants.DESCRIPTION_AT, serverConfig.getBaseDnDescription());
+
+            // add to cache
+            if (serverConfig.isEntryCacheEnabled())
+                entryCache.put(rootDn, entry);
+
+        } else if (dn.equals(groupsDn)) {
+
+            // create groups entry
+            // dn: ou=groups, dc=<domain>
+            // objectClass: top
+            // objectClass: organizationalUnit
+            // ou: groups
+            // description: <id> Groups
+
+            entry = new DefaultEntry(schemaManager, groupsDn);
+
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC);
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
+            entry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
+            entry.put(SchemaConstants.DESCRIPTION_AT, serverConfig.getBaseDnGroupsDescription());
+
+            // add to cache
+            if (serverConfig.isEntryCacheEnabled())
+                entryCache.put(groupsDn, entry);
+
+        } else if (dn.equals(usersDn)) {
+
+            // create users entry
+            // dn: ou=users, dc=<domain>
+            // objectClass: top
+            // objectClass: organizationalUnit
+            // ou: users
+            // description: <id> Users
+
+            entry = new DefaultEntry(schemaManager, usersDn);
+
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.TOP_OC);
+            entry.put(SchemaConstants.OBJECT_CLASS_AT, SchemaConstants.ORGANIZATIONAL_UNIT_OC);
+            entry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
+            entry.put(SchemaConstants.DESCRIPTION_AT, serverConfig.getBaseDnUsersDescription());
+
+            // add to cache
+            if (serverConfig.isEntryCacheEnabled())
+                entryCache.put(usersDn, entry);
+
+        } else
+            throw new IllegalArgumentException("Cannot create system entry with dn=" + dn);
+
+        return entry;
     }
 
     @Nullable
@@ -387,9 +464,9 @@ public class CommonPartition
 
         return Stream.concat(
                 findUserMembers(groupId).stream()
-                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersEntry.getDn(), x)),
+                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersDn, x)),
                 findGroupMembers(groupId).stream()
-                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
+                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
         )
                 .map(Dn::getName)
                 .collect(Collectors.toList());
@@ -398,7 +475,7 @@ public class CommonPartition
     private List<String> collectMemberOfDnForGroup(String groupId) {
 
         return findGroupMembersReverse(groupId).stream()
-                .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
+                .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
                 .map(Dn::getName)
                 .collect(Collectors.toList());
     }
@@ -406,7 +483,7 @@ public class CommonPartition
     private List<String> collectMemberOfDnForUser(String userId) {
 
         return findUserMembersReverse(userId).stream()
-                .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
+                .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
                 .map(Dn::getName)
                 .collect(Collectors.toList());
     }
@@ -515,33 +592,33 @@ public class CommonPartition
         if (entryCache.containsKey(context.getDn()))
             return true;
 
-        if (context.getDn().equals(groupsEntry.getDn())) {
+        if (context.getDn().equals(groupsDn)) {
 
             return true;
 
-        } else if (context.getDn().getParent().equals(groupsEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(groupsDn)) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
 
             return findGroup(attribute, value) != null;
 
-        } else if (context.getDn().equals(usersEntry.getDn())) {
+        } else if (context.getDn().equals(usersDn)) {
 
             return true;
 
-        } else if (context.getDn().getParent().equals(usersEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(usersDn)) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
 
             return findUser(attribute, value) != null;
 
-        } else if (context.getDn().equals(rootEntry.getDn())) {
+        } else if (context.getDn().equals(rootDn)) {
 
             return true;
 
-        } else if (context.getDn().getParent().equals(rootEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(rootDn)) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -692,8 +769,8 @@ public class CommonPartition
 
         List<Entry> entries =
                 groupIds.stream()
-                        .filter((x) -> filterProcessor.match(filter, x, OuType.GROUP))
-                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsEntry.getDn(), x))
+                        .filter((x) -> filterProcessor.match(filter, x, EntryType.GROUP))
+                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
                         .map(this::createGroupEntry)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -708,8 +785,8 @@ public class CommonPartition
 
         List<Entry> entries =
                 userIds.stream()
-                        .filter((x) -> filterProcessor.match(filter, x, OuType.USER))
-                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersEntry.getDn(), x))
+                        .filter((x) -> filterProcessor.match(filter, x, EntryType.USER))
+                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersDn, x))
                         .map(this::createUserEntry)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -727,7 +804,17 @@ public class CommonPartition
                 context.getDn().getName(),
                 context.getFilter());
 
-        if (context.getDn().getParent().equals(groupsEntry.getDn())) {
+        if (context.getDn().equals(groupsDn)) {
+
+            if (!filterProcessor.match(context.getFilter(), Utils.OU_GROUPS, EntryType.UNIT))
+                return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager);
+
+            return new EntryFilteringCursorImpl(
+                    new SingletonCursor<>(createSystemEntry(groupsDn)),
+                    context,
+                    schemaManager);
+
+        } else if (context.getDn().getParent().equals(groupsDn)) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -745,7 +832,17 @@ public class CommonPartition
                     })
                     .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
 
-        } else if (context.getDn().getParent().equals(usersEntry.getDn())) {
+        } else if (context.getDn().equals(usersDn)) {
+
+            if (!filterProcessor.match(context.getFilter(), Utils.OU_USERS, EntryType.UNIT))
+                return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager);
+
+            return new EntryFilteringCursorImpl(
+                    new SingletonCursor<>(createSystemEntry(usersDn)),
+                    context,
+                    schemaManager);
+
+        } else if (context.getDn().getParent().equals(usersDn)) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -763,7 +860,17 @@ public class CommonPartition
                     })
                     .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
 
-        } else if (context.getDn().getParent().equals(rootEntry.getDn())) {
+        } else if (context.getDn().equals(rootDn)) {
+
+            if (!filterProcessor.match(context.getFilter(), getId(), EntryType.DOMAIN))
+                return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager);
+
+            return new EntryFilteringCursorImpl(
+                    new SingletonCursor<>(createSystemEntry(rootDn)),
+                    context,
+                    schemaManager);
+
+        } else if (context.getDn().getParent().equals(rootDn)) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -804,17 +911,22 @@ public class CommonPartition
                 context.getDn().getName(),
                 context.getFilter());
 
-        if (context.getDn().equals(groupsEntry.getDn())) {
+        if (context.getDn().equals(groupsDn)) {
 
-            List<Entry> groupEntryList = createGroupEntryList(findGroups(), context.getFilter());
+            List<Entry> mergedEntries = Utils.nullableOneElementList(createSystemEntry(groupsDn));
+
+            if (!filterProcessor.match(context.getFilter(), Utils.OU_GROUPS, EntryType.UNIT))
+                mergedEntries.remove(0);
+
+            mergedEntries.addAll(createGroupEntryList(findGroups(), context.getFilter()));
 
             return new EntryFilteringCursorImpl(
-                    new ListCursor<>(groupEntryList),
+                    new ListCursor<>(mergedEntries),
                     context,
                     schemaManager
             );
 
-        } else if (context.getDn().getParent().equals(groupsEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(groupsDn)) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -828,17 +940,22 @@ public class CommonPartition
                     schemaManager
             );
 
-        } else if (context.getDn().equals(usersEntry.getDn())) {
+        } else if (context.getDn().equals(usersDn)) {
 
-            List<Entry> userEntries = createUserEntryList(findUsers(), context.getFilter());
+            List<Entry> mergedEntries = Utils.nullableOneElementList(createSystemEntry(usersDn));
+
+            if (!filterProcessor.match(context.getFilter(), Utils.OU_USERS, EntryType.UNIT))
+                mergedEntries.remove(0);
+
+            mergedEntries.addAll(createUserEntryList(findUsers(), context.getFilter()));
 
             return new EntryFilteringCursorImpl(
-                    new ListCursor<>(userEntries),
+                    new ListCursor<>(mergedEntries),
                     context,
                     schemaManager
             );
 
-        } else if (context.getDn().getParent().equals(usersEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(usersDn)) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
@@ -852,14 +969,21 @@ public class CommonPartition
                     schemaManager
             );
 
-        } else if (context.getDn().equals(rootEntry.getDn())) {
+        } else if (context.getDn().equals(rootDn)) {
 
-            List<Entry> groupEntries = createGroupEntryList(findGroups(), context.getFilter());
-            List<Entry> userEntries = createUserEntryList(findUsers(), context.getFilter());
+            List<Entry> mergedEntries = new ArrayList<>();
 
-            List<Entry> mergedEntries =
-                    Stream.concat(groupEntries.stream(), userEntries.stream())
-                            .collect(Collectors.toList());
+            if (filterProcessor.match(context.getFilter(), getId(), EntryType.DOMAIN))
+                mergedEntries.add(createSystemEntry(rootDn));
+
+            if (filterProcessor.match(context.getFilter(), Utils.OU_GROUPS, EntryType.UNIT))
+                mergedEntries.add(createSystemEntry(groupsDn));
+
+            if (filterProcessor.match(context.getFilter(), Utils.OU_USERS, EntryType.UNIT))
+                mergedEntries.add(createSystemEntry(usersDn));
+
+            mergedEntries.addAll(createGroupEntryList(findGroups(), context.getFilter()));
+            mergedEntries.addAll(createUserEntryList(findUsers(), context.getFilter()));
 
             return new EntryFilteringCursorImpl(
                     new ListCursor<>(mergedEntries),
@@ -867,7 +991,7 @@ public class CommonPartition
                     schemaManager
             );
 
-        } else if (context.getDn().getParent().equals(rootEntry.getDn())) {
+        } else if (context.getDn().getParent().equals(rootDn)) {
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
