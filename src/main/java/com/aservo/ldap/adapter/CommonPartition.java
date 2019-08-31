@@ -58,7 +58,7 @@ public class CommonPartition
 
     private final DirectoryBackend directoryBackend;
     private final ServerConfiguration serverConfig;
-    private LruCacheMap<String, Entry> entryCache;
+    private LruCacheMap<Dn, Entry> entryCache;
     private FilterMatcher filterProcessor;
 
     private Entry rootEntry;
@@ -119,9 +119,9 @@ public class CommonPartition
         // add to cache
         if (serverConfig.isEntryCacheEnabled()) {
 
-            entryCache.put(rootDn.getName(), rootEntry);
-            entryCache.put(groupDn.getName(), groupsEntry);
-            entryCache.put(usersDn.getName(), usersEntry);
+            entryCache.put(rootDn, rootEntry);
+            entryCache.put(groupDn, groupsEntry);
+            entryCache.put(usersDn, usersEntry);
         }
 
         filterProcessor =
@@ -285,7 +285,7 @@ public class CommonPartition
     @Nullable
     private Entry createGroupEntry(Dn dn) {
 
-        Entry entry = entryCache.get(dn.getName());
+        Entry entry = entryCache.get(dn);
 
         if (entry != null)
             return entry;
@@ -312,7 +312,7 @@ public class CommonPartition
 
             // add to cache
             if (serverConfig.isEntryCacheEnabled())
-                entryCache.put(dn.getName(), entry);
+                entryCache.put(dn, entry);
 
         } catch (EntryNotFoundException |
                 SecurityProblemException |
@@ -333,7 +333,7 @@ public class CommonPartition
     @Nullable
     private Entry createUserEntry(Dn dn) {
 
-        Entry entry = entryCache.get(dn.getName());
+        Entry entry = entryCache.get(dn);
 
         if (entry != null)
             return entry;
@@ -366,7 +366,7 @@ public class CommonPartition
 
             // add to cache
             if (serverConfig.isEntryCacheEnabled())
-                entryCache.put(dn.getName(), entry);
+                entryCache.put(dn, entry);
 
         } catch (EntryNotFoundException |
                 SecurityProblemException |
@@ -494,7 +494,7 @@ public class CommonPartition
             return null;
 
         Dn dn = context.getDn();
-        Entry se = entryCache.get(context.getDn().getName());
+        Entry se = entryCache.get(context.getDn());
         if (se == null) {
             //todo
             logger.debug("Could not find cached entry for {}", dn.getName());
@@ -514,7 +514,7 @@ public class CommonPartition
 
         Dn dn = context.getDn();
 
-        if (entryCache.containsKey(context.getDn().getName())) {
+        if (entryCache.containsKey(context.getDn())) {
             return true;
         }
 
@@ -523,7 +523,7 @@ public class CommonPartition
         // one level in DN
         if (dnSize == 1) {
             if (rootEntry.getDn().equals(dn)) {
-                entryCache.put(dn.getName(), rootEntry);
+                entryCache.put(dn, rootEntry);
                 return true;
             }
 
@@ -533,11 +533,11 @@ public class CommonPartition
         // two levels in DN
         if (dnSize == 2) {
             if (groupsEntry.getDn().equals(dn)) {
-                entryCache.put(dn.getName(), groupsEntry);
+                entryCache.put(dn, groupsEntry);
                 return true;
             }
             if (usersEntry.getDn().equals(dn)) {
-                entryCache.put(dn.getName(), usersEntry);
+                entryCache.put(dn, usersEntry);
                 return true;
             }
             return false;
