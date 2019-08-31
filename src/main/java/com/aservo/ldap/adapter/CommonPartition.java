@@ -39,7 +39,6 @@ import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
 import org.apache.directory.api.ldap.model.filter.ExprNode;
 import org.apache.directory.api.ldap.model.name.Dn;
-import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.server.core.api.entry.ClonedServerEntry;
 import org.apache.directory.server.core.api.filtering.EntryFilteringCursor;
 import org.apache.directory.server.core.api.filtering.EntryFilteringCursorImpl;
@@ -487,21 +486,22 @@ public class CommonPartition
         }
     }
 
+    @Nullable
     @Override
-    public ClonedServerEntry lookup(LookupOperationContext context) {
+    public ClonedServerEntry lookup(LookupOperationContext context)
+            throws LdapException {
 
-        if (!serverConfig.isEntryCacheEnabled())
+        Entry entry = entryCache.get(context.getDn());
+
+        if (entry == null) {
+
+            logger.debug("Could not find cached entry with dn={}", context.getDn().getName());
             return null;
 
-        Dn dn = context.getDn();
-        Entry se = entryCache.get(context.getDn());
-        if (se == null) {
-            //todo
-            logger.debug("Could not find cached entry for {}", dn.getName());
-            return null;
         } else {
-            logger.debug("Could find cached entry for {}", dn.getName());
-            return new ClonedServerEntry(se);
+
+            logger.debug("Could find cached entry with dn={}", context.getDn().getName());
+            return new ClonedServerEntry(entry);
         }
     }
 
@@ -509,70 +509,52 @@ public class CommonPartition
     public boolean hasEntry(HasEntryOperationContext context)
             throws LdapException {
 
-        if (!serverConfig.isEntryCacheEnabled())
-            return false;
+        logger.debug("Check for existence of entry with dn={}",
+                context.getDn().getName());
 
-        Dn dn = context.getDn();
-
-        if (entryCache.containsKey(context.getDn())) {
+        if (entryCache.containsKey(context.getDn()))
             return true;
-        }
 
-        int dnSize = dn.size();
+        if (context.getDn().equals(groupsEntry.getDn())) {
 
-        // one level in DN
-        if (dnSize == 1) {
-            if (rootEntry.getDn().equals(dn)) {
-                entryCache.put(dn, rootEntry);
+            return true;
+
+        } else if (context.getDn().getParent().equals(groupsEntry.getDn())) {
+
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+
+            return findGroup(attribute, value) != null;
+
+        } else if (context.getDn().equals(usersEntry.getDn())) {
+
+            return true;
+
+        } else if (context.getDn().getParent().equals(usersEntry.getDn())) {
+
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+
+            return findUser(attribute, value) != null;
+
+        } else if (context.getDn().equals(rootEntry.getDn())) {
+
+            return true;
+
+        } else if (context.getDn().getParent().equals(rootEntry.getDn())) {
+
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+
+            String userId = findUser(attribute, value);
+
+            if (userId != null)
                 return true;
-            }
 
-            return false;
-        }
+            String groupId = findGroup(attribute, value);
 
-        // two levels in DN
-        if (dnSize == 2) {
-            if (groupsEntry.getDn().equals(dn)) {
-                entryCache.put(dn, groupsEntry);
+            if (groupId != null)
                 return true;
-            }
-            if (usersEntry.getDn().equals(dn)) {
-                entryCache.put(dn, usersEntry);
-                return true;
-            }
-            return false;
-        }
-
-        // 3 levels in DN
-        if (dnSize == 3) {
-            Dn prefix = dn.getParent();
-            try {
-                prefix.apply(schemaManager);
-            } catch (Exception ex) {
-                logger.error("hasEntry()", ex);
-            }
-            logger.debug("Prefix={}", prefix);
-
-            if (usersEntry.getDn().equals(prefix)) {
-                Rdn rdn = dn.getRdn(2);
-                String user = rdn.getNormValue();
-                logger.debug("user={}", user);
-                Entry userEntry = createUserEntry(dn);
-                return (userEntry != null);
-            }
-
-            if (groupsEntry.getDn().equals(prefix)) {
-                Rdn rdn = dn.getRdn(2);
-                String group = rdn.getNormValue();
-                logger.debug("group={}", group);
-                Entry groupEntry = createGroupEntry(dn);
-                return (groupEntry != null);
-            }
-
-            logger.debug("Prefix is neither users nor groups");
-            logger.debug("Users = {}", usersEntry.getDn());
-            logger.debug("Groups = {}", groupsEntry.getDn().toString());
-            return false;
         }
 
         return false;
