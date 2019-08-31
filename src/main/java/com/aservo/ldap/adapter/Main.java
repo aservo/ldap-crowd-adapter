@@ -32,6 +32,16 @@ public class Main {
 
     public static void main(String[] args) {
 
+        Logger logger = LoggerFactory.getLogger("Bootloader");
+        CommonLdapServer server = createServerInstance();
+
+        // boot process
+        server.startup();
+        logger.info("Starting directory listener...");
+    }
+
+    public static CommonLdapServer createServerInstance() {
+
         // hard coded directory for initial configuration
         File configDir = new File("./etc");
 
@@ -47,14 +57,11 @@ public class Main {
         Properties backendProperties = loadConfigFile(new File(configDir, "backend.properties"));
         backendProperties.putAll(System.getProperties());
 
-        // create object network
-        Logger logger = LoggerFactory.getLogger("Bootloader");
+        // parse configuration
         ServerConfiguration serverConfig = new ServerConfiguration(serverProperties, backendProperties);
-        CommonLdapServer server = new CommonLdapServer(serverConfig);
 
-        // boot process
-        server.start();
-        logger.info("Starting directory listener...");
+        // return with server instance
+        return new CommonLdapServer(serverConfig);
     }
 
     private static Properties loadConfigFile(File file) {

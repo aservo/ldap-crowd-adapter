@@ -24,7 +24,6 @@ import org.apache.directory.api.ldap.model.cursor.EmptyCursor;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
-import org.apache.directory.api.ldap.model.exception.LdapOtherException;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.util.Strings;
@@ -55,15 +54,8 @@ public abstract class SimpleReadOnlyPartition
 
         if (!initialized) {
 
-            try {
-
-                doInit();
-                initialized = true;
-
-            } catch (Exception e) {
-
-                throw new LdapOtherException(e.getMessage(), e);
-            }
+            doInit();
+            initialized = true;
         }
     }
 
@@ -124,10 +116,10 @@ public abstract class SimpleReadOnlyPartition
     }
 
     protected abstract void doInit()
-            throws Exception;
+            throws LdapException;
 
     protected abstract void doDestroy()
-            throws Exception;
+            throws LdapException;
 
     protected abstract EntryFilteringCursor findOne(SearchOperationContext context)
             throws LdapException;

@@ -77,7 +77,7 @@ public class CommonLdapServer {
         return serverConfig;
     }
 
-    public void start() {
+    public void startup() {
 
         try {
 
@@ -105,6 +105,24 @@ public class CommonLdapServer {
 
             throw new RuntimeException(e);
         }
+    }
+
+    public void shutdown() {
+
+        try {
+
+            directoryService.shutdown();
+            directoryBackend.shutdown();
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean isStarted() {
+
+        return directoryService.isStarted();
     }
 
     private void copyStream(String resourcePath, File outputFile)

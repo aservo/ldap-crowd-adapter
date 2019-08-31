@@ -76,7 +76,7 @@ public class CommonPartition
 
     @Override
     protected void doInit()
-            throws Exception {
+            throws LdapException {
 
         // create root entry
         // dn: dc=<domain>
@@ -176,12 +176,9 @@ public class CommonPartition
 
     @Override
     protected void doDestroy()
-            throws Exception {
-
-        logger.info("Destroy partition: {}", id);
+            throws LdapException {
 
         entryCache.clear();
-        directoryBackend.shutdown();
     }
 
     @Override
