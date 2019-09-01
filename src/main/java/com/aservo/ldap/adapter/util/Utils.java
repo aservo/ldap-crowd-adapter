@@ -31,7 +31,7 @@ public class Utils {
 
     public static final String MEMBER_OF_AT = "memberOf";
 
-    public static Integer calculateHash(@Nullable String value) {
+    public static int calculateHash(@Nullable String value) {
 
         if (value == null)
             return 0;
