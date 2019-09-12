@@ -1,0 +1,94 @@
+{
+  "groups": [
+    {
+      "id": "GroupA",
+      "description": "Description of GroupA.",
+      "group_members": [],
+      "user_members": [
+        "UserA",
+        "UserB",
+        "UserD"
+      ]
+    },
+    {
+      "id": "GroupB",
+      "description": "Description of GroupB.",
+      "group_members": [],
+      "user_members": [
+        "UserA",
+        "UserB",
+        "UserC"
+      ]
+    },
+    {
+      "id": "GroupC",
+      "description": "Description of GroupC.",
+      "group_members": [
+        "GroupA"
+      ],
+      "user_members": [
+        "UserD"
+      ]
+    },
+    {
+      "id": "GroupD",
+      "description": "Description of GroupD.",
+      "group_members": [
+        "GroupC"
+      ],
+      "user_members": []
+    },
+    {
+      "id": "GroupE",
+      "description": "Description of GroupE.",
+      "group_members": [
+        "GroupD"
+      ],
+      "user_members": [
+        "UserE"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "UserA",
+      "first_name": "FirstNameOfUserA",
+      "last_name": "LastNameOfUserA",
+      "display_name": "DisplayNameOfUserA",
+      "email": "a.user@email.com",
+      "password": "pw-user-a"
+    },
+    {
+      "id": "UserB",
+      "first_name": "FirstNameOfUserB",
+      "last_name": "LastNameOfUserB",
+      "display_name": "DisplayNameOfUserB",
+      "email": "b.user@email.com",
+      "password": "pw-user-b"
+    },
+    {
+      "id": "UserC",
+      "first_name": "FirstNameOfUserC",
+      "last_name": "LastNameOfUserC",
+      "display_name": "DisplayNameOfUserC",
+      "email": "c.user@email.com",
+      "password": "pw-user-c"
+    },
+    {
+      "id": "UserD",
+      "first_name": "FirstNameOfUserD",
+      "last_name": "LastNameOfUserD",
+      "display_name": "DisplayNameOfUserD",
+      "email": "d.user@email.com",
+      "password": "pw-user-d"
+    },
+    {
+      "id": "UserE",
+      "first_name": "FirstNameOfUserE",
+      "last_name": "LastNameOfUserE",
+      "display_name": "DisplayNameOfUserE",
+      "email": "e.user@email.com",
+      "password": "pw-user-e"
+    }
+  ]
+}

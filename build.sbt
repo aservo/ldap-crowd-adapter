@@ -31,5 +31,6 @@ libraryDependencies ++= Seq(
   "com.atlassian.crowd" % "crowd-integration-client-rest" % "2.9.1",
   "com.atlassian.security" % "atlassian-cookie-tools" % "3.2.4" jar,
   "junit" % "junit" % "4.12" % "test",
-  "com.novocode" % "junit-interface" % "0.11" % "test" exclude("junit", "junit-dep")
+  "com.novocode" % "junit-interface" % "0.11" % "test" exclude("junit", "junit-dep"),
+  "org.bouncycastle" % "bcprov-jdk15on" % "1.61" % "test"
 )
