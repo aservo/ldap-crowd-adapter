@@ -17,9 +17,11 @@
 
 package com.aservo.ldap.adapter.util;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
@@ -33,23 +35,23 @@ public class ServerConfiguration {
     public static final String CONFIG_ENTRY_CACHE_MAX_SIZE = "entry-cache.max-size";
     public static final String CONFIG_ENTRY_CACHE_MAX_AGE = "entry-cache.max-age";
     public static final String CONFIG_SSL_ENABLED = "ssl.enabled";
-    public static final String CONFIG_SSL_KEY_STORE = "ssl.keystore";
-    public static final String CONFIG_SSL_CERTIFICATE_PW = "ssl.certificate.password";
+    public static final String CONFIG_SSL_KEY_STORE_FILE = "ssl.key-store-file";
+    public static final String CONFIG_SSL_KEY_STORE_PASSWORD = "ssl.key-store-password";
     public static final String CONFIG_SUPPORT_MEMBER_OF = "support.member-of";
     public static final String CONFIG_DIRECTORY_BACKEND = "directory-backend";
     public static final String CONFIG_BASE_DN_DESCRIPTION = "base-dn.description";
     public static final String CONFIG_BASE_DN_GROUPS_DESCRIPTION = "base-dn-groups.description";
     public static final String CONFIG_BASE_DN_USERS_DESCRIPTION = "base-dn-users.description";
 
-    private final File cacheDir;
+    private final Path cacheDir;
     private final String host;
     private final int port;
     private final boolean entryCacheEnabled;
     private final int entryCacheMaxSize;
     private final Duration entryCacheMaxAge;
     private final boolean sslEnabled;
-    private final String keyStore;
-    private final String certificatePassword;
+    private final Path keyStoreFile;
+    private final String keyStorePassword;
     private final MemberOfSupport memberOfSupport;
     private final DirectoryBackend directoryBackend;
     private final String baseDnDescription;
@@ -58,27 +60,21 @@ public class ServerConfiguration {
 
     public ServerConfiguration(Properties serverProperties, Properties backendProperties) {
 
-        cacheDir = new File(serverProperties.getProperty(CONFIG_CACHE_DIR));
+        cacheDir = Paths.get(serverProperties.getProperty(CONFIG_CACHE_DIR, "./cache")).toAbsolutePath().normalize();
 
-        if (cacheDir.exists()) {
+        try {
 
-            try {
+            if (Files.exists(cacheDir))
+                FileUtils.deleteDirectory(cacheDir.toFile());
 
-                FileUtils.deleteDirectory(cacheDir);
+            Files.createDirectories(cacheDir);
 
-            } catch (IOException e) {
+        } catch (IOException e) {
 
-                throw new UncheckedIOException(e);
-            }
+            throw new UncheckedIOException(e);
         }
 
-        if (!cacheDir.mkdirs())
-            throw new UncheckedIOException(new IOException("Cannot create cache directory."));
-
-        String bindAddressValue = serverProperties.getProperty(CONFIG_BIND_ADDRESS);
-
-        if (bindAddressValue == null)
-            bindAddressValue = "localhost:10389";
+        String bindAddressValue = serverProperties.getProperty(CONFIG_BIND_ADDRESS, "localhost:10389");
 
         String[] bindAddressParts = bindAddressValue.split(":");
 
@@ -104,20 +100,22 @@ public class ServerConfiguration {
 
         if (sslEnabled) {
 
-            keyStore = serverProperties.getProperty(CONFIG_SSL_KEY_STORE);
+            String keyStoreFileValue = serverProperties.getProperty(CONFIG_SSL_KEY_STORE_FILE);
 
-            if (keyStore == null)
-                throw new IllegalArgumentException("Missing value for " + CONFIG_SSL_KEY_STORE);
+            if (keyStoreFileValue == null)
+                throw new IllegalArgumentException("Missing value for " + CONFIG_SSL_KEY_STORE_FILE);
 
-            certificatePassword = serverProperties.getProperty(CONFIG_SSL_CERTIFICATE_PW);
+            keyStoreFile = Paths.get(keyStoreFileValue).toAbsolutePath().normalize();
 
-            if (certificatePassword == null)
-                throw new IllegalArgumentException("Missing value for " + CONFIG_SSL_CERTIFICATE_PW);
+            keyStorePassword = serverProperties.getProperty(CONFIG_SSL_KEY_STORE_PASSWORD);
+
+            if (keyStorePassword == null)
+                throw new IllegalArgumentException("Missing value for " + CONFIG_SSL_KEY_STORE_PASSWORD);
 
         } else {
 
-            keyStore = null;
-            certificatePassword = null;
+            keyStoreFile = null;
+            keyStorePassword = null;
         }
 
         String memberOfSupportValue = serverProperties.getProperty(CONFIG_SUPPORT_MEMBER_OF, "normal");
@@ -146,7 +144,7 @@ public class ServerConfiguration {
         baseDnUsersDescription = serverProperties.getProperty(CONFIG_BASE_DN_USERS_DESCRIPTION, "");
     }
 
-    public File getCacheDir() {
+    public Path getCacheDir() {
 
         return cacheDir;
     }
@@ -181,14 +179,14 @@ public class ServerConfiguration {
         return sslEnabled;
     }
 
-    public String getKeyStore() {
+    public Path getKeyStoreFile() {
 
-        return keyStore;
+        return keyStoreFile;
     }
 
-    public String getCertificatePassword() {
+    public String getKeyStorePassword() {
 
-        return certificatePassword;
+        return keyStorePassword;
     }
 
     public MemberOfSupport getMemberOfSupport() {

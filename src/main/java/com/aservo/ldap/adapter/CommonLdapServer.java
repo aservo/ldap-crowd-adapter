@@ -25,6 +25,8 @@ package com.aservo.ldap.adapter;
 import com.aservo.ldap.adapter.util.DirectoryBackend;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -86,18 +88,18 @@ public class CommonLdapServer {
 
             LdapServer server = new LdapServer();
 
-            Transport t = new TcpTransport(serverConfig.getHost(), serverConfig.getPort());
+            Transport transport = new TcpTransport(serverConfig.getHost(), serverConfig.getPort());
 
-            // SSL Support
+            // SSL support
             if (serverConfig.isSslEnabled()) {
 
-                t.setEnableSSL(true);
-                server.setKeystoreFile(serverConfig.getKeyStore());
-                server.setCertificatePassword(serverConfig.getCertificatePassword());
+                transport.setEnableSSL(true);
+                server.setKeystoreFile(serverConfig.getKeyStoreFile().toString());
+                server.setCertificatePassword(serverConfig.getKeyStorePassword());
                 server.addExtendedOperationHandler(new StartTlsHandler());
             }
 
-            server.setTransports(t);
+            server.setTransports(transport);
             server.setDirectoryService(directoryService);
             server.start();
 
@@ -125,10 +127,10 @@ public class CommonLdapServer {
         return directoryService.isStarted();
     }
 
-    private void copyStream(String resourcePath, File outputFile)
+    private void copyStream(String resourcePath, Path outputFile)
             throws IOException {
 
-        if (outputFile.exists()) {
+        if (Files.exists(outputFile)) {
             return;
         }
 
@@ -138,7 +140,7 @@ public class CommonLdapServer {
         try {
 
             in = getClass().getClassLoader().getResourceAsStream(resourcePath);
-            out = new FileOutputStream(outputFile);
+            out = new FileOutputStream(outputFile.toFile());
 
             // transfer bytes from in to out
             byte[] buf = new byte[1024];
@@ -162,24 +164,25 @@ public class CommonLdapServer {
         try {
 
             // extract the schema on disk (a brand new one) and load the registries
-            SchemaLdifExtractor extractor = new DefaultSchemaLdifExtractor(serverConfig.getCacheDir());
+            SchemaLdifExtractor extractor = new DefaultSchemaLdifExtractor(serverConfig.getCacheDir().toFile());
             extractor.extractOrCopy(true);
 
-            File attributeTypesDir =
-                    new File(serverConfig.getCacheDir(), "schema/ou=schema/cn=other/ou=attributetypes");
+            Path attributeTypesDir =
+                    serverConfig.getCacheDir().resolve("schema/ou=schema/cn=other/ou=attributetypes");
 
-            attributeTypesDir.mkdirs();
+            Files.createDirectories(attributeTypesDir);
 
             // memberOf Support
             if (serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
-                File memberOfLDIF = new File(attributeTypesDir, "m-oid=1.2.840.113556.1.2.102.ldif");
+
+                Path memberOfLDIF = attributeTypesDir.resolve("m-oid=1.2.840.113556.1.2.102.ldif");
                 copyStream("com/aservo/ldap/adapter/memberof.ldif", memberOfLDIF);
             }
 
-            File rf2307bisSchemaDir =
-                    new File(serverConfig.getCacheDir(), "schema/ou=schema/cn=rfc2307bis/ou=attributetypes");
+            Path rf2307bisSchemaDir =
+                    serverConfig.getCacheDir().resolve("schema/ou=schema/cn=rfc2307bis/ou=attributetypes");
 
-            rf2307bisSchemaDir.mkdirs();
+            Files.createDirectories(rf2307bisSchemaDir);
 
             ArrayList<String> filenames = new ArrayList<String>();
             filenames.add("m-oid=1.3.6.1.1.1.1.0");
@@ -189,7 +192,8 @@ public class CommonLdapServer {
             filenames.add("m-oid=1.3.6.1.1.1.1.4");
 
             for (String name : filenames) {
-                File rf2307bisSchema = new File(attributeTypesDir, name + ".ldif");
+
+                Path rf2307bisSchema = attributeTypesDir.resolve(name + ".ldif");
                 copyStream("com/aservo/ldap/adapter/rfc2307/" + name + ".ldif", rf2307bisSchema);
             }
 
@@ -203,7 +207,7 @@ public class CommonLdapServer {
 
         try {
 
-            File schemaRepository = new File(serverConfig.getCacheDir(), "schema");
+            File schemaRepository = serverConfig.getCacheDir().resolve("schema").toFile();
 
             SchemaLoader loader = new LdifSchemaLoader(schemaRepository);
             SchemaManager schemaManager = new DefaultSchemaManager(loader);
@@ -214,11 +218,13 @@ public class CommonLdapServer {
             directoryService.setSchemaPartition(schemaPartition);
 
             // initialize the LdifPartition
-            LdifPartition ldifPartition = new LdifPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+            LdifPartition ldifPartition =
+                    new LdifPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+
             ldifPartition.setPartitionPath(schemaRepository.toURI());
 
             schemaPartition.setWrappedPartition(ldifPartition);
-            directoryService.setInstanceLayout(new InstanceLayout(serverConfig.getCacheDir()));
+            directoryService.setInstanceLayout(new InstanceLayout(serverConfig.getCacheDir().toFile()));
 
             // We have to load the schema now, otherwise we won't be able
             // to initialize the Partitions, as we won't be able to parse
@@ -250,9 +256,11 @@ public class CommonLdapServer {
             // then the system partition
             // this is a MANDATORY partition
 
-            JdbmPartition partition = new JdbmPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+            JdbmPartition partition =
+                    new JdbmPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+
             partition.setId("system");
-            partition.setPartitionPath(new File(serverConfig.getCacheDir(), "system").toURI());
+            partition.setPartitionPath(serverConfig.getCacheDir().resolve("system").toFile().toURI());
             partition.setSuffixDn(new Dn(ServerDNConstants.SYSTEM_DN));
 
             directoryService.setSystemPartition(partition);
@@ -267,8 +275,11 @@ public class CommonLdapServer {
             List<Interceptor> interceptors = directoryService.getInterceptors();
 
             for (Interceptor interceptor : interceptors) {
+
                 if (interceptor instanceof AuthenticationInterceptor) {
+
                     logger.debug("Interceptor: {}", interceptor.getName());
+
                     AuthenticationInterceptor ai = (AuthenticationInterceptor) interceptor;
                     Set<Authenticator> auths = new HashSet<Authenticator>();
                     auths.add(new CommonAuthenticator(directoryBackend, directoryService.getSchemaManager()));
