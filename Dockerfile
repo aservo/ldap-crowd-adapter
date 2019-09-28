@@ -11,7 +11,13 @@ ADD project/plugins.sbt /app/project/
 ADD build.sbt /app/
 ADD start.sh /app/
 
-RUN chmod a+x /app/start.sh
+RUN groupadd -r -g 1000 appuser && \
+    useradd -r -g 1000 -u 1000 appuser && \
+    mkdir /var/app && \
+    chown -R appuser:appuser /app && \
+    chown -R appuser:appuser /var/app && \
+    chmod a+x /app/start.sh && \
+    mkhomedir_helper appuser
 
 RUN yum makecache && \
     yum -y update
@@ -38,6 +44,8 @@ ENV SBT_OPTS "--no-colors" \
     "-Dsbt.ivy.home=/var/app/ivy2"
 
 WORKDIR /app
+
+USER appuser
 
 RUN sbt compile
 
