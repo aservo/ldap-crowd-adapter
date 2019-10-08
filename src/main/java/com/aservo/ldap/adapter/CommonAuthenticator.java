@@ -70,23 +70,35 @@ public class CommonAuthenticator
 
                 Map<String, String> userInfo = directoryBackend.getInfoFromAuthenticatedUser(userId, password);
 
-                logger.debug("The user {} has been successfully authenticated.",
-                        userInfo.get(DirectoryBackend.USER_ID));
+                logger.info("[{}] - The user {} with DN={} has been successfully authenticated.",
+                        context.getIoSession().getRemoteAddress(),
+                        userInfo.get(DirectoryBackend.USER_ID),
+                        context.getDn());
 
                 return new LdapPrincipal(schemaManager, context.getDn(), AuthenticationLevel.SIMPLE);
 
             } catch (Exception e) {
 
-                logger.debug("Authentication could not be performed.", e);
+                logger.info("[{}] - Authentication with DN={} could not be performed.",
+                        context.getIoSession().getRemoteAddress(),
+                        context.getDn());
+
+                logger.warn("Authentication failed.", e);
+
                 throw e;
             }
 
         } else {
 
             AuthenticationException error =
-                    new AuthenticationException("Cannot handle unexpected DN : " + context.getDn());
+                    new AuthenticationException("Cannot handle unexpected DN=" + context.getDn());
 
-            logger.debug("Authentication could not be performed with an incorrect DN.", error);
+            logger.info("[{}] - Authentication with incorrect DN={} could not be performed.",
+                    context.getIoSession().getRemoteAddress(),
+                    context.getDn());
+
+            logger.warn("Authentication failed.", error);
+
             throw error;
         }
     }

@@ -356,7 +356,7 @@ public class CommonPartition
                 entryCache.put(usersDn, entry);
 
         } else
-            throw new IllegalArgumentException("Cannot create system entry with dn=" + dn);
+            throw new IllegalArgumentException("Cannot create system entry with DN=" + dn);
 
         return entry;
     }
@@ -578,12 +578,12 @@ public class CommonPartition
 
         if (entry == null) {
 
-            logger.debug("Could not find cached entry with dn={}", context.getDn().getName());
+            logger.debug("Could not find cached entry with DN={}", context.getDn().getName());
             return null;
 
         } else {
 
-            logger.debug("Could find cached entry with dn={}", context.getDn().getName());
+            logger.debug("Could find cached entry with DN={}", context.getDn().getName());
             return new ClonedServerEntry(entry);
         }
     }
@@ -592,7 +592,7 @@ public class CommonPartition
     public boolean hasEntry(HasEntryOperationContext context)
             throws LdapException {
 
-        logger.debug("Check for existence of entry with dn={}",
+        logger.debug("Check for existence of entry with DN={}",
                 context.getDn().getName());
 
         if (entryCache.containsKey(context.getDn()))
@@ -806,9 +806,11 @@ public class CommonPartition
     @Override
     protected EntryFilteringCursor findOne(SearchOperationContext context) {
 
-        logger.debug("Try to find one entry with dn={} and filter={}",
+        logger.info("[{}] - Access partition: DN={} filter={} scope={}",
+                context.getSession().getClientAddress(),
                 context.getDn().getName(),
-                context.getFilter());
+                context.getFilter(),
+                context.getScope());
 
         if (context.getDn().equals(groupsDn)) {
 
@@ -913,9 +915,11 @@ public class CommonPartition
     protected EntryFilteringCursor findManyOnFirstLevel(SearchOperationContext context)
             throws LdapException {
 
-        logger.debug("Try to find many entries on first level with dn={} and filter={}",
+        logger.info("[{}] - Access partition: DN={} filter={} scope={}",
+                context.getSession().getClientAddress(),
                 context.getDn().getName(),
-                context.getFilter());
+                context.getFilter(),
+                context.getScope());
 
         if (context.getDn().equals(groupsDn)) {
 
@@ -1029,10 +1033,6 @@ public class CommonPartition
     @Override
     protected EntryFilteringCursor findManyOnMultipleLevels(SearchOperationContext context)
             throws LdapException {
-
-        logger.debug("Try to find many entries on multiple levels with dn={} and filter={}",
-                context.getDn().getName(),
-                context.getFilter());
 
         // will only search at one level
         return findManyOnFirstLevel(context);
