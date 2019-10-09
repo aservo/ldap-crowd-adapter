@@ -176,7 +176,7 @@ public final class LruCacheMap<K, V>
         cacheEntries.clear();
     }
 
-    public class FixedSizeMap
+    private class FixedSizeMap
             extends LinkedHashMap<K, V> {
 
         public FixedSizeMap() {
@@ -190,7 +190,7 @@ public final class LruCacheMap<K, V>
         }
     }
 
-    public class PriorityQueueEntry
+    private class PriorityQueueEntry
             implements Comparable<PriorityQueueEntry> {
 
         private final K key;
