@@ -57,7 +57,7 @@ public class CommonPartition
 
     private final DirectoryBackend directoryBackend;
     private final ServerConfiguration serverConfig;
-    private LruCacheMap<Dn, Entry> entryCache;
+    private Map<Dn, Entry> entryCache;
     private FilterMatcher filterProcessor;
 
     private Dn rootDn;
@@ -70,7 +70,11 @@ public class CommonPartition
 
         this.directoryBackend = directoryBackend;
         this.serverConfig = serverConfig;
-        this.entryCache = new LruCacheMap<>(serverConfig.getEntryCacheMaxSize(), serverConfig.getEntryCacheMaxAge());
+
+        this.entryCache =
+                Collections.synchronizedMap(
+                        new LruCacheMap<>(serverConfig.getEntryCacheMaxSize(), serverConfig.getEntryCacheMaxAge())
+                );
     }
 
     @Override
