@@ -10,18 +10,17 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
-import org.junit.Assert;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.*;
 
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ScopeTest
         extends AbstractTest {
 
     @Test
-    public void test_001_browseGroupEntry()
+    @Order(1)
+    @DisplayName("it should be able to find a single group")
+    public void test001()
             throws Exception {
 
         final String userName = "GroupE";
@@ -31,10 +30,10 @@ public class ScopeTest
 
                     try {
 
-                        Assert.assertTrue(results.hasMore());
+                        Assertions.assertTrue(results.hasMore());
                         Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        Assert.assertEquals(userName, getAndCheckGroupEntry(attributes, MemberOfSupport.OFF));
-                        Assert.assertFalse(results.hasMore());
+                        Assertions.assertEquals(userName, getAndCheckGroupEntry(attributes, MemberOfSupport.OFF));
+                        Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {
 
@@ -71,7 +70,9 @@ public class ScopeTest
     }
 
     @Test
-    public void test_002_browseUserEntry()
+    @Order(2)
+    @DisplayName("it should be able to find a single user")
+    public void test002()
             throws Exception {
 
         final String userName = "UserE";
@@ -81,10 +82,10 @@ public class ScopeTest
 
                     try {
 
-                        Assert.assertTrue(results.hasMore());
+                        Assertions.assertTrue(results.hasMore());
                         Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        Assert.assertEquals(userName, getAndCheckUserEntry(attributes, MemberOfSupport.OFF));
-                        Assert.assertFalse(results.hasMore());
+                        Assertions.assertEquals(userName, getAndCheckUserEntry(attributes, MemberOfSupport.OFF));
+                        Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {
 
@@ -121,7 +122,9 @@ public class ScopeTest
     }
 
     @Test
-    public void test_003_browseRootEntryGetOne()
+    @Order(3)
+    @DisplayName("it should be able to find the root DC entry")
+    public void test003()
             throws Exception {
 
         String base = "dc=json";
@@ -134,16 +137,18 @@ public class ScopeTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkRootEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_004_browseGroupsEntryGetOne()
+    @Order(4)
+    @DisplayName("it should be able to find the groups OU entry")
+    public void test004()
             throws Exception {
 
         String base = "ou=groups,dc=json";
@@ -156,16 +161,18 @@ public class ScopeTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkGroupsEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_005_browseUsersEntryGetOne()
+    @Order(5)
+    @DisplayName("it should be able to find the users OU entry")
+    public void test005()
             throws Exception {
 
         String base = "ou=users,dc=json";
@@ -178,16 +185,18 @@ public class ScopeTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkUsersEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_006_browseRootEntryGetAll()
+    @Order(6)
+    @DisplayName("it should be able to browse the root DC entry")
+    public void test006()
             throws Exception {
 
         String base = "dc=json";
@@ -205,44 +214,46 @@ public class ScopeTest
         NamingEnumeration results1 = context1.search(base, filter, sc1);
         NamingEnumeration results2 = context1.search(base, filter, sc2);
 
-        Assert.assertTrue(results1.hasMore() && results2.hasMore());
+        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
         checkRootEntry(((SearchResult) results1.next()).getAttributes());
         checkRootEntry(((SearchResult) results2.next()).getAttributes());
 
-        Assert.assertTrue(results1.hasMore() && results2.hasMore());
+        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
         checkGroupsEntry(((SearchResult) results1.next()).getAttributes());
         checkGroupsEntry(((SearchResult) results2.next()).getAttributes());
 
-        Assert.assertTrue(results1.hasMore() && results2.hasMore());
+        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
         checkUsersEntry(((SearchResult) results1.next()).getAttributes());
         checkUsersEntry(((SearchResult) results2.next()).getAttributes());
 
         for (String entry : directoryBackend.getAllGroups()) {
 
-            Assert.assertTrue(results1.hasMore() && results2.hasMore());
+            Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assert.assertEquals(entry, getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
-            Assert.assertEquals(entry, getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
         }
 
         for (String entry : directoryBackend.getAllUsers()) {
 
-            Assert.assertTrue(results1.hasMore() && results2.hasMore());
+            Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assert.assertEquals(entry, getAndCheckUserEntry(attributes1, MemberOfSupport.OFF));
-            Assert.assertEquals(entry, getAndCheckUserEntry(attributes2, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes1, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes2, MemberOfSupport.OFF));
         }
 
-        Assert.assertFalse(results1.hasMore() || results2.hasMore());
+        Assertions.assertFalse(results1.hasMore() || results2.hasMore());
 
         context1.close();
         context2.close();
     }
 
     @Test
-    public void test_007_browseGroupsEntryGetAll()
+    @Order(7)
+    @DisplayName("it should be able to browse the groups OU entry")
+    public void test007()
             throws Exception {
 
         String base = "ou=groups,dc=json";
@@ -260,27 +271,29 @@ public class ScopeTest
         NamingEnumeration results1 = context1.search(base, filter, sc1);
         NamingEnumeration results2 = context1.search(base, filter, sc2);
 
-        Assert.assertTrue(results1.hasMore() && results2.hasMore());
+        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
         checkGroupsEntry(((SearchResult) results1.next()).getAttributes());
         checkGroupsEntry(((SearchResult) results2.next()).getAttributes());
 
         for (String entry : directoryBackend.getAllGroups()) {
 
-            Assert.assertTrue(results1.hasMore() && results2.hasMore());
+            Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assert.assertEquals(entry, getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
-            Assert.assertEquals(entry, getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
         }
 
-        Assert.assertFalse(results1.hasMore() || results2.hasMore());
+        Assertions.assertFalse(results1.hasMore() || results2.hasMore());
 
         context1.close();
         context2.close();
     }
 
     @Test
-    public void test_008_browseUsersEntryGetAll()
+    @Order(8)
+    @DisplayName("it should be able to browse the users OU entry")
+    public void test008()
             throws Exception {
 
         String base = "ou=users,dc=json";
@@ -298,20 +311,20 @@ public class ScopeTest
         NamingEnumeration results1 = context1.search(base, filter, sc1);
         NamingEnumeration results2 = context1.search(base, filter, sc2);
 
-        Assert.assertTrue(results1.hasMore() && results2.hasMore());
+        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
         checkUsersEntry(((SearchResult) results1.next()).getAttributes());
         checkUsersEntry(((SearchResult) results2.next()).getAttributes());
 
         for (String entry : directoryBackend.getAllUsers()) {
 
-            Assert.assertTrue(results1.hasMore() && results2.hasMore());
+            Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assert.assertEquals(entry, getAndCheckUserEntry(attributes1, MemberOfSupport.OFF));
-            Assert.assertEquals(entry, getAndCheckUserEntry(attributes2, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes1, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes2, MemberOfSupport.OFF));
         }
 
-        Assert.assertFalse(results1.hasMore() || results2.hasMore());
+        Assertions.assertFalse(results1.hasMore() || results2.hasMore());
 
         context1.close();
         context2.close();

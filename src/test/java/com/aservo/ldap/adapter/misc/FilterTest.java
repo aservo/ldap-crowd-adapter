@@ -9,18 +9,17 @@ import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
-import org.junit.Assert;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.*;
 
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class FilterTest
         extends AbstractTest {
 
     @Test
-    public void test_001_filterAll()
+    @Order(1)
+    @DisplayName("it should list all entries")
+    public void test001()
             throws Exception {
 
         String base = "dc=json";
@@ -35,36 +34,38 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkRootEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkGroupsEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkUsersEntry(((SearchResult) results.next()).getAttributes());
 
         for (String entry : directoryBackend.getAllGroups()) {
 
-            Assert.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assert.assertEquals(entry, getAndCheckGroupEntry(attributes, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, MemberOfSupport.OFF));
         }
 
         for (String entry : directoryBackend.getAllUsers()) {
 
-            Assert.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assert.assertEquals(entry, getAndCheckUserEntry(attributes, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, MemberOfSupport.OFF));
         }
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_002_filterDomain()
+    @Order(2)
+    @DisplayName("it should show domain entry")
+    public void test002()
             throws Exception {
 
         String base = "dc=json";
@@ -79,16 +80,18 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkRootEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_003_filterOu()
+    @Order(3)
+    @DisplayName("it should list all OU entries")
+    public void test003()
             throws Exception {
 
         String base = "dc=json";
@@ -103,19 +106,21 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkGroupsEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkUsersEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_004_filterOuAndGroups()
+    @Order(4)
+    @DisplayName("it should show group OU entry")
+    public void test004()
             throws Exception {
 
         String base = "dc=json";
@@ -133,16 +138,18 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkGroupsEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_005_filterOuAndUsers()
+    @Order(5)
+    @DisplayName("it should show user OU entry")
+    public void test005()
             throws Exception {
 
         String base = "dc=json";
@@ -160,16 +167,18 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkUsersEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_006_filterOuOrDomain()
+    @Order(6)
+    @DisplayName("it should list OU and DC entries")
+    public void test006()
             throws Exception {
 
         String base = "dc=json";
@@ -187,22 +196,24 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkRootEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkGroupsEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkUsersEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_007_filterUsersByNegation()
+    @Order(7)
+    @DisplayName("it should handle nested filter expressions")
+    public void test007()
             throws Exception {
 
         String base = "dc=json";
@@ -223,18 +234,20 @@ public class FilterTest
 
         for (String entry : directoryBackend.getAllUsers()) {
 
-            Assert.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assert.assertEquals(entry, getAndCheckUserEntry(attributes, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, MemberOfSupport.OFF));
         }
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_008_filterByDescriptionExistence()
+    @Order(8)
+    @DisplayName("it should handle existence filter expressions correctly")
+    public void test008()
             throws Exception {
 
         String base = "dc=json";
@@ -249,29 +262,31 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkRootEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkGroupsEntry(((SearchResult) results.next()).getAttributes());
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         checkUsersEntry(((SearchResult) results.next()).getAttributes());
 
         for (String entry : directoryBackend.getAllGroups()) {
 
-            Assert.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assert.assertEquals(entry, getAndCheckGroupEntry(attributes, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, MemberOfSupport.OFF));
         }
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
 
     @Test
-    public void test_009_filterByMember()
+    @Order(9)
+    @DisplayName("it should filter by DN attribute values")
+    public void test009()
             throws Exception {
 
         String base = "dc=json";
@@ -286,15 +301,15 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         Attributes attributes1 = ((SearchResult) results.next()).getAttributes();
-        Assert.assertEquals("GroupA", getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
+        Assertions.assertEquals("GroupA", getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
 
-        Assert.assertTrue(results.hasMore());
+        Assertions.assertTrue(results.hasMore());
         Attributes attributes2 = ((SearchResult) results.next()).getAttributes();
-        Assert.assertEquals("GroupB", getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
+        Assertions.assertEquals("GroupB", getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
 
-        Assert.assertFalse(results.hasMore());
+        Assertions.assertFalse(results.hasMore());
 
         context.close();
     }
