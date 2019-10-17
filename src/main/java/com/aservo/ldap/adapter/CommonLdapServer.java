@@ -130,32 +130,24 @@ public class CommonLdapServer {
     private void copyStream(String resourcePath, Path outputFile)
             throws IOException {
 
-        if (Files.exists(outputFile)) {
+        if (outputFile.toFile().exists()) {
+
             return;
         }
 
-        InputStream in = null;
-        OutputStream out = null;
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
 
-        try {
+            try (OutputStream out = new FileOutputStream(outputFile.toFile())) {
 
-            in = getClass().getClassLoader().getResourceAsStream(resourcePath);
-            out = new FileOutputStream(outputFile.toFile());
+                // transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
 
-            // transfer bytes from in to out
-            byte[] buf = new byte[1024];
-            int len;
+                while ((len = in.read(buf)) > 0) {
 
-            while ((len = in.read(buf)) > 0)
-                out.write(buf, 0, len);
-
-        } finally {
-
-            if (in != null)
-                in.close();
-
-            if (out != null)
-                out.close();
+                    out.write(buf, 0, len);
+                }
+            }
         }
     }
 
@@ -184,7 +176,7 @@ public class CommonLdapServer {
 
             Files.createDirectories(rf2307bisSchemaDir);
 
-            ArrayList<String> filenames = new ArrayList<String>();
+            ArrayList<String> filenames = new ArrayList<>();
             filenames.add("m-oid=1.3.6.1.1.1.1.0");
             filenames.add("m-oid=1.3.6.1.1.1.1.1");
             filenames.add("m-oid=1.3.6.1.1.1.1.2");
@@ -233,8 +225,9 @@ public class CommonLdapServer {
 
             List<Throwable> errors = schemaManager.getErrors();
 
-            if (errors.size() != 0) {
-                throw new Exception(MessageFormat.format("Schema load failed: {0}", errors));
+            if (!errors.isEmpty()) {
+
+                throw new IOException(MessageFormat.format("Schema load failed: {0}", errors));
             }
 
         } catch (Exception e) {
@@ -248,31 +241,31 @@ public class CommonLdapServer {
         try {
 
             // initialize the LDAP service
-            DirectoryService directoryService = new DefaultDirectoryService();
+            DirectoryService service = new DefaultDirectoryService();
 
             // first load the schema
-            initSchemaPartition(directoryService);
+            initSchemaPartition(service);
 
             // then the system partition
             // this is a MANDATORY partition
 
             JdbmPartition partition =
-                    new JdbmPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+                    new JdbmPartition(service.getSchemaManager(), service.getDnFactory());
 
             partition.setId("system");
             partition.setPartitionPath(serverConfig.getCacheDir().resolve("system").toFile().toURI());
             partition.setSuffixDn(new Dn(ServerDNConstants.SYSTEM_DN));
 
-            directoryService.setSystemPartition(partition);
+            service.setSystemPartition(partition);
 
             // disable the ChangeLog system
-            directoryService.getChangeLog().setEnabled(false);
-            directoryService.setDenormalizeOpAttrsEnabled(false);
+            service.getChangeLog().setEnabled(false);
+            service.setDenormalizeOpAttrsEnabled(false);
 
             //disable Anonymous Access
-            directoryService.setAllowAnonymousAccess(false);
+            service.setAllowAnonymousAccess(false);
 
-            List<Interceptor> interceptors = directoryService.getInterceptors();
+            List<Interceptor> interceptors = service.getInterceptors();
 
             for (Interceptor interceptor : interceptors) {
 
@@ -281,16 +274,16 @@ public class CommonLdapServer {
                     logger.debug("Interceptor: {}", interceptor.getName());
 
                     AuthenticationInterceptor ai = (AuthenticationInterceptor) interceptor;
-                    Set<Authenticator> auths = new HashSet<Authenticator>();
-                    auths.add(new CommonAuthenticator(directoryBackend, directoryService.getSchemaManager()));
+                    Set<Authenticator> auths = new HashSet<>();
+                    auths.add(new CommonAuthenticator(directoryBackend, service.getSchemaManager()));
                     ai.setAuthenticators(auths);
                 }
             }
 
             // add Partition
-            addPartition(directoryService);
+            addPartition(service);
 
-            return directoryService;
+            return service;
 
         } catch (Exception e) {
 

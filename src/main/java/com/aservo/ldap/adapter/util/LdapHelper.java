@@ -26,6 +26,9 @@ import org.jetbrains.annotations.Nullable;
 
 public class LdapHelper {
 
+    private LdapHelper() {
+    }
+
     public static Dn createDn(SchemaManager schemaManager, String dnString) {
 
         try {

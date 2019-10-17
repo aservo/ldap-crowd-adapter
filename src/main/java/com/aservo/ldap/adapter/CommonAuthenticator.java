@@ -22,6 +22,9 @@
 
 package com.aservo.ldap.adapter;
 
+import com.aservo.ldap.adapter.exception.DirectoryAccessFailureException;
+import com.aservo.ldap.adapter.exception.EntryNotFoundException;
+import com.aservo.ldap.adapter.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.util.DirectoryBackend;
 import com.aservo.ldap.adapter.util.LdapHelper;
 import java.nio.charset.StandardCharsets;
@@ -77,7 +80,9 @@ public class CommonAuthenticator
 
                 return new LdapPrincipal(schemaManager, context.getDn(), AuthenticationLevel.SIMPLE);
 
-            } catch (Exception e) {
+            } catch (DirectoryAccessFailureException |
+                    SecurityProblemException |
+                    EntryNotFoundException e) {
 
                 logger.info("[{}] - Authentication with DN={} could not be performed.",
                         context.getIoSession().getRemoteAddress(),

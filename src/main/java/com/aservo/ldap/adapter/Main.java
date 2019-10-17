@@ -18,10 +18,8 @@
 package com.aservo.ldap.adapter;
 
 import com.aservo.ldap.adapter.util.ServerConfiguration;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
@@ -70,7 +68,7 @@ public class Main {
 
         try {
 
-            properties.load(new FileReader(file));
+            properties.load(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
 
         } catch (IOException e) {
 

@@ -36,7 +36,7 @@ public class ServerConfiguration {
     public static final String CONFIG_ENTRY_CACHE_MAX_AGE = "entry-cache.max-age";
     public static final String CONFIG_SSL_ENABLED = "ssl.enabled";
     public static final String CONFIG_SSL_KEY_STORE_FILE = "ssl.key-store-file";
-    public static final String CONFIG_SSL_KEY_STORE_PASSWORD = "ssl.key-store-password";
+    public static final String CONFIG_SSL_KEY_STORE_PW = "ssl.key-store-password";
     public static final String CONFIG_SUPPORT_MEMBER_OF = "support.member-of";
     public static final String CONFIG_DIRECTORY_BACKEND = "directory-backend";
     public static final String CONFIG_BASE_DN_DESCRIPTION = "base-dn.description";
@@ -107,10 +107,10 @@ public class ServerConfiguration {
 
             keyStoreFile = Paths.get(keyStoreFileValue).toAbsolutePath().normalize();
 
-            keyStorePassword = serverProperties.getProperty(CONFIG_SSL_KEY_STORE_PASSWORD);
+            keyStorePassword = serverProperties.getProperty(CONFIG_SSL_KEY_STORE_PW);
 
             if (keyStorePassword == null)
-                throw new IllegalArgumentException("Missing value for " + CONFIG_SSL_KEY_STORE_PASSWORD);
+                throw new IllegalArgumentException("Missing value for " + CONFIG_SSL_KEY_STORE_PW);
 
         } else {
 

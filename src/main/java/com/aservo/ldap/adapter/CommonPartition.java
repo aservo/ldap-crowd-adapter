@@ -57,7 +57,7 @@ public class CommonPartition
 
     private final DirectoryBackend directoryBackend;
     private final ServerConfiguration serverConfig;
-    private Map<Dn, Entry> entryCache;
+    private final Map<Dn, Entry> entryCache;
     private FilterMatcher filterProcessor;
 
     private Dn rootDn;
@@ -102,7 +102,7 @@ public class CommonPartition
                         else if (entryType.equals(EntryType.USER))
                             return getUserValueFromAttribute(attribute, entryId);
 
-                        return null;
+                        return Collections.emptyList();
                     }
 
                     @Nullable
@@ -437,11 +437,8 @@ public class CommonPartition
             entry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
             entry.put(SchemaConstants.UID_AT, userInfo.get(DirectoryBackend.USER_ID));
             entry.put(SchemaConstants.CN_AT, userInfo.get(DirectoryBackend.USER_ID));
-            //entry.put(SchemaConstants.COMMON_NAME_AT, userInfo.get(DirectoryBackend.USER_ID));
             entry.put(SchemaConstants.GN_AT, userInfo.get(DirectoryBackend.USER_FIRST_NAME));
-            //entry.put(SchemaConstants.GIVENNAME_AT, userInfo.get(DirectoryBackend.USER_FIRST_NAME));
             entry.put(SchemaConstants.SN_AT, userInfo.get(DirectoryBackend.USER_LAST_NAME));
-            //entry.put(SchemaConstants.SURNAME_AT, userInfo.get(DirectoryBackend.USER_LAST_NAME));
             entry.put(SchemaConstants.DISPLAY_NAME_AT, userInfo.get(DirectoryBackend.USER_DISPLAY_NAME));
             entry.put(SchemaConstants.MAIL_AT, userInfo.get(DirectoryBackend.USER_EMAIL_ADDRESS));
             entry.put(SchemaConstants.UID_NUMBER_AT,
@@ -474,9 +471,9 @@ public class CommonPartition
 
         return Stream.concat(
                 findUserMembers(groupId).stream()
-                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersDn, x)),
+                        .map(x -> LdapHelper.createDnWithCn(schemaManager, usersDn, x)),
                 findGroupMembers(groupId).stream()
-                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
+                        .map(x -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
         )
                 .map(Dn::getName)
                 .collect(Collectors.toList());
@@ -485,7 +482,7 @@ public class CommonPartition
     private List<String> collectMemberOfDnForGroup(String groupId) {
 
         return findGroupMembersReverse(groupId).stream()
-                .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
+                .map(x -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
                 .map(Dn::getName)
                 .collect(Collectors.toList());
     }
@@ -493,7 +490,7 @@ public class CommonPartition
     private List<String> collectMemberOfDnForUser(String userId) {
 
         return findUserMembersReverse(userId).stream()
-                .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
+                .map(x -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
                 .map(Dn::getName)
                 .collect(Collectors.toList());
     }
@@ -681,13 +678,13 @@ public class CommonPartition
 
                 default:
 
-                    logger.debug("Cannot handle unknown attribute : " + attribute);
+                    logger.debug("Cannot handle unknown attribute : {}", attribute);
                     return null;
             }
 
             if (result.size() > 1) {
 
-                logger.error("Expect unique group for attribute: " + attribute);
+                logger.error("Expect unique group for attribute: {}", attribute);
                 return null;
             }
 
@@ -730,7 +727,7 @@ public class CommonPartition
                 case SchemaConstants.UID_NUMBER_AT_OID:
 
                     result = directoryBackend.getAllUsers().stream()
-                            .filter((x) -> Integer.toString(Utils.calculateHash(x)).equals(value))
+                            .filter(x -> Integer.toString(Utils.calculateHash(x)).equals(value))
                             .collect(Collectors.toList());
 
                     break;
@@ -754,13 +751,13 @@ public class CommonPartition
 
                 default:
 
-                    logger.warn("Cannot handle unknown attribute : " + attribute);
+                    logger.warn("Cannot handle unknown attribute : {}", attribute);
                     return null;
             }
 
             if (result.size() > 1) {
 
-                logger.error("Expect unique user for attribute: " + attribute);
+                logger.error("Expect unique user for attribute: {}", attribute);
                 return null;
             }
 
@@ -779,8 +776,8 @@ public class CommonPartition
 
         List<Entry> entries =
                 groupIds.stream()
-                        .filter((x) -> filterProcessor.match(filter, x, EntryType.GROUP))
-                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
+                        .filter(x -> filterProcessor.match(filter, x, EntryType.GROUP))
+                        .map(x -> LdapHelper.createDnWithCn(schemaManager, groupsDn, x))
                         .map(this::createGroupEntry)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -795,8 +792,8 @@ public class CommonPartition
 
         List<Entry> entries =
                 userIds.stream()
-                        .filter((x) -> filterProcessor.match(filter, x, EntryType.USER))
-                        .map((x) -> LdapHelper.createDnWithCn(schemaManager, usersDn, x))
+                        .filter(x -> filterProcessor.match(filter, x, EntryType.USER))
+                        .map(x -> LdapHelper.createDnWithCn(schemaManager, usersDn, x))
                         .map(this::createUserEntry)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -835,13 +832,10 @@ public class CommonPartition
             List<Entry> groupEntries = createGroupEntryList(groupIds, context.getFilter());
 
             return groupEntries.stream().findAny()
-                    .map((entry) -> {
-
-                        return new EntryFilteringCursorImpl(
-                                new SingletonCursor<>(entry),
-                                context,
-                                schemaManager);
-                    })
+                    .map(entry -> new EntryFilteringCursorImpl(
+                            new SingletonCursor<>(entry),
+                            context,
+                            schemaManager))
                     .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
 
         } else if (context.getDn().equals(usersDn)) {
@@ -863,13 +857,10 @@ public class CommonPartition
             List<Entry> userEntries = createUserEntryList(userIds, context.getFilter());
 
             return userEntries.stream().findAny()
-                    .map((entry) -> {
-
-                        return new EntryFilteringCursorImpl(
-                                new SingletonCursor<>(entry),
-                                context,
-                                schemaManager);
-                    })
+                    .map(entry -> new EntryFilteringCursorImpl(
+                            new SingletonCursor<>(entry),
+                            context,
+                            schemaManager))
                     .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
 
         } else if (context.getDn().equals(rootDn)) {
@@ -901,13 +892,10 @@ public class CommonPartition
             }
 
             return mergedEntries.stream().findAny()
-                    .map((entry) -> {
-
-                        return new EntryFilteringCursorImpl(
-                                new SingletonCursor<>(entry),
-                                context,
-                                schemaManager);
-                    })
+                    .map(entry -> new EntryFilteringCursorImpl(
+                            new SingletonCursor<>(entry),
+                            context,
+                            schemaManager))
                     .orElse(new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager));
         }
 

@@ -8,12 +8,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -72,7 +70,10 @@ public class JsonDirectoryBackend
 
             Gson gson = new Gson();
 
-            JsonObject jsonObject = gson.fromJson(new FileReader(dbFile), JsonObject.class);
+            JsonObject jsonObject =
+                    gson.fromJson(
+                            new InputStreamReader(new FileInputStream(dbFile), StandardCharsets.UTF_8),
+                            JsonObject.class);
 
             JsonArray groupNode = jsonObject.getAsJsonArray("groups");
             JsonArray userNode = jsonObject.getAsJsonArray("users");
@@ -99,17 +100,24 @@ public class JsonDirectoryBackend
 
             for (JsonElement x : groupNode) {
 
-                String id = x.getAsJsonObject().get("id").getAsString();
+                String groupId = x.getAsJsonObject().get("id").getAsString();
                 JsonArray groupMemberNode = x.getAsJsonObject().getAsJsonArray("group_members");
                 JsonArray userMemberNode = x.getAsJsonObject().getAsJsonArray("user_members");
 
-                Group group = groups.stream().filter((z) -> z.getId().equals(id)).findAny().get();
+                Group group = groups.stream().filter(z -> z.getId().equals(groupId)).findAny()
+                        .orElseThrow(() -> new IllegalStateException("Unknown error."));
 
                 for (JsonElement y : groupMemberNode)
-                    group.addGroup(groups.stream().filter((z) -> z.getId().equals(y.getAsString())).findAny().get());
+                    group.addGroup(groups.stream().filter(z -> z.getId().equals(y.getAsString())).findAny()
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Cannot find group member with id " + y.getAsString()
+                            )));
 
                 for (JsonElement y : userMemberNode)
-                    group.addUser(users.stream().filter((z) -> z.getId().equals(y.getAsString())).findAny().get());
+                    group.addUser(users.stream().filter(z -> z.getId().equals(y.getAsString())).findAny()
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Cannot find user member with id " + y.getAsString()
+                            )));
             }
 
         } catch (IOException e) {
@@ -129,7 +137,7 @@ public class JsonDirectoryBackend
             throws EntryNotFoundException {
 
         return groups.stream()
-                .filter((x) -> x.getId().equalsIgnoreCase(id))
+                .filter(x -> x.getId().equalsIgnoreCase(id))
                 .findAny()
                 .orElseThrow(() -> new EntryNotFoundException("Cannot find group with id " + id));
     }
@@ -138,7 +146,7 @@ public class JsonDirectoryBackend
             throws EntryNotFoundException {
 
         return users.stream()
-                .filter((x) -> x.getId().equalsIgnoreCase(id))
+                .filter(x -> x.getId().equalsIgnoreCase(id))
                 .findAny()
                 .orElseThrow(() -> new EntryNotFoundException("Cannot find user with id " + id));
     }
@@ -212,7 +220,7 @@ public class JsonDirectoryBackend
     public List<String> getGroupsByAttribute(String attribute, String value)
             throws DirectoryAccessFailureException, SecurityProblemException {
 
-        return groups.stream().filter((x) -> {
+        return groups.stream().filter(x -> {
 
             if (attribute.equalsIgnoreCase(GROUP_ID))
                 return x.getId().equalsIgnoreCase(value);
@@ -228,7 +236,7 @@ public class JsonDirectoryBackend
     public List<String> getUsersByAttribute(String attribute, String value)
             throws DirectoryAccessFailureException, SecurityProblemException {
 
-        return users.stream().filter((x) -> {
+        return users.stream().filter(x -> {
 
             if (attribute.equalsIgnoreCase(USER_ID))
                 return x.getId().equalsIgnoreCase(value);
@@ -263,7 +271,7 @@ public class JsonDirectoryBackend
         User user = findUserById(id);
 
         return groups.stream()
-                .filter((x) -> x.getUserMembers().contains(user))
+                .filter(x -> x.getUserMembers().contains(user))
                 .map(Group::getId)
                 .collect(Collectors.toList());
     }
@@ -310,7 +318,7 @@ public class JsonDirectoryBackend
         Group group = findGroupById(id);
 
         return groups.stream()
-                .filter((x) -> x.getGroupMembers().contains(group))
+                .filter(x -> x.getGroupMembers().contains(group))
                 .map(Group::getId)
                 .collect(Collectors.toList());
     }
@@ -363,7 +371,7 @@ public class JsonDirectoryBackend
 
         List<Group> result =
                 groups.stream()
-                        .filter((x) -> x.getGroupMembers().contains(group))
+                        .filter(x -> x.getGroupMembers().contains(group))
                         .collect(Collectors.toList());
 
         for (Group x : result)
@@ -380,7 +388,7 @@ public class JsonDirectoryBackend
         findGroupById(groupId1);
 
         return getDirectChildGroupsOfGroup(groupId2).stream()
-                .anyMatch((x) -> x.equalsIgnoreCase(groupId1));
+                .anyMatch(x -> x.equalsIgnoreCase(groupId1));
     }
 
     public boolean isUserDirectGroupMember(String userId, String groupId)
@@ -389,7 +397,7 @@ public class JsonDirectoryBackend
         findUserById(userId);
 
         return getDirectUsersOfGroup(groupId).stream()
-                .anyMatch((x) -> x.equalsIgnoreCase(userId));
+                .anyMatch(x -> x.equalsIgnoreCase(userId));
     }
 
     public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2)

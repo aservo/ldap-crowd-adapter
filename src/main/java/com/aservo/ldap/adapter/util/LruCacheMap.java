@@ -53,7 +53,7 @@ public final class LruCacheMap<K, V>
 
     private void clean() {
 
-        while (priorityEntries.size() > 0) {
+        while (!priorityEntries.isEmpty()) {
 
             if (maxAge.compareTo(Duration.between(priorityEntries.peek().getCreatedAt(), Instant.now())) < 0) {
 
@@ -164,7 +164,7 @@ public final class LruCacheMap<K, V>
 
         clean();
 
-        priorityEntries.removeIf((x) -> x.getKey().equals(key));
+        priorityEntries.removeIf(x -> x.getKey().equals(key));
 
         return cacheEntries.remove(key);
     }
@@ -184,6 +184,7 @@ public final class LruCacheMap<K, V>
             super(maxSize + 2, 1, true);
         }
 
+        @Override
         protected boolean removeEldestEntry(Map.Entry<K, V> entry) {
 
             return size() > maxSize;
