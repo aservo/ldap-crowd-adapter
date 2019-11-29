@@ -1,6 +1,4 @@
-ARG DIST_VERSION
-
-FROM centos:${DIST_VERSION}
+FROM centos:7
 
 MAINTAINER Eric Löffler <eloeffler@aservo.com>
 
