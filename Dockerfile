@@ -28,6 +28,14 @@ RUN yum makecache && \
         yum-utils && \
 	rm -rf /tmp/* /var/tmp/*
 
+COPY ca_certs/ /usr/share/pki/ca-trust-source/anchors/
+
+RUN yum makecache && \
+    yum -y install \
+        ca-certificates && \
+    update-ca-trust && \
+    rm -rf /tmp/* /var/tmp/*
+
 RUN yum makecache && \
 	yum -y install \
         java-1.8.0-openjdk-headless \
