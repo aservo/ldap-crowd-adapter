@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [ -n "$LOGLEVEL" ]; then
+  ARGS="-Dloglevel=$LOGLEVEL $ARGS"
+fi
+
 if [ -n "$CROWD_APP_NAME" ]; then
   ARGS="-Dapplication.name=$CROWD_APP_NAME $ARGS"
 fi

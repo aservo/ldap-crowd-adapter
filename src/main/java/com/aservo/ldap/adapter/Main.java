@@ -45,6 +45,7 @@ public class Main {
 
         // configure logging
         Properties loggingProperties = loadConfigFile(new File(configDir, "log4j.properties"));
+        setLogLevel(loggingProperties);
         PropertyConfigurator.configure(loggingProperties);
 
         // load server configuration
@@ -60,6 +61,28 @@ public class Main {
 
         // return with server instance
         return new CommonLdapServer(serverConfig);
+    }
+
+    private static void setLogLevel(Properties loggingProperties) {
+
+        String rootCategoryKey = "log4j.rootCategory";
+        String rootCategoryValue = loggingProperties.getProperty(rootCategoryKey);
+        String sysLogLevel = System.getProperty("loglevel");
+
+        if (sysLogLevel != null) {
+
+            if (rootCategoryValue == null)
+                throw new IllegalArgumentException("Cannot find key for " + rootCategoryKey);
+
+            int pos = rootCategoryValue.indexOf(',');
+
+            if (pos < 0)
+                throw new IllegalArgumentException("Cannot parse value of key " + rootCategoryKey);
+
+            String logResources = rootCategoryValue.substring(pos);
+
+            loggingProperties.put(rootCategoryKey, sysLogLevel.toUpperCase() + logResources);
+        }
     }
 
     private static Properties loadConfigFile(File file) {
