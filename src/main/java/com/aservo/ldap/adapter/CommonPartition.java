@@ -384,9 +384,14 @@ public class CommonPartition
                     SchemaConstants.TOP_OC,
                     SchemaConstants.GROUP_OF_NAMES_OC,
                     SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC);
+
             entry.put(SchemaConstants.OU_AT, Utils.OU_GROUPS);
+
             entry.put(SchemaConstants.CN_AT, groupInfo.get(DirectoryBackend.GROUP_ID));
-            entry.put(SchemaConstants.DESCRIPTION_AT, groupInfo.get(DirectoryBackend.GROUP_DESCRIPTION));
+
+            if (groupInfo.get(DirectoryBackend.GROUP_DESCRIPTION) != null &&
+                    !groupInfo.get(DirectoryBackend.GROUP_DESCRIPTION).isEmpty())
+                entry.put(SchemaConstants.DESCRIPTION_AT, groupInfo.get(DirectoryBackend.GROUP_DESCRIPTION));
 
             for (String memberDn : collectMemberDn(groupId))
                 entry.add(SchemaConstants.MEMBER_AT, memberDn);
@@ -434,13 +439,27 @@ public class CommonPartition
                     SchemaConstants.PERSON_OC,
                     SchemaConstants.ORGANIZATIONAL_PERSON_OC,
                     SchemaConstants.INET_ORG_PERSON_OC);
+
             entry.put(SchemaConstants.OU_AT, Utils.OU_USERS);
+
             entry.put(SchemaConstants.UID_AT, userInfo.get(DirectoryBackend.USER_ID));
+
             entry.put(SchemaConstants.CN_AT, userInfo.get(DirectoryBackend.USER_ID));
-            entry.put(SchemaConstants.GN_AT, userInfo.get(DirectoryBackend.USER_FIRST_NAME));
-            entry.put(SchemaConstants.SN_AT, userInfo.get(DirectoryBackend.USER_LAST_NAME));
-            entry.put(SchemaConstants.DISPLAY_NAME_AT, userInfo.get(DirectoryBackend.USER_DISPLAY_NAME));
+
+            if (userInfo.get(DirectoryBackend.USER_FIRST_NAME) != null &&
+                    !userInfo.get(DirectoryBackend.USER_FIRST_NAME).isEmpty())
+                entry.put(SchemaConstants.GN_AT, userInfo.get(DirectoryBackend.USER_FIRST_NAME));
+
+            if (userInfo.get(DirectoryBackend.USER_LAST_NAME) != null &&
+                    !userInfo.get(DirectoryBackend.USER_LAST_NAME).isEmpty())
+                entry.put(SchemaConstants.SN_AT, userInfo.get(DirectoryBackend.USER_LAST_NAME));
+
+            if (userInfo.get(DirectoryBackend.USER_DISPLAY_NAME) != null &&
+                    !userInfo.get(DirectoryBackend.USER_DISPLAY_NAME).isEmpty())
+                entry.put(SchemaConstants.DISPLAY_NAME_AT, userInfo.get(DirectoryBackend.USER_DISPLAY_NAME));
+
             entry.put(SchemaConstants.MAIL_AT, userInfo.get(DirectoryBackend.USER_EMAIL_ADDRESS));
+
             entry.put(SchemaConstants.UID_NUMBER_AT,
                     Integer.toString(Utils.calculateHash(userInfo.get(DirectoryBackend.USER_ID))));
 
