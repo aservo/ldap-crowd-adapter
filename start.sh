@@ -4,6 +4,18 @@ if [ -n "$LOGLEVEL" ]; then
   ARGS="-Dloglevel=$LOGLEVEL $ARGS"
 fi
 
+if [ -n "$XMS" ]; then
+  ARGS="-J-Xms$XMS $ARGS"
+fi
+
+if [ -n "$XMX" ]; then
+  ARGS="-J-Xmx$XMX $ARGS"
+fi
+
+if [ -n "$XSS" ]; then
+  ARGS="-J-Xss$XSS $ARGS"
+fi
+
 if [ -n "$CROWD_APP_NAME" ]; then
   ARGS="-Dapplication.name=$CROWD_APP_NAME $ARGS"
 fi
