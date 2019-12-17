@@ -19,6 +19,8 @@ package com.aservo.ldap.adapter;
 
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import org.apache.log4j.PropertyConfigurator;
@@ -30,8 +32,12 @@ public class Main {
 
     public static void main(String[] args) {
 
+        MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
         Logger logger = LoggerFactory.getLogger("Bootloader");
         CommonLdapServer server = createServerInstance();
+
+        logger.debug("Application is running with max memory: {}", memoryBean.getHeapMemoryUsage().getMax());
+        logger.debug("Application is running with initial memory: {}", memoryBean.getHeapMemoryUsage().getInit());
 
         // boot process
         server.startup();
