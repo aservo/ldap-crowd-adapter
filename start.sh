@@ -1,71 +1,73 @@
 #!/bin/sh
 
 if [ -n "$LOGLEVEL" ]; then
-  ARGS="-Dloglevel=$LOGLEVEL $ARGS"
+  JAVA_OPTS="-Dloglevel=$LOGLEVEL $JAVA_OPTS"
 fi
 
 if [ -n "$XMS" ]; then
-  ARGS="-J-Xms$XMS $ARGS"
+  JAVA_OPTS="-Xms$XMS $JAVA_OPTS"
 fi
 
 if [ -n "$XMX" ]; then
-  ARGS="-J-Xmx$XMX $ARGS"
+  JAVA_OPTS="-Xmx$XMX $JAVA_OPTS"
 fi
 
 if [ -n "$XSS" ]; then
-  ARGS="-J-Xss$XSS $ARGS"
+  JAVA_OPTS="-Xss$XSS $JAVA_OPTS"
 fi
 
 if [ -n "$CROWD_APP_NAME" ]; then
-  ARGS="-Dapplication.name=$CROWD_APP_NAME $ARGS"
+  JAVA_OPTS="-Dapplication.name=$CROWD_APP_NAME $JAVA_OPTS"
 fi
 
 if [ -n "$CROWD_APP_PASSWORD" ]; then
-  ARGS="-Dapplication.password=$CROWD_APP_PASSWORD $ARGS"
+  JAVA_OPTS="-Dapplication.password=$CROWD_APP_PASSWORD $JAVA_OPTS"
 fi
 
 if [ -n "$CROWD_SERVER_URL" ]; then
-  ARGS="-Dcrowd.server.url=$CROWD_SERVER_URL $ARGS"
+  JAVA_OPTS="-Dcrowd.server.url=$CROWD_SERVER_URL $JAVA_OPTS"
 fi
 
 if [ -n "$CROWD_VALIDATION_INTERVAL" ]; then
-  ARGS="-Dsession.validationinterval=$CROWD_VALIDATION_INTERVAL $ARGS"
+  JAVA_OPTS="-Dsession.validationinterval=$CROWD_VALIDATION_INTERVAL $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_CACHE_DIR" ]; then
-  ARGS="-Dcache-directory=$SERVER_CACHE_DIR $ARGS"
+  JAVA_OPTS="-Dcache-directory=$SERVER_CACHE_DIR $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_BIND_ADDRESS" ]; then
-  ARGS="-Dbind.address=$SERVER_BIND_ADDRESS $ARGS"
+  JAVA_OPTS="-Dbind.address=$SERVER_BIND_ADDRESS $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_ENTRY_CACHE_ENABLED" ]; then
-  ARGS="-Dentry-cache.enabled=$SERVER_ENTRY_CACHE_ENABLED $ARGS"
+  JAVA_OPTS="-Dentry-cache.enabled=$SERVER_ENTRY_CACHE_ENABLED $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_ENTRY_CACHE_MAX_SIZE" ]; then
-  ARGS="-Dentry-cache.max-size=$SERVER_ENTRY_CACHE_MAX_SIZE $ARGS"
+  JAVA_OPTS="-Dentry-cache.max-size=$SERVER_ENTRY_CACHE_MAX_SIZE $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_ENTRY_CACHE_MAX_AGE" ]; then
-  ARGS="-Dentry-cache.max-age=$SERVER_ENTRY_CACHE_MAX_AGE $ARGS"
+  JAVA_OPTS="-Dentry-cache.max-age=$SERVER_ENTRY_CACHE_MAX_AGE $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_SSL_ENABLED" ]; then
-  ARGS="-Dssl.enabled=$SERVER_SSL_ENABLED $ARGS"
+  JAVA_OPTS="-Dssl.enabled=$SERVER_SSL_ENABLED $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_SSL_KEY_STORE_FILE" ]; then
-  ARGS="-Dssl.key-store-file=$SERVER_SSL_KEY_STORE_FILE $ARGS"
+  JAVA_OPTS="-Dssl.key-store-file=$SERVER_SSL_KEY_STORE_FILE $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_SSL_KEY_STORE_PASSWORD" ]; then
-  ARGS="-Dssl.key-store-password=$SERVER_SSL_KEY_STORE_PASSWORD $ARGS"
+  JAVA_OPTS="-Dssl.key-store-password=$SERVER_SSL_KEY_STORE_PASSWORD $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_SUPPORT_MEMBER_OF" ]; then
-  ARGS="-Dsupport.member-of=$SERVER_SUPPORT_MEMBER_OF $ARGS"
+  JAVA_OPTS="-Dsupport.member-of=$SERVER_SUPPORT_MEMBER_OF $JAVA_OPTS"
 fi
 
-sbt $ARGS run
+export JAVA_OPTS
+
+sbt run
