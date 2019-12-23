@@ -26,9 +26,7 @@ import com.atlassian.crowd.exception.*;
 import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;
 import com.atlassian.crowd.model.group.Group;
 import com.atlassian.crowd.model.user.User;
-import com.atlassian.crowd.search.query.entity.restriction.MatchMode;
-import com.atlassian.crowd.search.query.entity.restriction.NullRestrictionImpl;
-import com.atlassian.crowd.search.query.entity.restriction.TermRestriction;
+import com.atlassian.crowd.search.query.entity.restriction.*;
 import com.atlassian.crowd.search.query.entity.restriction.constants.GroupTermKeys;
 import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKeys;
 import com.atlassian.crowd.service.client.ClientProperties;
@@ -210,26 +208,57 @@ public class CrowdDirectoryBackend
     public List<String> getGroupsByAttribute(String attribute, String value)
             throws DirectoryAccessFailureException, SecurityProblemException {
 
+        Map<String, String> map = new HashMap<>();
+
+        map.put(attribute, value);
+
+        return getGroupsByAttributes(map);
+    }
+
+    public List<String> getUsersByAttribute(String attribute, String value)
+            throws DirectoryAccessFailureException, SecurityProblemException {
+
+        Map<String, String> map = new HashMap<>();
+
+        map.put(attribute, value);
+
+        return getUsersByAttributes(map);
+    }
+
+    public List<String> getGroupsByAttributes(Map<String, String> attributeMap)
+            throws DirectoryAccessFailureException, SecurityProblemException {
+
+        if (attributeMap.isEmpty())
+            return getAllGroups();
+
+        List<SearchRestriction> restrictions = new ArrayList<>(attributeMap.size());
+
+        for (Map.Entry<String, String> entry : attributeMap.entrySet()) {
+
+            if (entry.getKey().equals(GROUP_ID)) {
+
+                SearchRestriction restriction =
+                        new TermRestriction<>(GroupTermKeys.NAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
+
+                restrictions.add(restriction);
+
+            } else if (entry.getKey().equals(GROUP_DESCRIPTION)) {
+
+                SearchRestriction restriction =
+                        new TermRestriction<>(GroupTermKeys.DESCRIPTION, MatchMode.EXACTLY_MATCHES, entry.getValue());
+
+                restrictions.add(restriction);
+
+            } else
+                throw new IllegalArgumentException("Cannot process unknown group attribute " + entry.getKey());
+        }
+
         try {
 
-            if (attribute.equals(GROUP_ID)) {
+            SearchRestriction restriction =
+                    new BooleanRestrictionImpl(BooleanRestriction.BooleanLogic.AND, restrictions);
 
-                SearchRestriction restriction =
-                        new TermRestriction<>(GroupTermKeys.NAME, MatchMode.EXACTLY_MATCHES, value);
-
-                return crowdClient.searchGroupNames(restriction, 0, Integer.MAX_VALUE);
-
-            } else if (attribute.equals(GROUP_DESCRIPTION)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(GroupTermKeys.DESCRIPTION, MatchMode.EXACTLY_MATCHES, value);
-
-                return crowdClient.searchGroupNames(restriction, 0, Integer.MAX_VALUE);
-
-            } else {
-
-                return Collections.emptyList();
-            }
+            return crowdClient.searchGroupNames(restriction, 0, Integer.MAX_VALUE);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -242,50 +271,61 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getUsersByAttribute(String attribute, String value)
+    public List<String> getUsersByAttributes(Map<String, String> attributeMap)
             throws DirectoryAccessFailureException, SecurityProblemException {
+
+        if (attributeMap.isEmpty())
+            return getAllUsers();
+
+        List<SearchRestriction> restrictions = new ArrayList<>(attributeMap.size());
+
+        for (Map.Entry<String, String> entry : attributeMap.entrySet()) {
+
+            if (entry.getKey().equals(USER_ID)) {
+
+                SearchRestriction restriction =
+                        new TermRestriction<>(UserTermKeys.USERNAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
+
+                restrictions.add(restriction);
+
+            } else if (entry.getKey().equals(USER_FIRST_NAME)) {
+
+                SearchRestriction restriction =
+                        new TermRestriction<>(UserTermKeys.FIRST_NAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
+
+                restrictions.add(restriction);
+
+            } else if (entry.getKey().equals(USER_LAST_NAME)) {
+
+                SearchRestriction restriction =
+                        new TermRestriction<>(UserTermKeys.LAST_NAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
+
+                restrictions.add(restriction);
+
+            } else if (entry.getKey().equals(USER_DISPLAY_NAME)) {
+
+                SearchRestriction restriction =
+                        new TermRestriction<>(UserTermKeys.DISPLAY_NAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
+
+                restrictions.add(restriction);
+
+            } else if (entry.getKey().equals(USER_EMAIL_ADDRESS)) {
+
+                SearchRestriction restriction =
+                        new TermRestriction<>(UserTermKeys.EMAIL, MatchMode.EXACTLY_MATCHES, entry.getValue());
+
+                restrictions.add(restriction);
+
+            } else
+                throw new IllegalArgumentException("Cannot process unknown user attribute " + entry.getKey());
+        }
 
         try {
 
-            if (attribute.equals(USER_ID)) {
+            SearchRestriction restriction =
+                    new BooleanRestrictionImpl(BooleanRestriction.BooleanLogic.AND, restrictions);
 
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.USERNAME, MatchMode.EXACTLY_MATCHES, value);
-
-                return crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
-
-            } else if (attribute.equals(USER_FIRST_NAME)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.FIRST_NAME, MatchMode.EXACTLY_MATCHES, value);
-
-                return crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
-
-            } else if (attribute.equals(USER_LAST_NAME)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.LAST_NAME, MatchMode.EXACTLY_MATCHES, value);
-
-                return crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
-
-            } else if (attribute.equals(USER_DISPLAY_NAME)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.DISPLAY_NAME, MatchMode.EXACTLY_MATCHES, value);
-
-                return crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
-
-            } else if (attribute.equals(USER_EMAIL_ADDRESS)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.EMAIL, MatchMode.EXACTLY_MATCHES, value);
-
-                return crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
-
-            } else {
-
-                return Collections.emptyList();
-            }
+            return crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {

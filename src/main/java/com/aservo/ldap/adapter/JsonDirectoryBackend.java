@@ -220,36 +220,68 @@ public class JsonDirectoryBackend
     public List<String> getGroupsByAttribute(String attribute, String value)
             throws DirectoryAccessFailureException, SecurityProblemException {
 
-        return groups.stream().filter(x -> {
+        Map<String, String> map = new HashMap<>();
 
-            if (attribute.equalsIgnoreCase(GROUP_ID))
-                return x.getId().equalsIgnoreCase(value);
-            else if (attribute.equalsIgnoreCase(GROUP_DESCRIPTION))
-                return x.getDescription().equalsIgnoreCase(value);
-            else
-                return false;
-        })
-                .map(Group::getId)
-                .collect(Collectors.toList());
+        map.put(attribute, value);
+
+        return getGroupsByAttributes(map);
     }
 
     public List<String> getUsersByAttribute(String attribute, String value)
             throws DirectoryAccessFailureException, SecurityProblemException {
 
-        return users.stream().filter(x -> {
+        Map<String, String> map = new HashMap<>();
 
-            if (attribute.equalsIgnoreCase(USER_ID))
-                return x.getId().equalsIgnoreCase(value);
-            else if (attribute.equalsIgnoreCase(USER_FIRST_NAME))
-                return x.getFirstName().equalsIgnoreCase(value);
-            else if (attribute.equalsIgnoreCase(USER_LAST_NAME))
-                return x.getLastName().equalsIgnoreCase(value);
-            else if (attribute.equalsIgnoreCase(USER_DISPLAY_NAME))
-                return x.getDisplayName().equalsIgnoreCase(value);
-            else if (attribute.equalsIgnoreCase(USER_EMAIL_ADDRESS))
-                return x.getEmail().equalsIgnoreCase(value);
-            else
-                return false;
+        map.put(attribute, value);
+
+        return getUsersByAttributes(map);
+    }
+
+    public List<String> getGroupsByAttributes(Map<String, String> attributeMap)
+            throws DirectoryAccessFailureException, SecurityProblemException {
+
+        if (attributeMap.isEmpty())
+            return getAllGroups();
+
+        return groups.stream().filter(group -> {
+
+            return attributeMap.entrySet().stream().allMatch(entry -> {
+
+                if (entry.getKey().equalsIgnoreCase(GROUP_ID))
+                    return group.getId().equalsIgnoreCase(entry.getValue());
+                else if (entry.getKey().equalsIgnoreCase(GROUP_DESCRIPTION))
+                    return group.getDescription().equalsIgnoreCase(entry.getValue());
+                else
+                    return false;
+            });
+        })
+                .map(Group::getId)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getUsersByAttributes(Map<String, String> attributeMap)
+            throws DirectoryAccessFailureException, SecurityProblemException {
+
+        if (attributeMap.isEmpty())
+            return getAllUsers();
+
+        return users.stream().filter(user -> {
+
+            return attributeMap.entrySet().stream().allMatch(entry -> {
+
+                if (entry.getKey().equalsIgnoreCase(USER_ID))
+                    return user.getId().equalsIgnoreCase(entry.getValue());
+                else if (entry.getKey().equalsIgnoreCase(USER_FIRST_NAME))
+                    return user.getFirstName().equalsIgnoreCase(entry.getValue());
+                else if (entry.getKey().equalsIgnoreCase(USER_LAST_NAME))
+                    return user.getLastName().equalsIgnoreCase(entry.getValue());
+                else if (entry.getKey().equalsIgnoreCase(USER_DISPLAY_NAME))
+                    return user.getDisplayName().equalsIgnoreCase(entry.getValue());
+                else if (entry.getKey().equalsIgnoreCase(USER_EMAIL_ADDRESS))
+                    return user.getEmail().equalsIgnoreCase(entry.getValue());
+                else
+                    return false;
+            });
         })
                 .map(User::getId)
                 .collect(Collectors.toList());

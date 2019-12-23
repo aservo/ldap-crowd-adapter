@@ -17,9 +17,7 @@
 
 package com.aservo.ldap.adapter.util;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
@@ -32,6 +30,87 @@ import org.slf4j.LoggerFactory;
 public abstract class FilterMatcher {
 
     private final Logger logger = LoggerFactory.getLogger(FilterMatcher.class);
+
+    public Map<String, String> getAttributeMap(ExprNode filter, EntryType entryType) {
+
+        if (filter instanceof AndNode) {
+
+            AndNode node = (AndNode) filter;
+            Map<String, String> map = new HashMap<>();
+
+            node.getChildren().forEach(x -> map.putAll(getAttributeMap(x, entryType)));
+
+            return map;
+
+        } else if (filter instanceof EqualityNode) {
+
+            EqualityNode node = (EqualityNode) filter;
+            Map<String, String> map = new HashMap<>();
+
+            switch (Utils.normalizeAttribute(node.getAttribute())) {
+
+                case SchemaConstants.CN_AT:
+                case SchemaConstants.CN_AT_OID:
+                case SchemaConstants.COMMON_NAME_AT:
+
+                    if (entryType.equals(EntryType.GROUP))
+                        map.put(DirectoryBackend.GROUP_ID, node.getValue().toString());
+                    else if (entryType.equals(EntryType.USER))
+                        map.put(DirectoryBackend.USER_ID, node.getValue().toString());
+
+                    break;
+
+                case SchemaConstants.GN_AT:
+                case SchemaConstants.GN_AT_OID:
+                case SchemaConstants.GIVENNAME_AT:
+
+                    if (entryType.equals(EntryType.USER))
+                        map.put(DirectoryBackend.USER_FIRST_NAME, node.getValue().toString());
+
+                    break;
+
+                case SchemaConstants.SN_AT:
+                case SchemaConstants.SN_AT_OID:
+                case SchemaConstants.SURNAME_AT:
+
+                    if (entryType.equals(EntryType.USER))
+                        map.put(DirectoryBackend.USER_LAST_NAME, node.getValue().toString());
+
+                    break;
+
+                case SchemaConstants.DISPLAY_NAME_AT:
+                case SchemaConstants.DISPLAY_NAME_AT_OID:
+
+                    if (entryType.equals(EntryType.USER))
+                        map.put(DirectoryBackend.USER_DISPLAY_NAME, node.getValue().toString());
+
+                    break;
+
+                case SchemaConstants.MAIL_AT:
+                case SchemaConstants.MAIL_AT_OID:
+
+                    if (entryType.equals(EntryType.USER))
+                        map.put(DirectoryBackend.USER_EMAIL_ADDRESS, node.getValue().toString());
+
+                    break;
+
+                case SchemaConstants.DESCRIPTION_AT:
+                case SchemaConstants.DESCRIPTION_AT_OID:
+
+                    if (entryType.equals(EntryType.GROUP))
+                        map.put(DirectoryBackend.GROUP_DESCRIPTION, node.getValue().toString());
+
+                    break;
+
+                default:
+                    break;
+            }
+
+            return map;
+        }
+
+        return new HashMap<>();
+    }
 
     public boolean match(ExprNode filter, String entryId, EntryType entryType) {
 

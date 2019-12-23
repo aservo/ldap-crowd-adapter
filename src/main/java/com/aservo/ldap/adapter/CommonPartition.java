@@ -663,11 +663,11 @@ public class CommonPartition
         return false;
     }
 
-    private List<String> findGroups() {
+    private List<String> findGroups(ExprNode filter) {
 
         try {
 
-            return directoryBackend.getAllGroups();
+            return directoryBackend.getGroupsByAttributes(filterProcessor.getAttributeMap(filter, EntryType.GROUP));
 
         } catch (SecurityProblemException |
                 DirectoryAccessFailureException e) {
@@ -718,11 +718,11 @@ public class CommonPartition
         }
     }
 
-    private List<String> findUsers() {
+    private List<String> findUsers(ExprNode filter) {
 
         try {
 
-            return directoryBackend.getAllUsers();
+            return directoryBackend.getUsersByAttributes(filterProcessor.getAttributeMap(filter, EntryType.USER));
 
         } catch (SecurityProblemException |
                 DirectoryAccessFailureException e) {
@@ -745,6 +745,7 @@ public class CommonPartition
                 case SchemaConstants.UID_NUMBER_AT:
                 case SchemaConstants.UID_NUMBER_AT_OID:
 
+                    // TODO: optimization required
                     result = directoryBackend.getAllUsers().stream()
                             .filter(x -> Integer.toString(Utils.calculateHash(x)).equals(value))
                             .collect(Collectors.toList());
@@ -939,7 +940,7 @@ public class CommonPartition
             if (!filterProcessor.match(context.getFilter(), Utils.OU_GROUPS, EntryType.UNIT))
                 mergedEntries.remove(0);
 
-            mergedEntries.addAll(createGroupEntryList(findGroups(), context.getFilter()));
+            mergedEntries.addAll(createGroupEntryList(findGroups(context.getFilter()), context.getFilter()));
 
             return new EntryFilteringCursorImpl(
                     new ListCursor<>(mergedEntries),
@@ -968,7 +969,7 @@ public class CommonPartition
             if (!filterProcessor.match(context.getFilter(), Utils.OU_USERS, EntryType.UNIT))
                 mergedEntries.remove(0);
 
-            mergedEntries.addAll(createUserEntryList(findUsers(), context.getFilter()));
+            mergedEntries.addAll(createUserEntryList(findUsers(context.getFilter()), context.getFilter()));
 
             return new EntryFilteringCursorImpl(
                     new ListCursor<>(mergedEntries),
@@ -1003,8 +1004,8 @@ public class CommonPartition
             if (filterProcessor.match(context.getFilter(), Utils.OU_USERS, EntryType.UNIT))
                 mergedEntries.add(createSystemEntry(usersDn));
 
-            mergedEntries.addAll(createGroupEntryList(findGroups(), context.getFilter()));
-            mergedEntries.addAll(createUserEntryList(findUsers(), context.getFilter()));
+            mergedEntries.addAll(createGroupEntryList(findGroups(context.getFilter()), context.getFilter()));
+            mergedEntries.addAll(createUserEntryList(findUsers(context.getFilter()), context.getFilter()));
 
             return new EntryFilteringCursorImpl(
                     new ListCursor<>(mergedEntries),

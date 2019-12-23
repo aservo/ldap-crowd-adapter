@@ -64,6 +64,12 @@ public interface DirectoryBackend {
     List<String> getUsersByAttribute(String attribute, String value)
             throws DirectoryAccessFailureException, SecurityProblemException;
 
+    List<String> getGroupsByAttributes(Map<String, String> attributeMap)
+            throws DirectoryAccessFailureException, SecurityProblemException;
+
+    List<String> getUsersByAttributes(Map<String, String> attributeMap)
+            throws DirectoryAccessFailureException, SecurityProblemException;
+
     List<String> getDirectUsersOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
 
