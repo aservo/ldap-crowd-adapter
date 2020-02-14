@@ -57,6 +57,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * The main application starts ApacheDS and initializes Crowd client api.
+ */
 public class CommonLdapServer {
 
     private final Logger logger = LoggerFactory.getLogger(CommonLdapServer.class);
@@ -65,6 +68,11 @@ public class CommonLdapServer {
     private final DirectoryBackend directoryBackend;
     private final DirectoryService directoryService;
 
+    /**
+     * Instantiates a new LDAP server.
+     *
+     * @param serverConfig the server config
+     */
     public CommonLdapServer(ServerConfiguration serverConfig) {
 
         this.serverConfig = serverConfig;
@@ -74,11 +82,19 @@ public class CommonLdapServer {
         directoryService = initDirectoryService();
     }
 
+    /**
+     * Gets the server config.
+     *
+     * @return the server config
+     */
     public ServerConfiguration getServerConfig() {
 
         return serverConfig;
     }
 
+    /**
+     * Startup method.
+     */
     public void startup() {
 
         try {
@@ -109,6 +125,9 @@ public class CommonLdapServer {
         }
     }
 
+    /**
+     * Shutdown method.
+     */
     public void shutdown() {
 
         try {
@@ -122,6 +141,11 @@ public class CommonLdapServer {
         }
     }
 
+    /**
+     * Indicates whether the directory service is already running.
+     *
+     * @return the boolean
+     */
     public boolean isStarted() {
 
         return directoryService.isStarted();

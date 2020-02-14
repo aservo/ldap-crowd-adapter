@@ -40,6 +40,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * Implements ApacheDS authenticator to allow authentication by directory backend.
+ */
 public class CommonAuthenticator
         extends AbstractAuthenticator {
 
@@ -50,6 +53,12 @@ public class CommonAuthenticator
     private final Dn rootDn;
     private final Dn usersDn;
 
+    /**
+     * Instantiates a new authenticator.
+     *
+     * @param directoryBackend the directory backend
+     * @param schemaManager    the schema manager
+     */
     public CommonAuthenticator(DirectoryBackend directoryBackend, SchemaManager schemaManager) {
 
         super(AuthenticationLevel.SIMPLE);

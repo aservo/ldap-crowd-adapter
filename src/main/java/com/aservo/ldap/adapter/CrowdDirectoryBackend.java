@@ -35,12 +35,20 @@ import com.atlassian.crowd.service.client.CrowdClient;
 import java.util.*;
 
 
+/**
+ * The Crowd client API directory backend.
+ */
 public class CrowdDirectoryBackend
         implements DirectoryBackend {
 
     private final String id;
     private final CrowdClient crowdClient;
 
+    /**
+     * Instantiates a new Crowd directory backend.
+     *
+     * @param properties the properties
+     */
     public CrowdDirectoryBackend(Properties properties) {
 
         id = "Crowd";

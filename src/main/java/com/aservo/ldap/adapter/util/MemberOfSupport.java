@@ -18,9 +18,27 @@
 package com.aservo.ldap.adapter.util;
 
 
+/**
+ * The enum type for compatibility mode.
+ */
 public enum MemberOfSupport {
 
-    OFF("off"), NORMAL("normal"), NESTED_GROUPS("nested-groups"), FLATTENING("flattening");
+    /**
+     * For no support of MemberOf attribute or nested-groups.
+     */
+    OFF("off"),
+    /**
+     * For support of MemberOf attribute.
+     */
+    NORMAL("normal"),
+    /**
+     * For support of MemberOf attribute and nested-groups.
+     */
+    NESTED_GROUPS("nested-groups"),
+    /**
+     * For support of MemberOf attribute and resolved nested-groups.
+     */
+    FLATTENING("flattening");
 
     private final String text;
 
@@ -35,6 +53,11 @@ public enum MemberOfSupport {
         return text;
     }
 
+    /**
+     * Indicates whether the MemberOf attribute is allowed.
+     *
+     * @return the boolean
+     */
     public boolean allowMemberOfAttribute() {
 
         return !this.equals(MemberOfSupport.OFF);

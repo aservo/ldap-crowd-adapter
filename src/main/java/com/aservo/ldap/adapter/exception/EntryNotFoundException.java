@@ -18,24 +18,46 @@
 package com.aservo.ldap.adapter.exception;
 
 
+/**
+ * The type Entry not found exception.
+ */
 public class EntryNotFoundException
         extends Exception {
 
+    /**
+     * Instantiates a new Entry not found exception.
+     */
     public EntryNotFoundException() {
 
         super();
     }
 
+    /**
+     * Instantiates a new Entry not found exception.
+     *
+     * @param message the message
+     */
     public EntryNotFoundException(String message) {
 
         super(message);
     }
 
+    /**
+     * Instantiates a new Entry not found exception.
+     *
+     * @param message   the message
+     * @param throwable the throwable
+     */
     public EntryNotFoundException(String message, Throwable throwable) {
 
         super(message, throwable);
     }
 
+    /**
+     * Instantiates a new Entry not found exception.
+     *
+     * @param throwable the throwable
+     */
     public EntryNotFoundException(Throwable throwable) {
 
         super(throwable);

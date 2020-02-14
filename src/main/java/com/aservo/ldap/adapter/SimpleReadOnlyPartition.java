@@ -35,15 +35,29 @@ import org.apache.directory.server.core.api.partition.Partition;
 import org.apache.directory.server.core.api.partition.Subordinates;
 
 
+/**
+ * The base type ApacheDS partition for simplified read only access.
+ */
 public abstract class SimpleReadOnlyPartition
         implements Partition {
 
     private static final String MODIFICATION_NOT_ALLOWED_MSG = "This simple partition does not allow modification.";
 
+    /**
+     * The partition ID.
+     */
     protected final String id;
+    /**
+     * The schema manager.
+     */
     protected SchemaManager schemaManager;
     private boolean initialized;
 
+    /**
+     * Instantiates a new read only partition.
+     *
+     * @param id the partition ID
+     */
     protected SimpleReadOnlyPartition(String id) {
 
         this.id = id;
@@ -115,18 +129,49 @@ public abstract class SimpleReadOnlyPartition
         }
     }
 
+    /**
+     * Run initialization process.
+     *
+     * @throws LdapException the ldap exception
+     */
     protected abstract void doInit()
             throws LdapException;
 
+    /**
+     * Run destruction process.
+     *
+     * @throws LdapException the ldap exception
+     */
     protected abstract void doDestroy()
             throws LdapException;
 
+    /**
+     * Find one entry cursor.
+     *
+     * @param context the context
+     * @return the entry filtering cursor
+     * @throws LdapException the ldap exception
+     */
     protected abstract EntryFilteringCursor findOne(SearchOperationContext context)
             throws LdapException;
 
+    /**
+     * Find many entry cursors on first level.
+     *
+     * @param context the context
+     * @return the entry filtering cursor
+     * @throws LdapException the ldap exception
+     */
     protected abstract EntryFilteringCursor findManyOnFirstLevel(SearchOperationContext context)
             throws LdapException;
 
+    /**
+     * Find many entry cursors on multiple levels.
+     *
+     * @param context the context
+     * @return the entry filtering cursor
+     * @throws LdapException the ldap exception
+     */
     protected abstract EntryFilteringCursor findManyOnMultipleLevels(SearchOperationContext context)
             throws LdapException;
 

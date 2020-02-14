@@ -18,24 +18,46 @@
 package com.aservo.ldap.adapter.exception;
 
 
+/**
+ * The type Security problem exception.
+ */
 public class SecurityProblemException
         extends Exception {
 
+    /**
+     * Instantiates a new Security problem exception.
+     */
     public SecurityProblemException() {
 
         super();
     }
 
+    /**
+     * Instantiates a new Security problem exception.
+     *
+     * @param message the message
+     */
     public SecurityProblemException(String message) {
 
         super(message);
     }
 
+    /**
+     * Instantiates a new Security problem exception.
+     *
+     * @param message   the message
+     * @param throwable the throwable
+     */
     public SecurityProblemException(String message, Throwable throwable) {
 
         super(message, throwable);
     }
 
+    /**
+     * Instantiates a new Security problem exception.
+     *
+     * @param throwable the throwable
+     */
     public SecurityProblemException(Throwable throwable) {
 
         super(throwable);

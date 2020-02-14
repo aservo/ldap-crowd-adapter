@@ -30,6 +30,11 @@ import org.slf4j.LoggerFactory;
 
 public class Main {
 
+    /**
+     * The entry point of application.
+     *
+     * @param args the input arguments
+     */
     public static void main(String[] args) {
 
         MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
@@ -44,6 +49,12 @@ public class Main {
         logger.info("Starting directory listener...");
     }
 
+    /**
+     * Creates a server instance.
+     * It configures all system components including Crowd client api.
+     *
+     * @return the server instance
+     */
     public static CommonLdapServer createServerInstance() {
 
         // hard coded directory for initial configuration

@@ -16,6 +16,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 
+/**
+ * The JSON directory backend API for test scenarios.
+ */
 public class JsonDirectoryBackend
         implements DirectoryBackend {
 
@@ -25,6 +28,11 @@ public class JsonDirectoryBackend
 
     private final File dbFile;
 
+    /**
+     * Instantiates a new JSON directory backend.
+     *
+     * @param properties the properties
+     */
     public JsonDirectoryBackend(Properties properties) {
 
         id = "JSON";
@@ -455,37 +463,73 @@ public class JsonDirectoryBackend
         private final List<Group> groupMembers = new ArrayList<>();
         private final List<User> userMembers = new ArrayList<>();
 
+        /**
+         * Instantiates a new Group.
+         *
+         * @param id          the id
+         * @param description the description
+         */
         public Group(String id, String description) {
 
             this.id = id;
             this.description = description;
         }
 
+        /**
+         * Gets id.
+         *
+         * @return the id
+         */
         public String getId() {
 
             return id;
         }
 
+        /**
+         * Gets description.
+         *
+         * @return the description
+         */
         public String getDescription() {
 
             return description;
         }
 
+        /**
+         * Add group.
+         *
+         * @param group the group
+         */
         public void addGroup(Group group) {
 
             groupMembers.add(group);
         }
 
+        /**
+         * Add user.
+         *
+         * @param user the user
+         */
         public void addUser(User user) {
 
             userMembers.add(user);
         }
 
+        /**
+         * Gets group members.
+         *
+         * @return the group members
+         */
         public List<Group> getGroupMembers() {
 
             return new ArrayList<>(groupMembers);
         }
 
+        /**
+         * Gets user members.
+         *
+         * @return the user members
+         */
         public List<User> getUserMembers() {
 
             return new ArrayList<>(userMembers);
@@ -501,6 +545,16 @@ public class JsonDirectoryBackend
         private final String email;
         private final String password;
 
+        /**
+         * Instantiates a new User.
+         *
+         * @param id          the id
+         * @param firstName   the first name
+         * @param lastName    the last name
+         * @param displayName the display name
+         * @param email       the email
+         * @param password    the password
+         */
         public User(String id, String firstName, String lastName, String displayName, String email, String password) {
 
             this.id = id;
@@ -511,31 +565,61 @@ public class JsonDirectoryBackend
             this.password = password;
         }
 
+        /**
+         * Gets id.
+         *
+         * @return the id
+         */
         public String getId() {
 
             return id;
         }
 
+        /**
+         * Gets first name.
+         *
+         * @return the first name
+         */
         public String getFirstName() {
 
             return firstName;
         }
 
+        /**
+         * Gets last name.
+         *
+         * @return the last name
+         */
         public String getLastName() {
 
             return lastName;
         }
 
+        /**
+         * Gets display name.
+         *
+         * @return the display name
+         */
         public String getDisplayName() {
 
             return displayName;
         }
 
+        /**
+         * Gets email.
+         *
+         * @return the email
+         */
         public String getEmail() {
 
             return email;
         }
 
+        /**
+         * Gets password.
+         *
+         * @return the password
+         */
         public String getPassword() {
 
             return password;

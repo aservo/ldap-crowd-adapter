@@ -24,11 +24,21 @@ import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.jetbrains.annotations.Nullable;
 
 
+/**
+ * A helper for LDAP handling.
+ */
 public class LdapHelper {
 
     private LdapHelper() {
     }
 
+    /**
+     * Creates a DN instance.
+     *
+     * @param schemaManager the schema manager
+     * @param dnString      the DN string
+     * @return the DN
+     */
     public static Dn createDn(SchemaManager schemaManager, String dnString) {
 
         try {
@@ -41,26 +51,63 @@ public class LdapHelper {
         }
     }
 
+    /**
+     * Creates a DN with suffix.
+     *
+     * @param schemaManager the schema manager
+     * @param suffixDn      the suffix dn
+     * @param entryId       the entry ID
+     * @return the DN
+     */
     public static Dn createDnWithCn(SchemaManager schemaManager, Dn suffixDn, String entryId) {
 
         return createDn(schemaManager, String.format("cn=%s,%s", entryId, suffixDn.getName()));
     }
 
+    /**
+     * Creates a root DN.
+     *
+     * @param schemaManager the schema manager
+     * @param id            the DC ID
+     * @return the DN
+     */
     public static Dn createRootDn(SchemaManager schemaManager, String id) {
 
         return createDn(schemaManager, "dc=" + id.toLowerCase());
     }
 
+    /**
+     * Creates groups DN.
+     *
+     * @param schemaManager the schema manager
+     * @param id            the group ID
+     * @return the DN
+     */
     public static Dn createGroupsDn(SchemaManager schemaManager, String id) {
 
         return createDn(schemaManager, "ou=" + Utils.OU_GROUPS + ",dc=" + id.toLowerCase());
     }
 
+    /**
+     * Creates users DN.
+     *
+     * @param schemaManager the schema manager
+     * @param id            the user ID
+     * @return the DN
+     */
     public static Dn createUsersDn(SchemaManager schemaManager, String id) {
 
         return createDn(schemaManager, "ou=" + Utils.OU_USERS + ",dc=" + id.toLowerCase());
     }
 
+    /**
+     * Gets group from DN.
+     *
+     * @param rootDn  the root DN
+     * @param groupDn the group DN
+     * @param queryDn the query DN
+     * @return the group
+     */
     @Nullable
     public static String getGroupFromDn(Dn rootDn, Dn groupDn, Dn queryDn) {
 
@@ -77,6 +124,14 @@ public class LdapHelper {
         return null;
     }
 
+    /**
+     * Gets user from DN.
+     *
+     * @param rootDn  the root DN
+     * @param userDn  the user DN
+     * @param queryDn the query DN
+     * @return the user
+     */
     @Nullable
     public static String getUserFromDn(Dn rootDn, Dn userDn, Dn queryDn) {
 

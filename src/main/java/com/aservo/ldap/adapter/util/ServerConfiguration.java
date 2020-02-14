@@ -27,20 +27,62 @@ import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 
 
+/**
+ * The type Server configuration.
+ */
 public class ServerConfiguration {
 
+    /**
+     * The constant CONFIG_CACHE_DIR.
+     */
     public static final String CONFIG_CACHE_DIR = "cache-directory";
+    /**
+     * The constant CONFIG_BIND_ADDRESS.
+     */
     public static final String CONFIG_BIND_ADDRESS = "bind.address";
+    /**
+     * The constant CONFIG_ENTRY_CACHE_ENABLED.
+     */
     public static final String CONFIG_ENTRY_CACHE_ENABLED = "entry-cache.enabled";
+    /**
+     * The constant CONFIG_ENTRY_CACHE_MAX_SIZE.
+     */
     public static final String CONFIG_ENTRY_CACHE_MAX_SIZE = "entry-cache.max-size";
+    /**
+     * The constant CONFIG_ENTRY_CACHE_MAX_AGE.
+     */
     public static final String CONFIG_ENTRY_CACHE_MAX_AGE = "entry-cache.max-age";
+    /**
+     * The constant CONFIG_SSL_ENABLED.
+     */
     public static final String CONFIG_SSL_ENABLED = "ssl.enabled";
+    /**
+     * The constant CONFIG_SSL_KEY_STORE_FILE.
+     */
     public static final String CONFIG_SSL_KEY_STORE_FILE = "ssl.key-store-file";
+    /**
+     * The constant CONFIG_SSL_KEY_STORE_PW.
+     */
     public static final String CONFIG_SSL_KEY_STORE_PW = "ssl.key-store-password";
+    /**
+     * The constant CONFIG_SUPPORT_MEMBER_OF.
+     */
     public static final String CONFIG_SUPPORT_MEMBER_OF = "support.member-of";
+    /**
+     * The constant CONFIG_DIRECTORY_BACKEND.
+     */
     public static final String CONFIG_DIRECTORY_BACKEND = "directory-backend";
+    /**
+     * The constant CONFIG_BASE_DN_DESCRIPTION.
+     */
     public static final String CONFIG_BASE_DN_DESCRIPTION = "base-dn.description";
+    /**
+     * The constant CONFIG_BASE_DN_GROUPS_DESCRIPTION.
+     */
     public static final String CONFIG_BASE_DN_GROUPS_DESCRIPTION = "base-dn-groups.description";
+    /**
+     * The constant CONFIG_BASE_DN_USERS_DESCRIPTION.
+     */
     public static final String CONFIG_BASE_DN_USERS_DESCRIPTION = "base-dn-users.description";
 
     private final Path cacheDir;
@@ -58,6 +100,12 @@ public class ServerConfiguration {
     private final String baseDnGroupsDescription;
     private final String baseDnUsersDescription;
 
+    /**
+     * Instantiates a new server configuration.
+     *
+     * @param serverProperties  the server properties
+     * @param backendProperties the backend properties
+     */
     public ServerConfiguration(Properties serverProperties, Properties backendProperties) {
 
         cacheDir = Paths.get(serverProperties.getProperty(CONFIG_CACHE_DIR, "./cache")).toAbsolutePath().normalize();
@@ -144,71 +192,141 @@ public class ServerConfiguration {
         baseDnUsersDescription = serverProperties.getProperty(CONFIG_BASE_DN_USERS_DESCRIPTION, "");
     }
 
+    /**
+     * Gets cache dir.
+     *
+     * @return the cache dir
+     */
     public Path getCacheDir() {
 
         return cacheDir;
     }
 
+    /**
+     * Gets host.
+     *
+     * @return the host
+     */
     public String getHost() {
 
         return host;
     }
 
+    /**
+     * Gets port.
+     *
+     * @return the port
+     */
     public int getPort() {
 
         return port;
     }
 
+    /**
+     * Is entry cache enabled boolean.
+     *
+     * @return the boolean
+     */
     public boolean isEntryCacheEnabled() {
 
         return entryCacheEnabled;
     }
 
+    /**
+     * Gets entry cache maximum size.
+     *
+     * @return the entry cache max size
+     */
     public int getEntryCacheMaxSize() {
 
         return entryCacheMaxSize;
     }
 
+    /**
+     * Gets entry cache maximum age.
+     *
+     * @return the entry cache max age
+     */
     public Duration getEntryCacheMaxAge() {
 
         return entryCacheMaxAge;
     }
 
+    /**
+     * Is SSL enabled boolean.
+     *
+     * @return the boolean
+     */
     public boolean isSslEnabled() {
 
         return sslEnabled;
     }
 
+    /**
+     * Gets key store file.
+     *
+     * @return the key store file
+     */
     public Path getKeyStoreFile() {
 
         return keyStoreFile;
     }
 
+    /**
+     * Gets key store password.
+     *
+     * @return the key store password
+     */
     public String getKeyStorePassword() {
 
         return keyStorePassword;
     }
 
+    /**
+     * Gets compatibility mode.
+     *
+     * @return the member of support
+     */
     public MemberOfSupport getMemberOfSupport() {
 
         return memberOfSupport;
     }
 
+    /**
+     * Gets directory backend.
+     *
+     * @return the directory backend
+     */
     public DirectoryBackend getDirectoryBackend() {
 
         return directoryBackend;
     }
 
+    /**
+     * Gets base DN description.
+     *
+     * @return the base dn description
+     */
     public String getBaseDnDescription() {
 
         return baseDnDescription;
     }
 
+    /**
+     * Gets base DN groups description.
+     *
+     * @return the base dn groups description
+     */
     public String getBaseDnGroupsDescription() {
 
         return baseDnGroupsDescription;
     }
 
+    /**
+     * Gets base DN users description.
+     *
+     * @return the base dn users description
+     */
     public String getBaseDnUsersDescription() {
 
         return baseDnUsersDescription;

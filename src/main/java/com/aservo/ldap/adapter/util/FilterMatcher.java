@@ -27,10 +27,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * The handler for filter expressions.
+ */
 public abstract class FilterMatcher {
 
     private final Logger logger = LoggerFactory.getLogger(FilterMatcher.class);
 
+    /**
+     * Gets attribute map.
+     *
+     * @param filter    the filter expression
+     * @param entryType the entry type
+     * @return the attribute map
+     */
     public Map<String, String> getAttributeMap(ExprNode filter, EntryType entryType) {
 
         if (filter instanceof AndNode) {
@@ -112,6 +122,14 @@ public abstract class FilterMatcher {
         return new HashMap<>();
     }
 
+    /**
+     * Make a match between entry and filter expression.
+     *
+     * @param filter    the filter expression
+     * @param entryId   the entry ID
+     * @param entryType the entry type
+     * @return the boolean
+     */
     public boolean match(ExprNode filter, String entryId, EntryType entryType) {
 
         if (filter instanceof ObjectClassNode) {
@@ -355,11 +373,31 @@ public abstract class FilterMatcher {
         return value == null && !alternatives.isEmpty();
     }
 
+    /**
+     * Gets related values from attribute.
+     *
+     * @param attribute the attribute
+     * @param entryId   the entry ID
+     * @param entryType the entry type
+     * @return the values from attribute
+     */
     protected abstract List<String> getValuesFromAttribute(String attribute, String entryId, EntryType entryType);
 
+    /**
+     * Gets group from DN.
+     *
+     * @param value the value
+     * @return the group from dn
+     */
     @Nullable
     protected abstract String getGroupFromDn(@Nullable String value);
 
+    /**
+     * Gets user from DN.
+     *
+     * @param value the value
+     * @return the user from dn
+     */
     @Nullable
     protected abstract String getUserFromDn(@Nullable String value);
 }

@@ -24,6 +24,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 
+/**
+ * Provides an in-memory LRU cache map.
+ * If the cache maximum size is reached, the least recently used entry is removed. If the cache maximum size is
+ * reached and the access time is equal to the least recently used entries, the oldest entry is removed. All outdated
+ * entries by maximum age will be removed on access.
+ *
+ * @param <K> the type parameter for keys
+ * @param <V> the type parameter for values
+ */
 public final class LruCacheMap<K, V>
         implements Map<K, V> {
 
@@ -32,6 +41,12 @@ public final class LruCacheMap<K, V>
     private final int maxSize;
     private final Duration maxAge;
 
+    /**
+     * Instantiates a new LRU cache map.
+     *
+     * @param maxSize the max size
+     * @param maxAge  the max age
+     */
     public LruCacheMap(int maxSize, Duration maxAge) {
 
         cacheEntries = new FixedSizeMap();
@@ -41,17 +56,29 @@ public final class LruCacheMap<K, V>
         this.maxAge = maxAge;
     }
 
+    /**
+     * Gets maximum cache size.
+     *
+     * @return the max size
+     */
     public int getMaxSize() {
 
         return maxSize;
     }
 
+    /**
+     * Gets maximum entry age.
+     *
+     * @return the max age
+     */
     public Duration getMaxAge() {
 
         return maxAge;
     }
 
     private void clean() {
+
+        // remove all outdated entries
 
         while (!priorityEntries.isEmpty()) {
 
@@ -179,6 +206,9 @@ public final class LruCacheMap<K, V>
     private class FixedSizeMap
             extends LinkedHashMap<K, V> {
 
+        /**
+         * Instantiates a new map with fixed size.
+         */
         public FixedSizeMap() {
 
             super(maxSize + 2, 1, true);
@@ -197,6 +227,11 @@ public final class LruCacheMap<K, V>
         private final K key;
         private final Instant createdAt;
 
+        /**
+         * Instantiates a new priority queue entry.
+         *
+         * @param key the key
+         */
         public PriorityQueueEntry(K key) {
 
             this.key = key;
@@ -215,11 +250,21 @@ public final class LruCacheMap<K, V>
             return 0;
         }
 
+        /**
+         * Gets the key of an entry.
+         *
+         * @return the key
+         */
         public K getKey() {
 
             return key;
         }
 
+        /**
+         * Gets creation time of an entry.
+         *
+         * @return the created at
+         */
         public Instant getCreatedAt() {
 
             return createdAt;

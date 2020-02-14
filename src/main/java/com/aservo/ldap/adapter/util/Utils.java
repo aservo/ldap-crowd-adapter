@@ -24,16 +24,34 @@ import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.jetbrains.annotations.Nullable;
 
 
+/**
+ * A helper for misc things.
+ */
 public class Utils {
 
+    /**
+     * The constant OU_GROUPS.
+     */
     public static final String OU_GROUPS = "groups";
+    /**
+     * The constant OU_USERS.
+     */
     public static final String OU_USERS = "users";
 
+    /**
+     * The constant MEMBER_OF_AT.
+     */
     public static final String MEMBER_OF_AT = "memberOf";
 
     private Utils() {
     }
 
+    /**
+     * Calculates a hash value from string.
+     *
+     * @param value the value
+     * @return the int
+     */
     public static int calculateHash(@Nullable String value) {
 
         if (value == null)
@@ -49,7 +67,14 @@ public class Utils {
         return (Math.abs(hash) % 9999999) + 1;
     }
 
-    // disallow add
+    /**
+     * Creates a list with one or zero elements.
+     * To add is not allowed.
+     *
+     * @param <T>   the type parameter
+     * @param value the value
+     * @return the list
+     */
     public static <T> List<T> nullableSingletonList(T value) {
 
         if (value == null)
@@ -58,7 +83,14 @@ public class Utils {
         return Collections.singletonList(value);
     }
 
-    // allow add
+    /**
+     * Creates a list with one or zero elements.
+     * To add is allowed.
+     *
+     * @param <T>   the type parameter
+     * @param value the value
+     * @return the list
+     */
     public static <T> List<T> nullableOneElementList(T value) {
 
         List<T> list = new ArrayList<>();
@@ -71,6 +103,13 @@ public class Utils {
         return list;
     }
 
+    /**
+     * Normalizes LDAP attributes.
+     * Function is used for attributes of incoming queries.
+     *
+     * @param attribute the attribute
+     * @return the normalized attribute
+     */
     public static String normalizeAttribute(String attribute) {
 
         if (attribute.equalsIgnoreCase(SchemaConstants.OBJECT_CLASS_AT))

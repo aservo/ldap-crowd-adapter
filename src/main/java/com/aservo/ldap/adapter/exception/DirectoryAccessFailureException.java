@@ -18,24 +18,46 @@
 package com.aservo.ldap.adapter.exception;
 
 
+/**
+ * The type Directory access failure exception.
+ */
 public class DirectoryAccessFailureException
         extends Exception {
 
+    /**
+     * Instantiates a new Directory access failure exception.
+     */
     public DirectoryAccessFailureException() {
 
         super();
     }
 
+    /**
+     * Instantiates a new Directory access failure exception.
+     *
+     * @param message the message
+     */
     public DirectoryAccessFailureException(String message) {
 
         super(message);
     }
 
+    /**
+     * Instantiates a new Directory access failure exception.
+     *
+     * @param message   the message
+     * @param throwable the throwable
+     */
     public DirectoryAccessFailureException(String message, Throwable throwable) {
 
         super(message, throwable);
     }
 
+    /**
+     * Instantiates a new Directory access failure exception.
+     *
+     * @param throwable the throwable
+     */
     public DirectoryAccessFailureException(Throwable throwable) {
 
         super(throwable);

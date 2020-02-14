@@ -18,9 +18,31 @@
 package com.aservo.ldap.adapter.util;
 
 
+/**
+ * The enum Entry type.
+ */
 public enum EntryType {
 
-    GROUP(Utils.OU_GROUPS), USER(Utils.OU_USERS), UNIT("unit"), DOMAIN("domain"), UNDEFINED(null);
+    /**
+     * Group entry type.
+     */
+    GROUP(Utils.OU_GROUPS),
+    /**
+     * User entry type.
+     */
+    USER(Utils.OU_USERS),
+    /**
+     * Unit entry type.
+     */
+    UNIT("unit"),
+    /**
+     * Domain entry type.
+     */
+    DOMAIN("domain"),
+    /**
+     * Undefined entry type.
+     */
+    UNDEFINED(null);
 
     private final String text;
 

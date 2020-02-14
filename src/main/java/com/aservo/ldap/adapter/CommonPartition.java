@@ -50,6 +50,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * An ApacheDS partition that bridges to directory backends.
+ */
 public class CommonPartition
         extends SimpleReadOnlyPartition {
 
@@ -64,6 +67,12 @@ public class CommonPartition
     private Dn groupsDn;
     private Dn usersDn;
 
+    /**
+     * Instantiates a new partition based on directory backend implementation.
+     *
+     * @param directoryBackend the directory backend
+     * @param serverConfig     the server config
+     */
     public CommonPartition(DirectoryBackend directoryBackend, ServerConfiguration serverConfig) {
 
         super(directoryBackend.getId());
