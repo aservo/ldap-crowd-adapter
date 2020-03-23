@@ -313,4 +313,38 @@ public class FilterTest
 
         context.close();
     }
+
+    @Test
+    @Order(10)
+    @DisplayName("it should be able to process complex filter expressions")
+    public void test010()
+            throws Exception {
+
+        String base = "dc=json";
+
+        String filter =
+                "(&" +
+                        "(objectClass=groupOfNames)" +
+                        "(|(cn=GroupC)(cn=GroupD))" +
+                        ")";
+
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+
+        SearchControls sc = new SearchControls();
+        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+
+        NamingEnumeration results = context.search(base, filter, sc);
+
+        Assertions.assertTrue(results.hasMore());
+        Attributes attributes1 = ((SearchResult) results.next()).getAttributes();
+        Assertions.assertEquals("GroupC", getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
+
+        Assertions.assertTrue(results.hasMore());
+        Attributes attributes2 = ((SearchResult) results.next()).getAttributes();
+        Assertions.assertEquals("GroupD", getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
+
+        Assertions.assertFalse(results.hasMore());
+
+        context.close();
+    }
 }

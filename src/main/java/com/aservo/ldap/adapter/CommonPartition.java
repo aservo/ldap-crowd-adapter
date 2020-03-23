@@ -676,7 +676,16 @@ public class CommonPartition
 
         try {
 
-            return directoryBackend.getGroupsByAttributes(filterProcessor.getAttributeMap(filter, EntryType.GROUP));
+            List<Map<String, String>> attributeMaps = filterProcessor.getAttributeMaps(filter, EntryType.GROUP);
+            Set<String> groups = new LinkedHashSet<>();
+
+            for (Map<String, String> attributeMap : attributeMaps)
+                groups.addAll(directoryBackend.getGroupsByAttributes(attributeMap));
+
+            if (attributeMaps.isEmpty())
+                groups.addAll(directoryBackend.getAllGroups());
+
+            return new ArrayList<>(groups);
 
         } catch (SecurityProblemException |
                 DirectoryAccessFailureException e) {
@@ -731,7 +740,16 @@ public class CommonPartition
 
         try {
 
-            return directoryBackend.getUsersByAttributes(filterProcessor.getAttributeMap(filter, EntryType.USER));
+            List<Map<String, String>> attributeMaps = filterProcessor.getAttributeMaps(filter, EntryType.USER);
+            Set<String> users = new LinkedHashSet<>();
+
+            for (Map<String, String> attributeMap : attributeMaps)
+                users.addAll(directoryBackend.getUsersByAttributes(attributeMap));
+
+            if (attributeMaps.isEmpty())
+                users.addAll(directoryBackend.getAllUsers());
+
+            return new ArrayList<>(users);
 
         } catch (SecurityProblemException |
                 DirectoryAccessFailureException e) {

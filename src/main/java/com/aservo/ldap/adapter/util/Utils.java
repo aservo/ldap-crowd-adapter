@@ -104,6 +104,40 @@ public class Utils {
     }
 
     /**
+     * Creates the cartesian product.
+     *
+     * @param <T>   the type parameter
+     * @param lists the input structure
+     * @return the output structure
+     */
+    public static <T> List<List<T>> cartesianProduct(List<List<T>> lists) {
+
+        List<List<T>> resultLists = new ArrayList<>();
+
+        if (lists.isEmpty()) {
+
+            resultLists.add(new ArrayList<>());
+
+        } else {
+
+            List<T> firstList = lists.get(0);
+            List<List<T>> remainingLists = cartesianProduct(lists.subList(1, lists.size()));
+
+            for (T value : firstList)
+                for (List<T> remainingList : remainingLists) {
+
+                    ArrayList<T> resultList = new ArrayList<T>();
+
+                    resultList.add(value);
+                    resultList.addAll(remainingList);
+                    resultLists.add(resultList);
+                }
+        }
+
+        return resultLists;
+    }
+
+    /**
      * Normalizes LDAP attributes.
      * Function is used for attributes of incoming queries.
      *

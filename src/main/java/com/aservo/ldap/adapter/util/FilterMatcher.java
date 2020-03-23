@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.util;
 
+import com.google.common.collect.Sets;
 import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
@@ -35,22 +36,99 @@ public abstract class FilterMatcher {
     private final Logger logger = LoggerFactory.getLogger(FilterMatcher.class);
 
     /**
-     * Gets attribute map.
+     * Gets a list of attribute maps. This result can be used to transform a directory backend call in
+     * multiple lightweight calls.
+     * <p>
+     * This method allows performance optimization by reducing heavy directory backend calls. Instead of loading all
+     * entities and then filtering them, required entities can be determined by a filter expression.
+     * </p>
+     * <p>
+     * The goal is to split queries in a way that allows to merge the results with an union operation together without
+     * loss of information. However, duplicates are allowed.<br>
+     * 1) distributive property for intersection operation with outer expression and partial expression<br>
+     * <pre>
+     *   A ∩ ⋃B, i∊I
+     *   ⟹ x∊A ∧ ∃i∊I:x∊B
+     *   ⟹ x∊A ∧ ∃i:(x∊I ∧ x∊B)
+     *   ⟹ ∃i:(x∊A ∧ (i∊I ∧ x∊B))
+     *   ⟹ ∃i∊I:(x∊A ∧ x∊B)
+     *   ⟹ ⋃(A ∩ B)
+     * </pre>
+     * 2) algorithm<br>
+     * 2.a) intersection operations as cartesian product<br>
+     * <pre>
+     *   FROM:
+     *   P1∊(A ∩ B1)
+     *   P2∊(A ∩ B2)
+     *   ...
+     *   Pn∊(A ∩ Bn)
+     *   TO:
+     *   (P1, P2, ..., Pn)∊( (A ∩ B1) × (A ∩ B2) × ... × (A ∩ Bn) )
+     * </pre>
+     * 2.b) union operations as set of sets<br>
+     * <pre>
+     *   FROM:
+     *   P1 ∪ P1 ∪ ... ∪ Pn
+     *   TO:
+     *   {P1, P2, ..., Pn}
+     * </pre>
+     * 2.c) simplification of tuples with multiple entries<br>
+     * <pre>
+     *   (a, b, c) := ((a, b), c)
+     *   (a, b, c, d) := ((a, b, c), d)
+     * </pre>
+     * 2.d) steps<br>
+     * 1. replace boolean expression from filter with rules 2.a and 2.b<br>
+     * 2. calculate the first most inner cartesian product<br>
+     * 3. simplify tuples with rule 2.c<br>
+     * 4. repeat from step 2 until no cartesian product operation is left<br>
+     * </p>
      *
      * @param filter    the filter expression
      * @param entryType the entry type
-     * @return the attribute map
+     * @return the attribute maps
      */
-    public Map<String, String> getAttributeMap(ExprNode filter, EntryType entryType) {
+    public List<Map<String, String>> getAttributeMaps(ExprNode filter, EntryType entryType) {
 
         if (filter instanceof AndNode) {
 
             AndNode node = (AndNode) filter;
-            Map<String, String> map = new HashMap<>();
+            List<Map<String, String>> resultList = new ArrayList<>();
 
-            node.getChildren().forEach(x -> map.putAll(getAttributeMap(x, entryType)));
+            List<List<Map<String, String>>> superStructure =
+                    node.getChildren().stream()
+                            .map(x -> getAttributeMaps(x, entryType))
+                            .collect(Collectors.toList());
 
-            return map;
+            superStructure.removeIf(List::isEmpty);
+
+            for (List<Map<String, String>> tuples : Utils.cartesianProduct(superStructure)) {
+
+                Map<String, String> tupleFlattened = new HashMap<>();
+
+                for (Map<String, String> tuple : tuples) {
+
+                    if (!Sets.intersection(tuple.keySet(), tupleFlattened.entrySet()).isEmpty())
+                        return Collections.emptyList();
+
+                    tupleFlattened.putAll(tuple);
+                }
+
+                resultList.add(tupleFlattened);
+            }
+
+            return resultList;
+
+        } else if (filter instanceof OrNode) {
+
+            OrNode node = (OrNode) filter;
+
+            List<Map<String, String>> resultList =
+                    node.getChildren().stream()
+                            .flatMap(x -> getAttributeMaps(x, entryType).stream())
+                            .collect(Collectors.toList());
+
+            return resultList;
 
         } else if (filter instanceof EqualityNode) {
 
@@ -116,10 +194,13 @@ public abstract class FilterMatcher {
                     break;
             }
 
-            return map;
+            if (map.isEmpty())
+                return Collections.emptyList();
+
+            return Utils.nullableSingletonList(map);
         }
 
-        return new HashMap<>();
+        return Collections.emptyList();
     }
 
     /**
