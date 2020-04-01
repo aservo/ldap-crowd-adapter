@@ -44,6 +44,8 @@ RUN yum makecache && \
 	yum clean all && \
 	rm -rf /tmp/* /var/tmp/*
 
+ENV JAVA_OPTS "-Dfile.encoding=UTF-8"
+
 ENV SBT_OPTS "--no-colors" \
     "-Dsbt.global.base=/var/app/sbt" \
     "-Dsbt.boot.directory=/var/app/sbt/boot" \
