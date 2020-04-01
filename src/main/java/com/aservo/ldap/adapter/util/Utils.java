@@ -20,6 +20,7 @@ package com.aservo.ldap.adapter.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.jetbrains.annotations.Nullable;
 
@@ -135,6 +136,52 @@ public class Utils {
         }
 
         return resultLists;
+    }
+
+    /**
+     * Checks the equality of two maps.
+     *
+     * @param <K>  the type parameter for keys
+     * @param <V>  the type parameter for values
+     * @param map1 the first map structure
+     * @param map2 the second map structure
+     * @return the boolean value for equality
+     */
+    public static <K, V> boolean mapsEqual(Map<K, V> map1, Map<K, V> map2) {
+
+        if (map1.size() != map2.size())
+            return false;
+
+        return map1.entrySet().stream().allMatch(e -> e.getValue().equals(map2.get(e.getKey())));
+    }
+
+    /**
+     * Creates a distinct list of maps.
+     *
+     * @param <K>   the type parameter for keys
+     * @param <V>   the type parameter for values
+     * @param input the input maps to make distinct
+     * @return the output maps which are distinct
+     */
+    public static <K, V> List<Map<K, V>> createDistinctMaps(List<Map<K, V>> input) {
+
+        List<Map<K, V>> output = new ArrayList<>();
+
+        for (Map<K, V> map1 : input) {
+
+            boolean found = false;
+
+            for (Map<K, V> map2 : output) {
+
+                if (mapsEqual(map1, map2))
+                    found = true;
+            }
+
+            if (!found)
+                output.add(map1);
+        }
+
+        return output;
     }
 
     /**

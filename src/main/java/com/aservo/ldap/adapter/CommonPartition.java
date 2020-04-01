@@ -676,7 +676,9 @@ public class CommonPartition
 
         try {
 
-            List<Map<String, String>> attributeMaps = filterProcessor.getAttributeMaps(filter, EntryType.GROUP);
+            List<Map<String, String>> attributeMaps =
+                    Utils.createDistinctMaps(filterProcessor.getAttributeMaps(filter, EntryType.GROUP));
+
             Set<String> groups = new LinkedHashSet<>();
 
             for (Map<String, String> attributeMap : attributeMaps)
@@ -740,7 +742,9 @@ public class CommonPartition
 
         try {
 
-            List<Map<String, String>> attributeMaps = filterProcessor.getAttributeMaps(filter, EntryType.USER);
+            List<Map<String, String>> attributeMaps =
+                    Utils.createDistinctMaps(filterProcessor.getAttributeMaps(filter, EntryType.USER));
+
             Set<String> users = new LinkedHashSet<>();
 
             for (Map<String, String> attributeMap : attributeMaps)
