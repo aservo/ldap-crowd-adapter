@@ -52,6 +52,10 @@ if [ -n "$SERVER_ENTRY_CACHE_MAX_AGE" ]; then
   JAVA_OPTS="-Dentry-cache.max-age=$SERVER_ENTRY_CACHE_MAX_AGE $JAVA_OPTS"
 fi
 
+if [ -n "$SERVER_READINESS_CHECK" ]; then
+  JAVA_OPTS="-Dreadiness-check=$SERVER_READINESS_CHECK $JAVA_OPTS"
+fi
+
 if [ -n "$SERVER_SSL_ENABLED" ]; then
   JAVA_OPTS="-Dssl.enabled=$SERVER_SSL_ENABLED $JAVA_OPTS"
 fi

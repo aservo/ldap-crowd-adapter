@@ -53,6 +53,10 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_ENTRY_CACHE_MAX_AGE = "entry-cache.max-age";
     /**
+     * The constant CONFIG_READINESS_CHECK.
+     */
+    public static final String CONFIG_READINESS_CHECK = "readiness-check";
+    /**
      * The constant CONFIG_SSL_ENABLED.
      */
     public static final String CONFIG_SSL_ENABLED = "ssl.enabled";
@@ -91,6 +95,7 @@ public class ServerConfiguration {
     private final boolean entryCacheEnabled;
     private final int entryCacheMaxSize;
     private final Duration entryCacheMaxAge;
+    private final boolean readinessCheck;
     private final boolean sslEnabled;
     private final Path keyStoreFile;
     private final String keyStorePassword;
@@ -142,6 +147,9 @@ public class ServerConfiguration {
 
         if (entryCacheMaxAge.isNegative() || entryCacheMaxAge.isZero())
             throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_AGE);
+
+        // require connection check to backend at startup
+        readinessCheck = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_READINESS_CHECK, "true"));
 
         // SSL support
         sslEnabled = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_SSL_ENABLED, "false"));
@@ -250,6 +258,16 @@ public class ServerConfiguration {
     public Duration getEntryCacheMaxAge() {
 
         return entryCacheMaxAge;
+    }
+
+    /**
+     * Check the connection to the backend.
+     *
+     * @return the boolean
+     */
+    public boolean requireReadinessCheck() {
+
+        return readinessCheck;
     }
 
     /**

@@ -109,6 +109,10 @@ public abstract class SimpleReadOnlyPartition
     public EntryFilteringCursor search(SearchOperationContext context)
             throws LdapException {
 
+        // disable internal requests
+        if (context.getSession().getClientAddress() == null)
+            return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager);
+
         switch (context.getScope()) {
 
             // -base: the node itself
