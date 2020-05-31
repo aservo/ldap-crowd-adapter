@@ -303,7 +303,8 @@ function create_app {
   local DIRECTORIES="$5"
 
   # create array from comma separated string
-  readarray -td ',' DIR_ARRAY <<< "$DIRECTORIES"
+  #readarray -td ',' DIR_ARRAY <<< "$DIRECTORIES"
+  IFS=',' read -ra DIR_ARRAY <<< "$DIRECTORIES"
   for i in "${!DIR_ARRAY[@]}"; do DIR_ARRAY[$i]="$(echo "${DIR_ARRAY[$i]}" | tr -d '[:space:]')"; done
   for i in "${!DIR_ARRAY[@]}"; do DIR_ARRAY[$i]="$(get_directory_id "${DIR_ARRAY[$i]}")"; done
 
