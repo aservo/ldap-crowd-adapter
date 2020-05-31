@@ -36,3 +36,7 @@ libraryDependencies ++= Seq(
   "org.bouncycastle" % "bcprov-jdk15on" % "1.65" % "test",
   "com.novocode" % "junit-interface" % "0.11" % "test"
 )
+
+jacocoReportSettings in Test := JacocoReportSettings()
+  .withFormats(JacocoReportFormats.ScalaHTML, JacocoReportFormats.XML)
+  .withFileEncoding("UTF-8")
