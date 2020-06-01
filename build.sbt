@@ -31,12 +31,25 @@ libraryDependencies ++= Seq(
   "org.apache.directory.server" % "apacheds-all" % "2.0.0-M24",
   "com.atlassian.crowd" % "crowd-integration-client-rest" % "2.12.0",
   "com.atlassian.security" % "atlassian-cookie-tools" % "3.2.14" jar,
-  "org.junit.platform" % "junit-platform-launcher" % "1.5.2" % "test",
-  "org.junit.jupiter" % "junit-jupiter-engine" % "5.5.2" % "test",
-  "org.bouncycastle" % "bcprov-jdk15on" % "1.65" % "test",
-  "com.novocode" % "junit-interface" % "0.11" % "test"
+  "org.junit.platform" % "junit-platform-launcher" % "1.5.2" % "test,it",
+  "org.junit.jupiter" % "junit-jupiter-engine" % "5.5.2" % "test,it",
+  "org.bouncycastle" % "bcprov-jdk15on" % "1.65" % "test,it",
+  "com.novocode" % "junit-interface" % "0.11" % "test,it"
 )
+
+fork in Test := true
 
 jacocoReportSettings in Test := JacocoReportSettings()
   .withFormats(JacocoReportFormats.ScalaHTML, JacocoReportFormats.XML)
   .withFileEncoding("UTF-8")
+
+jacocoReportSettings in IntegrationTest := JacocoReportSettings()
+  .withFormats(JacocoReportFormats.ScalaHTML, JacocoReportFormats.XML)
+  .withFileEncoding("UTF-8")
+
+configs(IntegrationTest)
+Defaults.itSettings
+
+unmanagedSourceDirectories in IntegrationTest ++= Seq((javaSource in Test).value)
+
+enablePlugins(JacocoItPlugin)

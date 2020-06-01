@@ -109,7 +109,6 @@ public abstract class AbstractTest {
         System.setProperty("ssl.key-store-file", keyStoreFile.toString());
         System.setProperty("ssl.key-store-password", keyStorePassword);
         System.setProperty("support.member-of", mode);
-        System.setProperty("directory-backend", "com.aservo.ldap.adapter.JsonDirectoryBackend");
         System.setProperty("db-uri", dbUri);
 
         CommonLdapServer server = Main.createServerInstance();

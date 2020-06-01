@@ -7,12 +7,18 @@ import org.junit.Assert;
 import org.junit.Test;
 
 
-public class BootTest {
+public class BootUnitTest {
 
     @Test
     public void start() {
 
-        String[] args = new String[]{"no-colors"};
+        System.setProperty("directory-backend", "com.aservo.ldap.adapter.JsonDirectoryBackend");
+
+        String[] args = new String[]{
+                "no-colors",
+                "test-packages=com.aservo.ldap.adapter",
+                "report-xml-file-path=target/test-reports/TEST-units.xml"
+        };
 
         JUnit5TestRunner.main(args);
 

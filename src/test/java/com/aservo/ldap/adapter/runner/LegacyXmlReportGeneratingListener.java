@@ -43,23 +43,23 @@ import static org.apiguardian.api.API.Status.EXPERIMENTAL;
 @API(status = EXPERIMENTAL, since = "1.4")
 public class LegacyXmlReportGeneratingListener implements TestExecutionListener {
 
-    private final Path reportsDir;
+    private final Path reportXmlFilePath;
     private final PrintWriter out;
     private final Clock clock;
 
     private XmlReportData reportData;
 
-    public LegacyXmlReportGeneratingListener(Path reportsDir, PrintWriter out) {
-        this(reportsDir, out, Clock.systemDefaultZone());
+    public LegacyXmlReportGeneratingListener(Path reportXmlFilePath, PrintWriter out) {
+        this(reportXmlFilePath, out, Clock.systemDefaultZone());
     }
 
     // For tests only
-    LegacyXmlReportGeneratingListener(String reportsDir, PrintWriter out, Clock clock) {
-        this(Paths.get(reportsDir), out, clock);
+    LegacyXmlReportGeneratingListener(String reportXmlFilePath, PrintWriter out, Clock clock) {
+        this(Paths.get(reportXmlFilePath), out, clock);
     }
 
-    private LegacyXmlReportGeneratingListener(Path reportsDir, PrintWriter out, Clock clock) {
-        this.reportsDir = reportsDir;
+    private LegacyXmlReportGeneratingListener(Path reportXmlFilePath, PrintWriter out, Clock clock) {
+        this.reportXmlFilePath = reportXmlFilePath;
         this.out = out;
         this.clock = clock;
     }
@@ -68,9 +68,9 @@ public class LegacyXmlReportGeneratingListener implements TestExecutionListener 
     public void testPlanExecutionStarted(TestPlan testPlan) {
         this.reportData = new XmlReportData(testPlan, clock);
         try {
-            Files.createDirectories(this.reportsDir);
+            Files.createDirectories(this.reportXmlFilePath.getParent());
         } catch (IOException e) {
-            printException("Could not create reports directory: " + this.reportsDir, e);
+            printException("Could not create reports directory: " + this.reportXmlFilePath.getParent(), e);
         }
     }
 
@@ -109,11 +109,11 @@ public class LegacyXmlReportGeneratingListener implements TestExecutionListener 
     }
 
     private void writeXmlReportSafely(TestIdentifier testIdentifier, String rootName) {
-        Path xmlFile = this.reportsDir.resolve("TEST-" + rootName + ".xml");
-        try (Writer fileWriter = Files.newBufferedWriter(xmlFile)) {
+
+        try (Writer fileWriter = Files.newBufferedWriter(reportXmlFilePath)) {
             new XmlReportWriter(this.reportData).writeXmlReport(testIdentifier, fileWriter);
         } catch (XMLStreamException | IOException e) {
-            printException("Could not write XML report: " + xmlFile, e);
+            printException("Could not write XML report: " + reportXmlFilePath, e);
         }
     }
 
