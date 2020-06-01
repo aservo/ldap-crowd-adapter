@@ -20,6 +20,10 @@ if [ -n "$CROWD_APP_NAME" ]; then
   JAVA_OPTS="-Dapplication.name=$CROWD_APP_NAME $JAVA_OPTS"
 fi
 
+if [ -n "$VAULT_HEADER" ] && [ -n "$VAULT_URI_CROWD_APP_PASSWORD" ]; then
+  CROWD_APP_PASSWORD="$(curl -sSL -H "$VAULT_HEADER" -XGET "$VAULT_URI_CROWD_APP_PASSWORD" | jq -r '.data.value')"
+fi
+
 if [ -n "$CROWD_APP_PASSWORD" ]; then
   JAVA_OPTS="-Dapplication.password=$CROWD_APP_PASSWORD $JAVA_OPTS"
 fi
@@ -70,6 +74,17 @@ fi
 
 if [ -n "$SERVER_SUPPORT_MEMBER_OF" ]; then
   JAVA_OPTS="-Dsupport.member-of=$SERVER_SUPPORT_MEMBER_OF $JAVA_OPTS"
+fi
+
+if [ -n "$VAULT_HEADER" ] && [ -n "$VAULT_URI_SSL_CRT" ] && [ -n "$VAULT_URI_SSL_KEY" ]; then
+  curl -sSL -H "$VAULT_HEADER" -XGET "$VAULT_URI_SSL_CRT" | jq -r '.data.value' > "local.crt"
+  curl -sSL -H "$VAULT_HEADER" -XGET "$VAULT_URI_SSL_KEY" | jq -r '.data.value' > "local.key"
+  openssl pkcs12 -export -name "servercert" \
+    -in "local.crt" -inkey "local.key" \
+    -out local.keystore.p12 -passout "pass:changeit"
+  keytool -importkeystore -srcstorepass "changeit" --deststorepass "changeit" \
+    -srckeystore local.keystore.p12 -destkeystore local.keystore.jks \
+    -srcstoretype pkcs12 -alias "servercert"
 fi
 
 export JAVA_OPTS

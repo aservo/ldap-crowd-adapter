@@ -44,6 +44,17 @@ RUN yum makecache && \
 	yum clean all && \
 	rm -rf /tmp/* /var/tmp/*
 
+RUN yum makecache && \
+	yum -y install \
+        epel-release && \
+	rm -rf /tmp/* /var/tmp/*
+
+RUN yum makecache && \
+	yum -y install \
+	    openssl \
+        jq && \
+	rm -rf /tmp/* /var/tmp/*
+
 ENV JAVA_OPTS "-Dfile.encoding=UTF-8"
 
 ENV SBT_OPTS "--no-colors" \
