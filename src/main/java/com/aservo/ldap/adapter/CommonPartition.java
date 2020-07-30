@@ -858,12 +858,6 @@ public class CommonPartition
     @Override
     protected EntryFilteringCursor findOne(SearchOperationContext context) {
 
-        logger.info("[{}] - Access partition: DN={} filter={} scope={}",
-                context.getSession().getClientAddress(),
-                context.getDn().getName(),
-                context.getFilter(),
-                context.getScope());
-
         if (context.getDn().equals(groupsDn)) {
 
             if (!filterProcessor.match(context.getFilter(), Utils.OU_GROUPS, EntryType.UNIT))
@@ -957,12 +951,6 @@ public class CommonPartition
     @Override
     protected EntryFilteringCursor findManyOnFirstLevel(SearchOperationContext context)
             throws LdapException {
-
-        logger.info("[{}] - Access partition: DN={} filter={} scope={}",
-                context.getSession().getClientAddress(),
-                context.getDn().getName(),
-                context.getFilter(),
-                context.getScope());
 
         if (context.getDn().equals(groupsDn)) {
 

@@ -33,6 +33,8 @@ import org.apache.directory.server.core.api.filtering.EntryFilteringCursorImpl;
 import org.apache.directory.server.core.api.interceptor.context.*;
 import org.apache.directory.server.core.api.partition.Partition;
 import org.apache.directory.server.core.api.partition.Subordinates;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -40,6 +42,8 @@ import org.apache.directory.server.core.api.partition.Subordinates;
  */
 public abstract class SimpleReadOnlyPartition
         implements Partition {
+
+    private final Logger logger = LoggerFactory.getLogger(SimpleReadOnlyPartition.class);
 
     private static final String MODIFICATION_NOT_ALLOWED_MSG = "This simple partition does not allow modification.";
 
@@ -113,24 +117,47 @@ public abstract class SimpleReadOnlyPartition
         if (context.getSession().getClientAddress() == null)
             return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager);
 
-        switch (context.getScope()) {
+        logger.info("[{}] - Access partition: DN={} filter={} scope={}",
+                context.getSession().getClientAddress(),
+                context.getDn().getName(),
+                context.getFilter(),
+                context.getScope());
 
-            // -base: the node itself
-            case OBJECT:
-                return findOne(context);
+        EntryFilteringCursor cursor;
 
-            // -one: one level under the node
-            case ONELEVEL:
-                return findManyOnFirstLevel(context);
+        try {
 
-            // -sub: all node under the node
-            case SUBTREE:
-                return findManyOnMultipleLevels(context);
+            switch (context.getScope()) {
 
-            // no scope defined
-            default:
-                return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager);
+                // -base: the node itself
+                case OBJECT:
+                    cursor = findOne(context);
+                    break;
+
+                // -one: one level under the node
+                case ONELEVEL:
+                    cursor = findManyOnFirstLevel(context);
+                    break;
+
+                // -sub: all node under the node
+                case SUBTREE:
+                    cursor = findManyOnMultipleLevels(context);
+                    break;
+
+                // no scope defined
+                default:
+                    cursor = new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager);
+                    break;
+            }
+
+        } finally {
+
+            logger.info("[{}] - Cursor created by partition {}",
+                    context.getSession().getClientAddress(),
+                    this.getClass().getSimpleName());
         }
+
+        return cursor;
     }
 
     /**
