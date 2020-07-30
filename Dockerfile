@@ -2,6 +2,12 @@ FROM centos:7
 
 MAINTAINER Eric Löffler <eloeffler@aservo.com>
 
+# force sbt to use a specific repository
+ARG MAIN_REPO_REALM
+ARG MAIN_REPO_URL
+ARG MAIN_REPO_USERNAME
+ARG MAIN_REPO_PASSWORD
+
 ADD etc/ /app/etc/
 ADD src/ /app/src/
 ADD project/build.properties /app/project/

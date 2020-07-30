@@ -13,13 +13,36 @@ autoScalaLibrary := false
 
 crossPaths := false
 
-resolvers ++= Seq(
-  Resolver.jcenterRepo,
-  Resolver.bintrayRepo("typesafe", "maven-releases"),
-  Opts.resolver.sonatypeReleases,
-  Opts.resolver.sonatypeSnapshots,
-  "Atlassian" at "https://maven.atlassian.com/content/groups/public/"
-)
+credentials ++= (
+  if (sys.env.contains("MAIN_REPO_REALM") &&
+    sys.env.contains("MAIN_REPO_URL") &&
+    sys.env.contains("MAIN_REPO_USERNAME") &&
+    sys.env.contains("MAIN_REPO_PASSWORD"))
+    Seq(Credentials(
+      sys.env("MAIN_REPO_REALM"),
+      java.net.URI.create(sys.env("MAIN_REPO_URL")).getAuthority,
+      sys.env("MAIN_REPO_USERNAME"),
+      sys.env("MAIN_REPO_PASSWORD")
+    ))
+  else
+    Seq.empty
+  )
+
+if (sys.env.contains("MAIN_REPO_URL"))
+  resolvers := Seq("Main Repository" at sys.env("MAIN_REPO_URL"))
+else
+  resolvers ++= Seq(
+    Resolver.jcenterRepo,
+    Resolver.bintrayRepo("typesafe", "maven-releases"),
+    Opts.resolver.sonatypeReleases,
+    Opts.resolver.sonatypeSnapshots,
+    "Atlassian" at "https://maven.atlassian.com/content/groups/public/"
+  )
+
+if (sys.env.contains("MAIN_REPO_URL"))
+  externalResolvers := Seq("Main Repository" at sys.env("MAIN_REPO_URL"))
+else
+  externalResolvers ++= Seq()
 
 libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.30",
