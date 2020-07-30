@@ -33,6 +33,8 @@ import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -40,6 +42,8 @@ import java.util.*;
  */
 public class CrowdDirectoryBackend
         implements DirectoryBackend {
+
+    private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
 
     private final String id;
     private final CrowdClient crowdClient;
@@ -89,6 +93,8 @@ public class CrowdDirectoryBackend
     public Map<String, String> getGroupInfo(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getGroupInfo; id={}", id);
+
         try {
 
             return mapGroupInfo(crowdClient.getGroup(id));
@@ -111,6 +117,8 @@ public class CrowdDirectoryBackend
     public Map<String, String> getUserInfo(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getUserInfo; id={}", id);
+
         try {
 
             return mapUserInfo(crowdClient.getUser(id));
@@ -132,6 +140,8 @@ public class CrowdDirectoryBackend
 
     public Map<String, String> getInfoFromAuthenticatedUser(String id, String password)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getInfoFromAuthenticatedUser; id={}", id);
 
         try {
 
@@ -180,6 +190,8 @@ public class CrowdDirectoryBackend
     public List<String> getAllGroups()
             throws DirectoryAccessFailureException, SecurityProblemException {
 
+        logger.info("Call: getAllGroups");
+
         try {
 
             return crowdClient.searchGroupNames(NullRestrictionImpl.INSTANCE, 0, Integer.MAX_VALUE);
@@ -197,6 +209,8 @@ public class CrowdDirectoryBackend
 
     public List<String> getAllUsers()
             throws DirectoryAccessFailureException, SecurityProblemException {
+
+        logger.info("Call: getAllUsers");
 
         try {
 
@@ -235,6 +249,8 @@ public class CrowdDirectoryBackend
 
     public List<String> getGroupsByAttributes(Map<String, String> attributeMap)
             throws DirectoryAccessFailureException, SecurityProblemException {
+
+        logger.info("Call: getGroupsByAttributes");
 
         if (attributeMap.isEmpty())
             return getAllGroups();
@@ -281,6 +297,8 @@ public class CrowdDirectoryBackend
 
     public List<String> getUsersByAttributes(Map<String, String> attributeMap)
             throws DirectoryAccessFailureException, SecurityProblemException {
+
+        logger.info("Call: getUsersByAttributes");
 
         if (attributeMap.isEmpty())
             return getAllUsers();
@@ -349,6 +367,8 @@ public class CrowdDirectoryBackend
     public List<String> getDirectUsersOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getDirectUsersOfGroup; id={}", id);
+
         try {
 
             return crowdClient.getNamesOfUsersOfGroup(id, 0, Integer.MAX_VALUE);
@@ -370,6 +390,8 @@ public class CrowdDirectoryBackend
 
     public List<String> getDirectGroupsOfUser(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getDirectGroupsOfUser; id={}", id);
 
         try {
 
@@ -393,6 +415,8 @@ public class CrowdDirectoryBackend
     public List<String> getTransitiveUsersOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getTransitiveUsersOfGroup; id={}", id);
+
         List<String> userIds = getDirectUsersOfGroup(id);
 
         for (String y : getTransitiveChildGroupsOfGroup(id))
@@ -406,6 +430,8 @@ public class CrowdDirectoryBackend
     public List<String> getTransitiveGroupsOfUser(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getTransitiveGroupsOfUser; id={}", id);
+
         List<String> groupIds = getDirectGroupsOfUser(id);
 
         for (String y : new ArrayList<>(groupIds))
@@ -418,6 +444,8 @@ public class CrowdDirectoryBackend
 
     public List<String> getDirectChildGroupsOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getDirectChildGroupsOfGroup; id={}", id);
 
         try {
 
@@ -441,6 +469,8 @@ public class CrowdDirectoryBackend
     public List<String> getDirectParentGroupsOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getDirectParentGroupsOfGroup; id={}", id);
+
         try {
 
             return crowdClient.getNamesOfParentGroupsForGroup(id, 0, Integer.MAX_VALUE);
@@ -463,6 +493,8 @@ public class CrowdDirectoryBackend
     public List<String> getTransitiveChildGroupsOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getTransitiveChildGroupsOfGroup; id={}", id);
+
         List<String> groupIds = new ArrayList<>();
 
         groupIds.add(id);
@@ -474,6 +506,8 @@ public class CrowdDirectoryBackend
 
     public List<String> getTransitiveParentGroupsOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getTransitiveParentGroupsOfGroup; id={}", id);
 
         List<String> groupIds = new ArrayList<>();
 
@@ -545,6 +579,8 @@ public class CrowdDirectoryBackend
     public boolean isGroupDirectGroupMember(String groupId1, String groupId2)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: isGroupDirectGroupMember");
+
         try {
 
             crowdClient.getGroup(groupId1);
@@ -569,6 +605,8 @@ public class CrowdDirectoryBackend
 
     public boolean isUserDirectGroupMember(String userId, String groupId)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: isUserDirectGroupMember");
 
         try {
 
@@ -596,6 +634,8 @@ public class CrowdDirectoryBackend
     public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: isGroupTransitiveGroupMember");
+
         try {
 
             crowdClient.getGroup(groupId1);
@@ -619,6 +659,8 @@ public class CrowdDirectoryBackend
 
     public boolean isUserTransitiveGroupMember(String userId, String groupId)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: isUserTransitiveGroupMember");
 
         try {
 
