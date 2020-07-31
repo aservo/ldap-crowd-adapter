@@ -97,7 +97,7 @@ public class CommonAuthenticator
                         context.getIoSession().getRemoteAddress(),
                         context.getDn());
 
-                logger.warn("Authentication failed.", e);
+                // logger.warn("Authentication failed.", e);
 
                 throw e;
             }
