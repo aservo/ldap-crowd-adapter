@@ -4,7 +4,6 @@ import com.aservo.ldap.adapter.CommonLdapServer;
 import com.aservo.ldap.adapter.JsonDirectoryBackend;
 import com.aservo.ldap.adapter.Main;
 import com.aservo.ldap.adapter.util.DirectoryBackend;
-import com.aservo.ldap.adapter.util.MemberOfSupport;
 import com.aservo.ldap.adapter.util.Utils;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,10 +35,8 @@ public abstract class AbstractTest {
 
     private static final String dbUri = "file:./src/test/resources/com/aservo/ldap/adapter/db.json";
 
-    public static final int MODE_OFF_PORT = 10390;
-    public static final int MODE_NORMAL_PORT = 10391;
-    public static final int MODE_NESTED_GROUPS_PORT = 10392;
-    public static final int MODE_FLATTENING_PORT = 10393;
+    public static final int MODE_NESTED_GROUPS_PORT = 10390;
+    public static final int MODE_FLATTENING_PORT = 10391;
 
     protected DirectoryBackend directoryBackend;
 
@@ -71,10 +68,8 @@ public abstract class AbstractTest {
                 CertificateGenerator.updateKeyStore(keyPair, cert, "self-signed", keyStoreFile.toFile(),
                         keyStorePassword);
 
-                boot(MODE_OFF_PORT, "off");
-                boot(MODE_NORMAL_PORT, "normal");
-                boot(MODE_NESTED_GROUPS_PORT, "nested-groups");
-                boot(MODE_FLATTENING_PORT, "flattening");
+                boot(MODE_NESTED_GROUPS_PORT, false);
+                boot(MODE_FLATTENING_PORT, true);
 
                 initialised = true;
             }
@@ -91,8 +86,6 @@ public abstract class AbstractTest {
 
             if (initialised && counter == 0) {
 
-                servers.get(MODE_OFF_PORT).shutdown();
-                servers.get(MODE_NORMAL_PORT).shutdown();
                 servers.get(MODE_NESTED_GROUPS_PORT).shutdown();
                 servers.get(MODE_FLATTENING_PORT).shutdown();
                 servers.clear();
@@ -100,7 +93,7 @@ public abstract class AbstractTest {
         }
     }
 
-    private static void boot(int port, String mode)
+    private static void boot(int port, boolean flattening)
             throws Exception {
 
         System.setProperty("cache-directory", "./tmp/" + port + "/cache");
@@ -108,7 +101,7 @@ public abstract class AbstractTest {
         System.setProperty("ssl.enabled", "true");
         System.setProperty("ssl.key-store-file", keyStoreFile.toString());
         System.setProperty("ssl.key-store-password", keyStorePassword);
-        System.setProperty("support.member-of", mode);
+        System.setProperty("flattening", Boolean.toString(flattening));
         System.setProperty("db-uri", dbUri);
 
         CommonLdapServer server = Main.createServerInstance();
@@ -221,7 +214,7 @@ public abstract class AbstractTest {
         Assertions.assertFalse(ne2.hasMore());
     }
 
-    protected String getAndCheckGroupEntry(Attributes attributes, MemberOfSupport memberOfSupport)
+    protected String getAndCheckGroupEntry(Attributes attributes, boolean flattening)
             throws Exception {
 
         NamingEnumeration ne0 = attributes.get(SchemaConstants.OBJECT_CLASS_AT).getAll();
@@ -248,10 +241,9 @@ public abstract class AbstractTest {
         Assertions.assertEquals(info.get(DirectoryBackend.GROUP_DESCRIPTION), ne3.next());
         Assertions.assertFalse(ne3.hasMore());
 
-        if (memberOfSupport.equals(MemberOfSupport.OFF) ||
-                memberOfSupport.equals(MemberOfSupport.NORMAL)) {
+        if (flattening) {
 
-            List<String> userMembers = directoryBackend.getDirectUsersOfGroup(entry);
+            List<String> userMembers = directoryBackend.getTransitiveUsersOfGroup(entry);
 
             if (userMembers.isEmpty()) {
 
@@ -269,7 +261,7 @@ public abstract class AbstractTest {
 
             Assertions.assertNull(attributes.get(Utils.MEMBER_OF_AT));
 
-        } else if (memberOfSupport.equals(MemberOfSupport.NESTED_GROUPS)) {
+        } else {
 
             List<String> userMembers = directoryBackend.getDirectUsersOfGroup(entry);
             List<String> groupMembers = directoryBackend.getDirectChildGroupsOfGroup(entry);
@@ -306,31 +298,12 @@ public abstract class AbstractTest {
                 Assertions.assertFalse(ne5.hasMore());
             }
 
-        } else if (memberOfSupport.equals(MemberOfSupport.FLATTENING)) {
-
-            List<String> userMembers = directoryBackend.getTransitiveUsersOfGroup(entry);
-
-            if (userMembers.isEmpty()) {
-
-                Assertions.assertNull(attributes.get(SchemaConstants.MEMBER_AT));
-
-            } else {
-
-                NamingEnumeration ne4 = attributes.get(SchemaConstants.MEMBER_AT).getAll();
-
-                for (String x : userMembers)
-                    Assertions.assertEquals("cn=" + x + ",ou=users,dc=json", ne4.next());
-
-                Assertions.assertFalse(ne4.hasMore());
-            }
-
-            Assertions.assertNull(attributes.get(Utils.MEMBER_OF_AT));
         }
 
         return entry;
     }
 
-    protected String getAndCheckUserEntry(Attributes attributes, MemberOfSupport memberOfSupport)
+    protected String getAndCheckUserEntry(Attributes attributes, boolean flattening)
             throws Exception {
 
         NamingEnumeration ne0 = attributes.get(SchemaConstants.OBJECT_CLASS_AT).getAll();
@@ -383,11 +356,7 @@ public abstract class AbstractTest {
         Assertions.assertEquals(Integer.toString(Utils.calculateHash(entry)), ne8.next());
         Assertions.assertFalse(ne8.hasMore());
 
-        if (memberOfSupport.equals(MemberOfSupport.OFF)) {
-
-            Assertions.assertNull(attributes.get(Utils.MEMBER_OF_AT));
-
-        } else if (memberOfSupport.equals(MemberOfSupport.FLATTENING)) {
+        if (flattening) {
 
             List<String> memberOfGroups = directoryBackend.getTransitiveGroupsOfUser(entry);
 
@@ -398,8 +367,7 @@ public abstract class AbstractTest {
 
             Assertions.assertFalse(ne9.hasMore());
 
-        } else if (memberOfSupport.equals(MemberOfSupport.NORMAL) ||
-                memberOfSupport.equals(MemberOfSupport.NESTED_GROUPS)) {
+        } else {
 
             List<String> memberOfGroups = directoryBackend.getDirectGroupsOfUser(entry);
 

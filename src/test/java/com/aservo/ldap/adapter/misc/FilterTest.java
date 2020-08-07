@@ -1,7 +1,6 @@
 package com.aservo.ldap.adapter.misc;
 
 import com.aservo.ldap.adapter.helper.AbstractTest;
-import com.aservo.ldap.adapter.util.MemberOfSupport;
 import com.aservo.ldap.adapter.util.Utils;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.Attributes;
@@ -27,7 +26,7 @@ public class FilterTest
         String filter =
                 SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.TOP_OC;
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -47,14 +46,14 @@ public class FilterTest
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, false));
         }
 
         for (String entry : directoryBackend.getAllUsers()) {
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, false));
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -73,7 +72,7 @@ public class FilterTest
         String filter =
                 SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC;
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -99,7 +98,7 @@ public class FilterTest
         String filter =
                 SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC;
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -131,7 +130,7 @@ public class FilterTest
                         "(" + SchemaConstants.OU_AT + "=" + Utils.OU_GROUPS + ")" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -160,7 +159,7 @@ public class FilterTest
                         "(" + SchemaConstants.OU_AT + "=" + Utils.OU_USERS + ")" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -189,7 +188,7 @@ public class FilterTest
                         "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC + ")" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -225,7 +224,7 @@ public class FilterTest
                         "(!(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.GROUP_OF_NAMES_OC + "))" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -236,7 +235,7 @@ public class FilterTest
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, false));
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -255,7 +254,7 @@ public class FilterTest
         String filter =
                 "(" + SchemaConstants.DESCRIPTION_AT + "=" + "*" + ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -275,7 +274,7 @@ public class FilterTest
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, false));
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -294,7 +293,7 @@ public class FilterTest
         String filter =
                 "(" + SchemaConstants.MEMBER_AT + "=" + "cn=UserB,ou=users,dc=json" + ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -303,11 +302,11 @@ public class FilterTest
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes1 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupA", getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
+        Assertions.assertEquals("GroupA", getAndCheckGroupEntry(attributes1, false));
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes2 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupB", getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
+        Assertions.assertEquals("GroupB", getAndCheckGroupEntry(attributes2, false));
 
         Assertions.assertFalse(results.hasMore());
 
@@ -328,7 +327,7 @@ public class FilterTest
                         "(|(cn=GroupC)(cn=GroupD))" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -337,11 +336,11 @@ public class FilterTest
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes1 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupC", getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
+        Assertions.assertEquals("GroupC", getAndCheckGroupEntry(attributes1, false));
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes2 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupD", getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
+        Assertions.assertEquals("GroupD", getAndCheckGroupEntry(attributes2, false));
 
         Assertions.assertFalse(results.hasMore());
 

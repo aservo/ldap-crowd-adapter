@@ -1,7 +1,6 @@
 package com.aservo.ldap.adapter.misc;
 
 import com.aservo.ldap.adapter.helper.AbstractTest;
-import com.aservo.ldap.adapter.util.MemberOfSupport;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -32,7 +31,7 @@ public class ScopeTest
 
                         Assertions.assertTrue(results.hasMore());
                         Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        Assertions.assertEquals(userName, getAndCheckGroupEntry(attributes, MemberOfSupport.OFF));
+                        Assertions.assertEquals(userName, getAndCheckGroupEntry(attributes, false));
                         Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {
@@ -60,7 +59,7 @@ public class ScopeTest
 
             for (SearchControls sc : searchControlsList) {
 
-                InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+                InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
                 consumer.accept(context.search(base, filter, sc));
 
@@ -84,7 +83,7 @@ public class ScopeTest
 
                         Assertions.assertTrue(results.hasMore());
                         Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        Assertions.assertEquals(userName, getAndCheckUserEntry(attributes, MemberOfSupport.OFF));
+                        Assertions.assertEquals(userName, getAndCheckUserEntry(attributes, false));
                         Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {
@@ -112,7 +111,7 @@ public class ScopeTest
 
             for (SearchControls sc : searchControlsList) {
 
-                InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+                InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
                 consumer.accept(context.search(base, filter, sc));
 
@@ -130,7 +129,7 @@ public class ScopeTest
         String base = "dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.OBJECT_SCOPE);
@@ -154,7 +153,7 @@ public class ScopeTest
         String base = "ou=groups,dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.OBJECT_SCOPE);
@@ -178,7 +177,7 @@ public class ScopeTest
         String base = "ou=users,dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.OBJECT_SCOPE);
@@ -202,8 +201,8 @@ public class ScopeTest
         String base = "dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context1 = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
-        InitialDirContext context2 = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context1 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context2 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc1 = new SearchControls();
         sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
@@ -231,8 +230,8 @@ public class ScopeTest
             Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes1, false));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes2, false));
         }
 
         for (String entry : directoryBackend.getAllUsers()) {
@@ -240,8 +239,8 @@ public class ScopeTest
             Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes1, MemberOfSupport.OFF));
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes2, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes1, false));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes2, false));
         }
 
         Assertions.assertFalse(results1.hasMore() || results2.hasMore());
@@ -259,8 +258,8 @@ public class ScopeTest
         String base = "ou=groups,dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context1 = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
-        InitialDirContext context2 = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context1 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context2 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc1 = new SearchControls();
         sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
@@ -280,8 +279,8 @@ public class ScopeTest
             Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes1, MemberOfSupport.OFF));
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes2, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes1, false));
+            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes2, false));
         }
 
         Assertions.assertFalse(results1.hasMore() || results2.hasMore());
@@ -299,8 +298,8 @@ public class ScopeTest
         String base = "ou=users,dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context1 = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
-        InitialDirContext context2 = createContext("UserA", "pw-user-a", MODE_OFF_PORT);
+        InitialDirContext context1 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context2 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
 
         SearchControls sc1 = new SearchControls();
         sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
@@ -320,8 +319,8 @@ public class ScopeTest
             Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes1, MemberOfSupport.OFF));
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes2, MemberOfSupport.OFF));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes1, false));
+            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes2, false));
         }
 
         Assertions.assertFalse(results1.hasMore() || results2.hasMore());

@@ -527,7 +527,7 @@ public class CommonPartition
 
         try {
 
-            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS))
+            if (!serverConfig.isFlattening())
                 return directoryBackend.getDirectChildGroupsOfGroup(groupId);
 
             return Collections.emptyList();
@@ -545,7 +545,7 @@ public class CommonPartition
 
         try {
 
-            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING))
+            if (serverConfig.isFlattening())
                 return directoryBackend.getTransitiveUsersOfGroup(groupId);
 
             return directoryBackend.getDirectUsersOfGroup(groupId);
@@ -563,7 +563,7 @@ public class CommonPartition
 
         try {
 
-            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.NESTED_GROUPS))
+            if (!serverConfig.isFlattening())
                 return directoryBackend.getDirectParentGroupsOfGroup(groupId);
 
             return Collections.emptyList();
@@ -581,13 +581,10 @@ public class CommonPartition
 
         try {
 
-            if (serverConfig.getMemberOfSupport().equals(MemberOfSupport.FLATTENING))
+            if (serverConfig.isFlattening())
                 return directoryBackend.getTransitiveGroupsOfUser(userId);
 
-            if (serverConfig.getMemberOfSupport().allowMemberOfAttribute())
-                return directoryBackend.getDirectGroupsOfUser(userId);
-
-            return Collections.emptyList();
+            return directoryBackend.getDirectGroupsOfUser(userId);
 
         } catch (EntryNotFoundException |
                 SecurityProblemException |

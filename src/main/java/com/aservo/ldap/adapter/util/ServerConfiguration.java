@@ -69,9 +69,9 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_SSL_KEY_STORE_PW = "ssl.key-store-password";
     /**
-     * The constant CONFIG_SUPPORT_MEMBER_OF.
+     * The constant CONFIG_MODE_FLATTENING.
      */
-    public static final String CONFIG_SUPPORT_MEMBER_OF = "support.member-of";
+    public static final String CONFIG_MODE_FLATTENING = "mode.flattening";
     /**
      * The constant CONFIG_DIRECTORY_BACKEND.
      */
@@ -99,7 +99,7 @@ public class ServerConfiguration {
     private final boolean sslEnabled;
     private final Path keyStoreFile;
     private final String keyStorePassword;
-    private final MemberOfSupport memberOfSupport;
+    private final boolean flattening;
     private final DirectoryBackend directoryBackend;
     private final String baseDnDescription;
     private final String baseDnGroupsDescription;
@@ -174,8 +174,7 @@ public class ServerConfiguration {
             keyStorePassword = null;
         }
 
-        String memberOfSupportValue = serverProperties.getProperty(CONFIG_SUPPORT_MEMBER_OF, "normal");
-        memberOfSupport = MemberOfSupport.valueOf(memberOfSupportValue.toUpperCase().replace('-', '_'));
+        flattening = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_MODE_FLATTENING, "true"));
 
         String directoryBackendClassValue = serverProperties.getProperty(CONFIG_DIRECTORY_BACKEND);
 
@@ -301,13 +300,13 @@ public class ServerConfiguration {
     }
 
     /**
-     * Gets compatibility mode.
+     * Is flattening boolean.
      *
-     * @return the member of support
+     * @return the boolean
      */
-    public MemberOfSupport getMemberOfSupport() {
+    public boolean isFlattening() {
 
-        return memberOfSupport;
+        return flattening;
     }
 
     /**

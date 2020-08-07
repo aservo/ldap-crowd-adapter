@@ -191,11 +191,8 @@ public class CommonLdapServer {
             Files.createDirectories(attributeTypesDir);
 
             // memberOf Support
-            if (serverConfig.getMemberOfSupport().allowMemberOfAttribute()) {
-
-                Path memberOfLDIF = attributeTypesDir.resolve("m-oid=1.2.840.113556.1.2.102.ldif");
-                copyStream("com/aservo/ldap/adapter/memberof.ldif", memberOfLDIF);
-            }
+            Path memberOfLDIF = attributeTypesDir.resolve("m-oid=1.2.840.113556.1.2.102.ldif");
+            copyStream("com/aservo/ldap/adapter/memberof.ldif", memberOfLDIF);
 
             Path rf2307bisSchemaDir =
                     serverConfig.getCacheDir().resolve("schema/ou=schema/cn=rfc2307bis/ou=attributetypes");

@@ -76,8 +76,8 @@ if [ -n "$SERVER_SSL_KEY_STORE_PASSWORD" ]; then
   JAVA_OPTS="-Dssl.key-store-password=$SERVER_SSL_KEY_STORE_PASSWORD $JAVA_OPTS"
 fi
 
-if [ -n "$SERVER_SUPPORT_MEMBER_OF" ]; then
-  JAVA_OPTS="-Dsupport.member-of=$SERVER_SUPPORT_MEMBER_OF $JAVA_OPTS"
+if [ -n "$SERVER_MODE_FLATTENING" ]; then
+  JAVA_OPTS="-Dmode.flattening=$SERVER_MODE_FLATTENING $JAVA_OPTS"
 fi
 
 if [ -n "$VAULT_HEADER" ] && [ -n "$VAULT_TOKEN" ] && [ -n "$VAULT_URI_SSL_CRT" ] && [ -n "$VAULT_URI_SSL_KEY" ]; then
