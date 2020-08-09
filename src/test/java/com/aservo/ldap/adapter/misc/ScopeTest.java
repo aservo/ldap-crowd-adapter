@@ -16,6 +16,11 @@ import org.junit.jupiter.api.*;
 public class ScopeTest
         extends AbstractTest {
 
+    public ScopeTest() {
+
+        super(BackendConfig.NORMAL);
+    }
+
     @Test
     @Order(1)
     @DisplayName("it should be able to find a single group")

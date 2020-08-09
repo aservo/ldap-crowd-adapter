@@ -15,6 +15,11 @@ import org.junit.jupiter.api.*;
 public class FilterTest
         extends AbstractTest {
 
+    public FilterTest() {
+
+        super(BackendConfig.NORMAL);
+    }
+
     @Test
     @Order(1)
     @DisplayName("it should list all entries")

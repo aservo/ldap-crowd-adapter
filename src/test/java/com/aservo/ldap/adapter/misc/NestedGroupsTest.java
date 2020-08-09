@@ -13,6 +13,11 @@ import org.junit.jupiter.api.*;
 public class NestedGroupsTest
         extends AbstractTest {
 
+    public NestedGroupsTest() {
+
+        super(BackendConfig.NORMAL);
+    }
+
     @Test
     @Order(1)
     @DisplayName("it should show group attributes correctly in nested-groups mode")

@@ -1,0 +1,60 @@
+{
+  "groups": [
+    {
+      "id": "GroupA",
+      "description": "Description of GroupA.",
+      "group_members": [
+        "GroupA"
+      ],
+      "user_members": [
+        "UserA"
+      ]
+    },
+    {
+      "id": "GroupB",
+      "description": "Description of GroupB.",
+      "group_members": [
+        "GroupC"
+      ],
+      "user_members": [
+        "UserB"
+      ]
+    },
+    {
+      "id": "GroupC",
+      "description": "Description of GroupC.",
+      "group_members": [
+        "GroupB"
+      ],
+      "user_members": [
+        "UserC"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "UserA",
+      "first_name": "FirstNameOfUserA",
+      "last_name": "LastNameOfUserA",
+      "display_name": "DisplayNameOfUserA",
+      "email": "a.user@email.com",
+      "password": "pw-user-a"
+    },
+    {
+      "id": "UserB",
+      "first_name": "FirstNameOfUserB",
+      "last_name": "LastNameOfUserB",
+      "display_name": "DisplayNameOfUserB",
+      "email": "b.user@email.com",
+      "password": "pw-user-b"
+    },
+    {
+      "id": "UserC",
+      "first_name": "FirstNameOfUserC",
+      "last_name": "LastNameOfUserC",
+      "display_name": "DisplayNameOfUserC",
+      "email": "c.user@email.com",
+      "password": "pw-user-c"
+    }
+  ]
+}

@@ -15,6 +15,11 @@ public class JsonDirectoryBackendTest
 
     private final List<String> indices = Arrays.asList("A", "B", "C", "D", "E");
 
+    public JsonDirectoryBackendTest() {
+
+        super(BackendConfig.NORMAL);
+    }
+
     @Test
     @Order(1)
     @DisplayName("it should be able to read entry info")

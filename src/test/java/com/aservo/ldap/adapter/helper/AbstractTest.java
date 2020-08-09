@@ -1,10 +1,13 @@
 package com.aservo.ldap.adapter.helper;
 
 import com.aservo.ldap.adapter.CommonLdapServer;
+import com.aservo.ldap.adapter.CrowdDirectoryBackend;
 import com.aservo.ldap.adapter.JsonDirectoryBackend;
 import com.aservo.ldap.adapter.Main;
 import com.aservo.ldap.adapter.util.DirectoryBackend;
 import com.aservo.ldap.adapter.util.Utils;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,12 +36,24 @@ public abstract class AbstractTest {
     private static final Path keyStoreFile = Paths.get("./tmp/local.keystore");
     private static final String keyStorePassword = "changeit";
 
-    private static final String dbUri = "file:./src/test/resources/com/aservo/ldap/adapter/db.json";
+    private static final String dbUri1 = "file:./src/test/resources/com/aservo/ldap/adapter/db.json";
+    private static final String dbUri2 = "file:./src/test/resources/com/aservo/ldap/adapter/db-cyclic-groups.json";
 
     public static final int MODE_NESTED_GROUPS_PORT = 10390;
     public static final int MODE_FLATTENING_PORT = 10391;
 
     protected DirectoryBackend directoryBackend;
+    private final BackendConfig config;
+
+    public AbstractTest(BackendConfig config) {
+
+        this.config = config;
+    }
+
+    public AbstractTest() {
+
+        this.config = BackendConfig.NONE;
+    }
 
     @BeforeAll
     public static void setup()
@@ -68,8 +83,8 @@ public abstract class AbstractTest {
                 CertificateGenerator.updateKeyStore(keyPair, cert, "self-signed", keyStoreFile.toFile(),
                         keyStorePassword);
 
-                boot(MODE_NESTED_GROUPS_PORT, false);
-                boot(MODE_FLATTENING_PORT, true);
+                boot(MODE_NESTED_GROUPS_PORT, dbUri1, false);
+                boot(MODE_FLATTENING_PORT, dbUri1, true);
 
                 initialised = true;
             }
@@ -93,7 +108,7 @@ public abstract class AbstractTest {
         }
     }
 
-    private static void boot(int port, boolean flattening)
+    private static void boot(int port, String dbUri, boolean flattening)
             throws Exception {
 
         System.setProperty("cache-directory", "./tmp/" + port + "/cache");
@@ -101,7 +116,7 @@ public abstract class AbstractTest {
         System.setProperty("ssl.enabled", "true");
         System.setProperty("ssl.key-store-file", keyStoreFile.toString());
         System.setProperty("ssl.key-store-password", keyStorePassword);
-        System.setProperty("flattening", Boolean.toString(flattening));
+        System.setProperty("mode.flattening", Boolean.toString(flattening));
         System.setProperty("db-uri", dbUri);
 
         CommonLdapServer server = Main.createServerInstance();
@@ -124,13 +139,37 @@ public abstract class AbstractTest {
     public void begin()
             throws Exception {
 
-        Properties properties = new Properties();
+        if (config == BackendConfig.NONE) {
 
-        properties.setProperty("db-uri", dbUri);
+            File configFile = new File("./etc", "backend.properties");
+            Properties properties = new Properties();
 
-        directoryBackend = new JsonDirectoryBackend(properties);
+            try {
 
-        directoryBackend.startup();
+                properties.load(new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8));
+
+            } catch (IOException e) {
+
+                throw new UncheckedIOException(e);
+            }
+
+            directoryBackend = new CrowdDirectoryBackend(properties);
+
+            directoryBackend.startup();
+
+        } else {
+
+            Properties properties = new Properties();
+
+            if (config == BackendConfig.NORMAL)
+                properties.setProperty("db-uri", dbUri1);
+            else if (config == BackendConfig.CYCLIC_GROUPS)
+                properties.setProperty("db-uri", dbUri2);
+
+            directoryBackend = new JsonDirectoryBackend(properties);
+
+            directoryBackend.startup();
+        }
     }
 
     @AfterEach
@@ -138,6 +177,8 @@ public abstract class AbstractTest {
             throws Exception {
 
         directoryBackend.shutdown();
+
+        directoryBackend = null;
     }
 
     protected InitialDirContext createContext(String userId, String password, int port)
@@ -380,5 +421,9 @@ public abstract class AbstractTest {
         }
 
         return entry;
+    }
+
+    public enum BackendConfig {
+        NORMAL, CYCLIC_GROUPS, NONE
     }
 }
