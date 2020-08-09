@@ -398,9 +398,8 @@ public class JsonDirectoryBackend
 
         List<Group> result = group.getGroupMembers();
 
-        for (Group x : result)
-            if (!acc.contains(x))
-                acc.add(x);
+        result.removeAll(acc);
+        acc.addAll(result);
 
         for (Group x : result)
             resolveGroupsDownwards(x, acc);
@@ -414,9 +413,8 @@ public class JsonDirectoryBackend
                         .filter(x -> x.getGroupMembers().contains(group))
                         .collect(Collectors.toList());
 
-        for (Group x : result)
-            if (!acc.contains(x))
-                acc.add(x);
+        result.removeAll(acc);
+        acc.addAll(result);
 
         for (Group x : result)
             resolveGroupsUpwards(x, acc);
@@ -473,6 +471,27 @@ public class JsonDirectoryBackend
 
             this.id = id;
             this.description = description;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+
+            if (this == obj)
+                return true;
+
+            if (obj == null)
+                return false;
+
+            if (!(obj instanceof Group))
+                return false;
+
+            return Objects.equals(id, ((Group) obj).id);
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(id);
         }
 
         /**
@@ -563,6 +582,27 @@ public class JsonDirectoryBackend
             this.displayName = displayName;
             this.email = email;
             this.password = password;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+
+            if (this == obj)
+                return true;
+
+            if (obj == null)
+                return false;
+
+            if (!(obj instanceof User))
+                return false;
+
+            return Objects.equals(id, ((User) obj).id);
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(id);
         }
 
         /**

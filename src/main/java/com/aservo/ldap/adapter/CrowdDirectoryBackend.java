@@ -525,9 +525,8 @@ public class CrowdDirectoryBackend
 
             List<String> result = crowdClient.getNamesOfChildGroupsOfGroup(id, 0, Integer.MAX_VALUE);
 
-            for (String x : result)
-                if (!acc.contains(x))
-                    acc.add(x);
+            result.removeAll(acc);
+            acc.addAll(result);
 
             for (String x : result)
                 resolveGroupsDownwards(x, acc);
@@ -554,9 +553,8 @@ public class CrowdDirectoryBackend
 
             List<String> result = crowdClient.getNamesOfParentGroupsForGroup(id, 0, Integer.MAX_VALUE);
 
-            for (String x : result)
-                if (!acc.contains(x))
-                    acc.add(x);
+            result.removeAll(acc);
+            acc.addAll(result);
 
             for (String x : result)
                 resolveGroupsUpwards(x, acc);
