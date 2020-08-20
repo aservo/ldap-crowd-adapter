@@ -7,6 +7,11 @@ ARG MAIN_REPO_REALM
 ARG MAIN_REPO_URL
 ARG MAIN_REPO_USERNAME
 ARG MAIN_REPO_PASSWORD
+ARG JVM_ONLY_HTTP_PROXY_HOST
+ARG JVM_ONLY_HTTP_PROXY_PORT
+ARG JVM_ONLY_HTTPS_PROXY_HOST
+ARG JVM_ONLY_HTTPS_PROXY_PORT
+ARG JVM_ONLY_NO_PROXY
 
 ADD etc/ /app/etc/
 ADD src/ /app/src/
@@ -69,6 +74,11 @@ WORKDIR /app
 
 USER appuser
 
-RUN sbt compile
+RUN if [ -n "$JVM_ONLY_HTTP_PROXY_HOST" ]; then export JAVA_OPTS="-Dhttp.proxyHost=$JVM_ONLY_HTTP_PROXY_HOST $JAVA_OPTS"; fi && \
+    if [ -n "$JVM_ONLY_HTTP_PROXY_PORT" ]; then export JAVA_OPTS="-Dhttp.proxyPort=$JVM_ONLY_HTTP_PROXY_PORT $JAVA_OPTS"; fi && \
+    if [ -n "$JVM_ONLY_HTTPS_PROXY_HOST" ]; then export JAVA_OPTS="-Dhttps.proxyHost=$JVM_ONLY_HTTPS_PROXY_HOST $JAVA_OPTS"; fi && \
+    if [ -n "$JVM_ONLY_HTTPS_PROXY_PORT" ]; then export JAVA_OPTS="-Dhttps.proxyPort=$JVM_ONLY_HTTPS_PROXY_PORT $JAVA_OPTS"; fi && \
+    if [ -n "$JVM_ONLY_NO_PROXY" ]; then export JAVA_OPTS="-Dhttp.nonProxyHosts=$JVM_ONLY_NO_PROXY $JAVA_OPTS"; fi && \
+    sbt compile
 
 CMD ["/app/start.sh"]
