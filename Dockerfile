@@ -52,10 +52,6 @@ RUN yum makecache && \
 	    java-1.8.0-openjdk \
         java-1.8.0-openjdk-headless \
         java-1.8.0-openjdk-devel && \
-    yum -y downgrade \
-        java-1.8.0-openjdk-1.8.0.242.b08-1.el7 \
-        java-1.8.0-openjdk-headless-1.8.0.242.b08-1.el7 \
-        java-1.8.0-openjdk-devel-1.8.0.242.b08-1.el7 && \
     yum -y install \
         sbt && \
 	yum clean all && \
