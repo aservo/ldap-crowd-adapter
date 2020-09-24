@@ -346,7 +346,7 @@ public abstract class FilterMatcher {
             case SchemaConstants.COMMON_NAME_AT:
 
                 if ((entryType.equals(EntryType.GROUP) || entryType.equals(EntryType.USER)) &&
-                        compare.test(value, getValuesFromAttribute(attribute, entryId, entryType)))
+                        compare.test(value, Utils.nullableSingletonList(entryId)))
                     return true;
 
                 break;

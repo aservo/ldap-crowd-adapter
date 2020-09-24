@@ -324,12 +324,12 @@ public class FilterTest
     public void test010()
             throws Exception {
 
-        String base = "dc=json";
+        String base = "ou=groups,dc=json";
 
         String filter =
                 "(&" +
                         "(objectClass=groupOfNames)" +
-                        "(|(cn=GroupC)(cn=GroupD))" +
+                        "(|(cn=GroupB)(cn=GroupC)(cn=GroupD)(cn=GroupE))" +
                         ")";
 
         InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
@@ -341,11 +341,19 @@ public class FilterTest
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes1 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupC", getAndCheckGroupEntry(attributes1, false));
+        Assertions.assertEquals("GroupB", getAndCheckGroupEntry(attributes1, false));
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes2 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupD", getAndCheckGroupEntry(attributes2, false));
+        Assertions.assertEquals("GroupC", getAndCheckGroupEntry(attributes2, false));
+
+        Assertions.assertTrue(results.hasMore());
+        Attributes attributes3 = ((SearchResult) results.next()).getAttributes();
+        Assertions.assertEquals("GroupD", getAndCheckGroupEntry(attributes3, false));
+
+        Assertions.assertTrue(results.hasMore());
+        Attributes attributes4 = ((SearchResult) results.next()).getAttributes();
+        Assertions.assertEquals("GroupE", getAndCheckGroupEntry(attributes4, false));
 
         Assertions.assertFalse(results.hasMore());
 
