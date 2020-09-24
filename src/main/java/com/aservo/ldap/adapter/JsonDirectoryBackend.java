@@ -14,6 +14,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
  */
 public class JsonDirectoryBackend
         implements DirectoryBackend {
+
+    private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
 
     private final String id;
     private final List<Group> groups = new ArrayList<>();
@@ -162,6 +166,8 @@ public class JsonDirectoryBackend
     public Map<String, String> getGroupInfo(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getGroupInfo; id={}", id);
+
         Group group = findGroupById(id);
 
         return mapGroupInfo(group);
@@ -170,6 +176,8 @@ public class JsonDirectoryBackend
     public Map<String, String> getUserInfo(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getUserInfo; id={}", id);
+
         User user = findUserById(id);
 
         return mapUserInfo(user);
@@ -177,6 +185,8 @@ public class JsonDirectoryBackend
 
     public Map<String, String> getInfoFromAuthenticatedUser(String id, String password)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getInfoFromAuthenticatedUser; id={}", id);
 
         User user = findUserById(id);
 
@@ -212,6 +222,8 @@ public class JsonDirectoryBackend
     public List<String> getAllGroups()
             throws DirectoryAccessFailureException, SecurityProblemException {
 
+        logger.info("Call: getAllGroups");
+
         return groups.stream()
                 .map(Group::getId)
                 .collect(Collectors.toList());
@@ -219,6 +231,8 @@ public class JsonDirectoryBackend
 
     public List<String> getAllUsers()
             throws DirectoryAccessFailureException, SecurityProblemException {
+
+        logger.info("Call: getAllUsers");
 
         return users.stream()
                 .map(User::getId)
@@ -248,6 +262,8 @@ public class JsonDirectoryBackend
     public List<String> getGroupsByAttributes(Map<String, String> attributeMap)
             throws DirectoryAccessFailureException, SecurityProblemException {
 
+        logger.info("Call: getGroupsByAttributes");
+
         if (attributeMap.isEmpty())
             return getAllGroups();
 
@@ -269,6 +285,8 @@ public class JsonDirectoryBackend
 
     public List<String> getUsersByAttributes(Map<String, String> attributeMap)
             throws DirectoryAccessFailureException, SecurityProblemException {
+
+        logger.info("Call: getUsersByAttributes");
 
         if (attributeMap.isEmpty())
             return getAllUsers();
@@ -298,6 +316,8 @@ public class JsonDirectoryBackend
     public List<String> getDirectUsersOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getDirectUsersOfGroup; id={}", id);
+
         Group group = findGroupById(id);
 
         return group.userMembers.stream()
@@ -307,6 +327,8 @@ public class JsonDirectoryBackend
 
     public List<String> getDirectGroupsOfUser(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getDirectGroupsOfUser; id={}", id);
 
         User user = findUserById(id);
 
@@ -318,6 +340,8 @@ public class JsonDirectoryBackend
 
     public List<String> getTransitiveUsersOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getTransitiveUsersOfGroup; id={}", id);
 
         List<String> userIds = getDirectUsersOfGroup(id);
 
@@ -332,6 +356,8 @@ public class JsonDirectoryBackend
     public List<String> getTransitiveGroupsOfUser(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getTransitiveGroupsOfUser; id={}", id);
+
         List<String> groupIds = getDirectGroupsOfUser(id);
 
         for (String y : new ArrayList<>(groupIds))
@@ -345,6 +371,8 @@ public class JsonDirectoryBackend
     public List<String> getDirectChildGroupsOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: getDirectChildGroupsOfGroup; id={}", id);
+
         Group group = findGroupById(id);
 
         return group.groupMembers.stream()
@@ -354,6 +382,8 @@ public class JsonDirectoryBackend
 
     public List<String> getDirectParentGroupsOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getDirectParentGroupsOfGroup; id={}", id);
 
         Group group = findGroupById(id);
 
@@ -365,6 +395,8 @@ public class JsonDirectoryBackend
 
     public List<String> getTransitiveChildGroupsOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getTransitiveChildGroupsOfGroup; id={}", id);
 
         List<Group> acc = new ArrayList<>();
         Group group = findGroupById(id);
@@ -380,6 +412,8 @@ public class JsonDirectoryBackend
 
     public List<String> getTransitiveParentGroupsOfGroup(String id)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: getTransitiveParentGroupsOfGroup; id={}", id);
 
         List<Group> acc = new ArrayList<>();
         Group group = findGroupById(id);
@@ -423,6 +457,8 @@ public class JsonDirectoryBackend
     public boolean isGroupDirectGroupMember(String groupId1, String groupId2)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: isGroupDirectGroupMember");
+
         findGroupById(groupId1);
 
         return getDirectChildGroupsOfGroup(groupId2).stream()
@@ -431,6 +467,8 @@ public class JsonDirectoryBackend
 
     public boolean isUserDirectGroupMember(String userId, String groupId)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: isUserDirectGroupMember");
 
         findUserById(userId);
 
@@ -441,6 +479,8 @@ public class JsonDirectoryBackend
     public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
 
+        logger.info("Call: isGroupTransitiveGroupMember");
+
         findGroupById(groupId1);
 
         return getTransitiveParentGroupsOfGroup(groupId2).contains(groupId1);
@@ -448,6 +488,8 @@ public class JsonDirectoryBackend
 
     public boolean isUserTransitiveGroupMember(String userId, String groupId)
             throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+
+        logger.info("Call: isUserTransitiveGroupMember");
 
         findUserById(userId);
 
