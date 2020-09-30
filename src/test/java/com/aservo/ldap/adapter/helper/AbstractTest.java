@@ -392,11 +392,6 @@ public abstract class AbstractTest {
         Assertions.assertEquals(info.get(DirectoryBackend.USER_EMAIL_ADDRESS), ne7.next());
         Assertions.assertFalse(ne7.hasMore());
 
-        NamingEnumeration ne8 = attributes.get(SchemaConstants.UID_NUMBER_AT).getAll();
-
-        Assertions.assertEquals(Integer.toString(Utils.calculateHash(entry)), ne8.next());
-        Assertions.assertFalse(ne8.hasMore());
-
         if (flattening) {
 
             List<String> memberOfGroups = directoryBackend.getTransitiveGroupsOfUser(entry);

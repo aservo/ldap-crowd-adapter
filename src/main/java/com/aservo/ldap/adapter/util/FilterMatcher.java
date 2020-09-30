@@ -295,16 +295,6 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case SchemaConstants.UID_NUMBER_AT:
-            case SchemaConstants.UID_NUMBER_AT_OID:
-
-                if (entryType.equals(EntryType.USER) &&
-                        compare.test(value,
-                                Utils.nullableSingletonList(Integer.toString(Utils.calculateHash(entryId)))))
-                    return true;
-
-                break;
-
             case SchemaConstants.UID_AT:
             case SchemaConstants.UID_AT_OID:
 

@@ -48,27 +48,6 @@ public class Utils {
     }
 
     /**
-     * Calculates a hash value from string.
-     *
-     * @param value the value
-     * @return the int
-     */
-    public static int calculateHash(@Nullable String value) {
-
-        if (value == null)
-            return 0;
-
-        int hash = value.hashCode();
-
-        if (hash < 0)
-            hash *= 31;
-        else
-            hash *= 13;
-
-        return (Math.abs(hash) % 9999999) + 1;
-    }
-
-    /**
      * Creates a list with one or zero elements.
      * To add is not allowed.
      *
@@ -195,8 +174,6 @@ public class Utils {
 
         if (attribute.equalsIgnoreCase(SchemaConstants.OBJECT_CLASS_AT))
             return SchemaConstants.OBJECT_CLASS_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.UID_NUMBER_AT))
-            return SchemaConstants.UID_NUMBER_AT;
         else if (attribute.equalsIgnoreCase(SchemaConstants.UID_AT))
             return SchemaConstants.UID_AT;
         else if (attribute.equalsIgnoreCase(SchemaConstants.OU_AT))

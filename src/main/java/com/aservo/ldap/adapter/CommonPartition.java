@@ -469,9 +469,6 @@ public class CommonPartition
 
             entry.put(SchemaConstants.MAIL_AT, userInfo.get(DirectoryBackend.USER_EMAIL_ADDRESS));
 
-            entry.put(SchemaConstants.UID_NUMBER_AT,
-                    Integer.toString(Utils.calculateHash(userInfo.get(DirectoryBackend.USER_ID))));
-
             for (String memberOfDn : collectMemberOfDnForUser(userId))
                 entry.add(Utils.MEMBER_OF_AT, memberOfDn);
 
@@ -769,16 +766,6 @@ public class CommonPartition
         try {
 
             switch (Utils.normalizeAttribute(attribute)) {
-
-                case SchemaConstants.UID_NUMBER_AT:
-                case SchemaConstants.UID_NUMBER_AT_OID:
-
-                    // TODO: optimization required
-                    result = directoryBackend.getAllUsers().stream()
-                            .filter(x -> Integer.toString(Utils.calculateHash(x)).equals(value))
-                            .collect(Collectors.toList());
-
-                    break;
 
                 case SchemaConstants.UID_AT:
                 case SchemaConstants.UID_AT_OID:
