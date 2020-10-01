@@ -22,7 +22,7 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.util.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
 import java.nio.file.Files;

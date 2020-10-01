@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.exception;
+package com.aservo.ldap.adapter.backend.exception;
 
 
 /**

@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.util;
 
+import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.google.common.collect.Sets;
 import java.util.*;
 import java.util.function.BiPredicate;

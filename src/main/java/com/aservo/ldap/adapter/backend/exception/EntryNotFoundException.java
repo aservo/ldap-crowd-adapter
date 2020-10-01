@@ -15,50 +15,50 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.exception;
+package com.aservo.ldap.adapter.backend.exception;
 
 
 /**
- * The type Security problem exception.
+ * The type Entry not found exception.
  */
-public class SecurityProblemException
+public class EntryNotFoundException
         extends Exception {
 
     /**
-     * Instantiates a new Security problem exception.
+     * Instantiates a new Entry not found exception.
      */
-    public SecurityProblemException() {
+    public EntryNotFoundException() {
 
         super();
     }
 
     /**
-     * Instantiates a new Security problem exception.
+     * Instantiates a new Entry not found exception.
      *
      * @param message the message
      */
-    public SecurityProblemException(String message) {
+    public EntryNotFoundException(String message) {
 
         super(message);
     }
 
     /**
-     * Instantiates a new Security problem exception.
+     * Instantiates a new Entry not found exception.
      *
      * @param message   the message
      * @param throwable the throwable
      */
-    public SecurityProblemException(String message, Throwable throwable) {
+    public EntryNotFoundException(String message, Throwable throwable) {
 
         super(message, throwable);
     }
 
     /**
-     * Instantiates a new Security problem exception.
+     * Instantiates a new Entry not found exception.
      *
      * @param throwable the throwable
      */
-    public SecurityProblemException(Throwable throwable) {
+    public EntryNotFoundException(Throwable throwable) {
 
         super(throwable);
     }

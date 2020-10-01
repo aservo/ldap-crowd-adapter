@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.util;
 
+import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;

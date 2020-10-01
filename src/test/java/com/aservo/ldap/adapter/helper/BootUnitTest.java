@@ -12,7 +12,7 @@ public class BootUnitTest {
     @Test
     public void start() {
 
-        System.setProperty("directory-backend", "com.aservo.ldap.adapter.JsonDirectoryBackend");
+        System.setProperty("directory-backend", "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
 
         String[] args = new String[]{
                 "no-colors",

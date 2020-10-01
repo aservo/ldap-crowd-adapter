@@ -1,9 +1,8 @@
-package com.aservo.ldap.adapter;
+package com.aservo.ldap.adapter.backend;
 
-import com.aservo.ldap.adapter.exception.EntryNotFoundException;
-import com.aservo.ldap.adapter.exception.SecurityProblemException;
+import com.aservo.ldap.adapter.backend.exception.EntryNotFoundException;
+import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.helper.AbstractTest;
-import com.aservo.ldap.adapter.util.DirectoryBackend;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.*;

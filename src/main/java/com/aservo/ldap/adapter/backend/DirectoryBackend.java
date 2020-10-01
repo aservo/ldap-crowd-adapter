@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.util;
+package com.aservo.ldap.adapter.backend;
 
-import com.aservo.ldap.adapter.exception.DirectoryAccessFailureException;
-import com.aservo.ldap.adapter.exception.EntryNotFoundException;
-import com.aservo.ldap.adapter.exception.SecurityProblemException;
+import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
+import com.aservo.ldap.adapter.backend.exception.EntryNotFoundException;
+import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import java.util.List;
 import java.util.Map;
 

@@ -1,10 +1,10 @@
 package com.aservo.ldap.adapter.helper;
 
 import com.aservo.ldap.adapter.CommonLdapServer;
-import com.aservo.ldap.adapter.CrowdDirectoryBackend;
-import com.aservo.ldap.adapter.JsonDirectoryBackend;
 import com.aservo.ldap.adapter.Main;
-import com.aservo.ldap.adapter.util.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.CrowdDirectoryBackend;
+import com.aservo.ldap.adapter.backend.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.JsonDirectoryBackend;
 import com.aservo.ldap.adapter.util.Utils;
 import java.io.*;
 import java.nio.charset.StandardCharsets;

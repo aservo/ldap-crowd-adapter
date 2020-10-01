@@ -22,9 +22,10 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.exception.DirectoryAccessFailureException;
-import com.aservo.ldap.adapter.exception.EntryNotFoundException;
-import com.aservo.ldap.adapter.exception.SecurityProblemException;
+import com.aservo.ldap.adapter.backend.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
+import com.aservo.ldap.adapter.backend.exception.EntryNotFoundException;
+import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.util.*;
 import java.util.*;
 import java.util.stream.Collectors;
