@@ -61,7 +61,7 @@ public class CommonPartition
 
     private final DirectoryBackend directoryBackend;
     private final ServerConfiguration serverConfig;
-    private final Map<Dn, Entry> entryCache;
+    private final Map<Dn, Entry> ldifCache;
     private FilterMatcher filterProcessor;
 
     private Dn rootDn;
@@ -81,7 +81,7 @@ public class CommonPartition
         this.directoryBackend = directoryBackend;
         this.serverConfig = serverConfig;
 
-        this.entryCache =
+        this.ldifCache =
                 Collections.synchronizedMap(
                         new LruCacheMap<>(serverConfig.getEntryCacheMaxSize(), serverConfig.getEntryCacheMaxAge())
                 );
@@ -155,7 +155,7 @@ public class CommonPartition
     protected void doDestroy()
             throws LdapException {
 
-        entryCache.clear();
+        ldifCache.clear();
     }
 
     @Override
@@ -302,7 +302,7 @@ public class CommonPartition
 
     private Entry createSystemEntry(Dn dn) {
 
-        Entry entry = entryCache.get(dn);
+        Entry entry = ldifCache.get(dn);
 
         if (entry != null)
             return entry;
@@ -325,7 +325,7 @@ public class CommonPartition
 
             // add to cache
             if (serverConfig.isEntryCacheEnabled())
-                entryCache.put(rootDn, entry);
+                ldifCache.put(rootDn, entry);
 
         } else if (dn.equals(groupsDn)) {
 
@@ -346,7 +346,7 @@ public class CommonPartition
 
             // add to cache
             if (serverConfig.isEntryCacheEnabled())
-                entryCache.put(groupsDn, entry);
+                ldifCache.put(groupsDn, entry);
 
         } else if (dn.equals(usersDn)) {
 
@@ -367,7 +367,7 @@ public class CommonPartition
 
             // add to cache
             if (serverConfig.isEntryCacheEnabled())
-                entryCache.put(usersDn, entry);
+                ldifCache.put(usersDn, entry);
 
         } else
             throw new IllegalArgumentException("Cannot create system entry with DN=" + dn);
@@ -378,7 +378,7 @@ public class CommonPartition
     @Nullable
     private Entry createGroupEntry(Dn dn) {
 
-        Entry entry = entryCache.get(dn);
+        Entry entry = ldifCache.get(dn);
 
         if (entry != null)
             return entry;
@@ -411,7 +411,7 @@ public class CommonPartition
 
             // add to cache
             if (serverConfig.isEntryCacheEnabled())
-                entryCache.put(dn, entry);
+                ldifCache.put(dn, entry);
 
         } catch (EntryNotFoundException |
                 SecurityProblemException |
@@ -432,7 +432,7 @@ public class CommonPartition
     @Nullable
     private Entry createUserEntry(Dn dn) {
 
-        Entry entry = entryCache.get(dn);
+        Entry entry = ldifCache.get(dn);
 
         if (entry != null)
             return entry;
@@ -475,7 +475,7 @@ public class CommonPartition
 
             // add to cache
             if (serverConfig.isEntryCacheEnabled())
-                entryCache.put(dn, entry);
+                ldifCache.put(dn, entry);
 
         } catch (EntryNotFoundException |
                 SecurityProblemException |
@@ -598,7 +598,7 @@ public class CommonPartition
     public ClonedServerEntry lookup(LookupOperationContext context)
             throws LdapException {
 
-        Entry entry = entryCache.get(context.getDn());
+        Entry entry = ldifCache.get(context.getDn());
 
         if (entry == null) {
 
@@ -619,7 +619,7 @@ public class CommonPartition
         logger.debug("Check for existence of entry with DN={}",
                 context.getDn().getName());
 
-        if (entryCache.containsKey(context.getDn()))
+        if (ldifCache.containsKey(context.getDn()))
             return true;
 
         if (context.getDn().equals(groupsDn)) {
