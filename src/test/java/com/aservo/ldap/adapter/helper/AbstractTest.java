@@ -111,7 +111,7 @@ public abstract class AbstractTest {
     private static void boot(int port, String dbUri, boolean flattening)
             throws Exception {
 
-        System.setProperty("cache-directory", "./tmp/" + port + "/cache");
+        System.setProperty("ds-cache-directory", "./tmp/" + port + "/cache");
         System.setProperty("bind.address", host + ":" + port);
         System.setProperty("ssl.enabled", "true");
         System.setProperty("ssl.key-store-file", keyStoreFile.toString());

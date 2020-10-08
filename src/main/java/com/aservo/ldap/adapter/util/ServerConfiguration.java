@@ -34,9 +34,9 @@ import org.apache.commons.io.FileUtils;
 public class ServerConfiguration {
 
     /**
-     * The constant CONFIG_CACHE_DIR.
+     * The constant CONFIG_DS_CACHE_DIR.
      */
-    public static final String CONFIG_CACHE_DIR = "cache-directory";
+    public static final String CONFIG_DS_CACHE_DIR = "ds-cache-directory";
     /**
      * The constant CONFIG_BIND_ADDRESS.
      */
@@ -114,7 +114,7 @@ public class ServerConfiguration {
      */
     public ServerConfiguration(Properties serverProperties, Properties backendProperties) {
 
-        cacheDir = Paths.get(serverProperties.getProperty(CONFIG_CACHE_DIR, "./cache")).toAbsolutePath().normalize();
+        cacheDir = Paths.get(serverProperties.getProperty(CONFIG_DS_CACHE_DIR, "./cache")).toAbsolutePath().normalize();
 
         try {
 
@@ -205,7 +205,7 @@ public class ServerConfiguration {
      *
      * @return the cache dir
      */
-    public Path getCacheDir() {
+    public Path getDsCacheDir() {
 
         return cacheDir;
     }
@@ -305,7 +305,7 @@ public class ServerConfiguration {
      *
      * @return the boolean
      */
-    public boolean isFlattening() {
+    public boolean isFlatteningEnabled() {
 
         return flattening;
     }

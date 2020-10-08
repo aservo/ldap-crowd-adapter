@@ -41,7 +41,7 @@ if [ -n "$CROWD_VALIDATION_INTERVAL" ]; then
 fi
 
 if [ -n "$SERVER_CACHE_DIR" ]; then
-  JAVA_OPTS="-Dcache-directory=$SERVER_CACHE_DIR $JAVA_OPTS"
+  JAVA_OPTS="-Dds-cache-directory=$SERVER_CACHE_DIR $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_BIND_ADDRESS" ]; then

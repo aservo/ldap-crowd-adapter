@@ -525,7 +525,7 @@ public class CommonPartition
 
         try {
 
-            if (!serverConfig.isFlattening())
+            if (!serverConfig.isFlatteningEnabled())
                 return directoryBackend.getDirectChildGroupsOfGroup(groupId);
 
             return Collections.emptyList();
@@ -543,7 +543,7 @@ public class CommonPartition
 
         try {
 
-            if (serverConfig.isFlattening())
+            if (serverConfig.isFlatteningEnabled())
                 return directoryBackend.getTransitiveUsersOfGroup(groupId);
 
             return directoryBackend.getDirectUsersOfGroup(groupId);
@@ -561,7 +561,7 @@ public class CommonPartition
 
         try {
 
-            if (!serverConfig.isFlattening())
+            if (!serverConfig.isFlatteningEnabled())
                 return directoryBackend.getDirectParentGroupsOfGroup(groupId);
 
             return Collections.emptyList();
@@ -579,7 +579,7 @@ public class CommonPartition
 
         try {
 
-            if (serverConfig.isFlattening())
+            if (serverConfig.isFlatteningEnabled())
                 return directoryBackend.getTransitiveGroupsOfUser(userId);
 
             return directoryBackend.getDirectGroupsOfUser(userId);

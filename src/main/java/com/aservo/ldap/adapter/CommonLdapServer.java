@@ -182,11 +182,11 @@ public class CommonLdapServer {
         try {
 
             // extract the schema on disk (a brand new one) and load the registries
-            SchemaLdifExtractor extractor = new DefaultSchemaLdifExtractor(serverConfig.getCacheDir().toFile());
+            SchemaLdifExtractor extractor = new DefaultSchemaLdifExtractor(serverConfig.getDsCacheDir().toFile());
             extractor.extractOrCopy(true);
 
             Path attributeTypesDir =
-                    serverConfig.getCacheDir().resolve("schema/ou=schema/cn=other/ou=attributetypes");
+                    serverConfig.getDsCacheDir().resolve("schema/ou=schema/cn=other/ou=attributetypes");
 
             Files.createDirectories(attributeTypesDir);
 
@@ -195,7 +195,7 @@ public class CommonLdapServer {
             copyStream("com/aservo/ldap/adapter/memberof.ldif", memberOfLDIF);
 
             Path rf2307bisSchemaDir =
-                    serverConfig.getCacheDir().resolve("schema/ou=schema/cn=rfc2307bis/ou=attributetypes");
+                    serverConfig.getDsCacheDir().resolve("schema/ou=schema/cn=rfc2307bis/ou=attributetypes");
 
             Files.createDirectories(rf2307bisSchemaDir);
 
@@ -222,7 +222,7 @@ public class CommonLdapServer {
 
         try {
 
-            File schemaRepository = serverConfig.getCacheDir().resolve("schema").toFile();
+            File schemaRepository = serverConfig.getDsCacheDir().resolve("schema").toFile();
 
             SchemaLoader loader = new LdifSchemaLoader(schemaRepository);
             SchemaManager schemaManager = new DefaultSchemaManager(loader);
@@ -239,7 +239,7 @@ public class CommonLdapServer {
             ldifPartition.setPartitionPath(schemaRepository.toURI());
 
             schemaPartition.setWrappedPartition(ldifPartition);
-            directoryService.setInstanceLayout(new InstanceLayout(serverConfig.getCacheDir().toFile()));
+            directoryService.setInstanceLayout(new InstanceLayout(serverConfig.getDsCacheDir().toFile()));
 
             // We have to load the schema now, otherwise we won't be able
             // to initialize the Partitions, as we won't be able to parse
@@ -276,7 +276,7 @@ public class CommonLdapServer {
                     new JdbmPartition(service.getSchemaManager(), service.getDnFactory());
 
             partition.setId("system");
-            partition.setPartitionPath(serverConfig.getCacheDir().resolve("system").toFile().toURI());
+            partition.setPartitionPath(serverConfig.getDsCacheDir().resolve("system").toFile().toURI());
             partition.setSuffixDn(new Dn(ServerDNConstants.SYSTEM_DN));
 
             service.setSystemPartition(partition);
