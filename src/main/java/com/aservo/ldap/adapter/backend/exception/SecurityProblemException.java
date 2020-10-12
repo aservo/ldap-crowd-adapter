@@ -22,7 +22,7 @@ package com.aservo.ldap.adapter.backend.exception;
  * The type Security problem exception.
  */
 public class SecurityProblemException
-        extends Exception {
+        extends RuntimeException {
 
     /**
      * Instantiates a new Security problem exception.

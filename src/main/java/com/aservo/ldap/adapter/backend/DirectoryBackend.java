@@ -17,47 +17,20 @@
 
 package com.aservo.ldap.adapter.backend;
 
-import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
-import com.aservo.ldap.adapter.backend.exception.EntryNotFoundException;
-import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
+import com.aservo.ldap.adapter.adapter.FilterMatcher;
+import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.UserEntity;
+import com.aservo.ldap.adapter.adapter.query.FilterNode;
+import com.aservo.ldap.adapter.adapter.query.NullNode;
+import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 
 /**
  * The interface for all directory backends.
  */
 public interface DirectoryBackend {
-
-    /**
-     * The constant GROUP_ID.
-     */
-    String GROUP_ID = "GROUP_ID";
-    /**
-     * The constant GROUP_DESCRIPTION.
-     */
-    String GROUP_DESCRIPTION = "GROUP_DESCRIPTION";
-
-    /**
-     * The constant USER_ID.
-     */
-    String USER_ID = "USER_ID";
-    /**
-     * The constant USER_FIRST_NAME.
-     */
-    String USER_FIRST_NAME = "USER_FIRST_NAME";
-    /**
-     * The constant USER_LAST_NAME.
-     */
-    String USER_LAST_NAME = "USER_LAST_NAME";
-    /**
-     * The constant USER_DISPLAY_NAME.
-     */
-    String USER_DISPLAY_NAME = "USER_DISPLAY_NAME";
-    /**
-     * The constant USER_EMAIL_ADDRESS.
-     */
-    String USER_EMAIL_ADDRESS = "USER_EMAIL_ADDRESS";
 
     /**
      * Gets backend ID.
@@ -68,270 +41,320 @@ public interface DirectoryBackend {
 
     /**
      * Startup method.
-     *
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
      */
-    void startup()
-            throws DirectoryAccessFailureException, SecurityProblemException;
+    void startup();
 
     /**
      * Shutdown method.
-     *
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
      */
-    void shutdown()
-            throws DirectoryAccessFailureException, SecurityProblemException;
+    void shutdown();
 
     /**
      * Gets group info.
      *
-     * @param id the id
-     * @return the group info
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @param id the group id
+     * @return the group
+     * @throws EntityNotFoundException the entry not found exception
      */
-    Map<String, String> getGroupInfo(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    GroupEntity getGroup(String id)
+            throws EntityNotFoundException;
 
     /**
      * Gets user info.
      *
-     * @param id the id
-     * @return the user info
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @param id the user id
+     * @return the user
+     * @throws EntityNotFoundException the entry not found exception
      */
-    Map<String, String> getUserInfo(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    UserEntity getUser(String id)
+            throws EntityNotFoundException;
 
     /**
      * Gets info from authenticated user.
      *
-     * @param id       the id
+     * @param id       the user id
      * @param password the password
-     * @return the info from authenticated user
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @return the authenticated user
+     * @throws EntityNotFoundException the entry not found exception
      */
-    Map<String, String> getInfoFromAuthenticatedUser(String id, String password)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    UserEntity getAuthenticatedUser(String id, String password)
+            throws EntityNotFoundException;
 
     /**
      * Gets all groups.
      *
-     * @return the all groups
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
+     * @return the groups
      */
-    List<String> getAllGroups()
-            throws DirectoryAccessFailureException, SecurityProblemException;
+    default List<GroupEntity> getAllGroups() {
+
+        return getGroups(new NullNode(), Optional.empty());
+    }
 
     /**
      * Gets all users.
      *
-     * @return the all users
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
+     * @return the users
      */
-    List<String> getAllUsers()
-            throws DirectoryAccessFailureException, SecurityProblemException;
+    default List<UserEntity> getAllUsers() {
+
+        return getUsers(new NullNode(), Optional.empty());
+    }
 
     /**
-     * Gets groups by attribute.
+     * Gets groups by filter expression.
      *
-     * @param attribute the attribute
-     * @param value     the value
-     * @return the groups by attribute
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
+     * @param filterNode    the filter expression node
+     * @param filterMatcher the optional filter matcher
+     * @return the filtered groups
      */
-    List<String> getGroupsByAttribute(String attribute, String value)
-            throws DirectoryAccessFailureException, SecurityProblemException;
+    List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher);
 
     /**
-     * Gets users by attribute.
+     * Gets users by filter expression.
      *
-     * @param attribute the attribute
-     * @param value     the value
-     * @return the users by attribute
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
+     * @param filterNode    the filter expression node
+     * @param filterMatcher the optional filter matcher
+     * @return the filtered users
      */
-    List<String> getUsersByAttribute(String attribute, String value)
-            throws DirectoryAccessFailureException, SecurityProblemException;
-
-    /**
-     * Gets groups by attributes.
-     *
-     * @param attributeMap the attribute map
-     * @return the groups by attributes
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     */
-    List<String> getGroupsByAttributes(Map<String, String> attributeMap)
-            throws DirectoryAccessFailureException, SecurityProblemException;
-
-    /**
-     * Gets users by attributes.
-     *
-     * @param attributeMap the attribute map
-     * @return the users by attributes
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     */
-    List<String> getUsersByAttributes(Map<String, String> attributeMap)
-            throws DirectoryAccessFailureException, SecurityProblemException;
+    List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher);
 
     /**
      * Gets direct users of group.
      *
-     * @param id the id
+     * @param id the group id
      * @return the direct users of group
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getDirectUsersOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    List<UserEntity> getDirectUsersOfGroup(String id)
+            throws EntityNotFoundException;
 
     /**
      * Gets direct groups of user.
      *
-     * @param id the id
+     * @param id the user id
      * @return the direct groups of user
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getDirectGroupsOfUser(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    List<GroupEntity> getDirectGroupsOfUser(String id)
+            throws EntityNotFoundException;
 
     /**
      * Gets transitive users of group.
      *
-     * @param id the id
+     * @param id the group id
      * @return the transitive users of group
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getTransitiveUsersOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    List<UserEntity> getTransitiveUsersOfGroup(String id)
+            throws EntityNotFoundException;
 
     /**
      * Gets transitive groups of user.
      *
-     * @param id the id
+     * @param id the user id
      * @return the transitive groups of user
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getTransitiveGroupsOfUser(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    List<GroupEntity> getTransitiveGroupsOfUser(String id)
+            throws EntityNotFoundException;
 
     /**
      * Gets direct child groups of group.
      *
-     * @param id the id
+     * @param id the group id
      * @return the direct child groups of group
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getDirectChildGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    List<GroupEntity> getDirectChildGroupsOfGroup(String id)
+            throws EntityNotFoundException;
 
     /**
      * Gets direct parent groups of group.
      *
-     * @param id the id
+     * @param id the group id
      * @return the direct parent groups of group
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getDirectParentGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    List<GroupEntity> getDirectParentGroupsOfGroup(String id)
+            throws EntityNotFoundException;
 
     /**
      * Gets transitive child groups of group.
      *
-     * @param id the id
+     * @param id the group id
      * @return the transitive child groups of group
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getTransitiveChildGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
+            throws EntityNotFoundException;
 
     /**
      * Gets transitive parent groups of group.
      *
-     * @param id the id
+     * @param id the group id
      * @return the transitive parent groups of group
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
+     * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getTransitiveParentGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
+            throws EntityNotFoundException;
+
+    /**
+     * Gets direct user IDs of group.
+     *
+     * @param id the group id
+     * @return the direct users of group
+     * @throws EntityNotFoundException the entry not found exception
+     */
+    List<String> getDirectUserIdsOfGroup(String id)
+            throws EntityNotFoundException;
+
+    /**
+     * Gets direct group IDs of user.
+     *
+     * @param id the user id
+     * @return the direct groups of user
+     * @throws EntityNotFoundException the entry not found exception
+     */
+    List<String> getDirectGroupIdsOfUser(String id)
+            throws EntityNotFoundException;
+
+    /**
+     * Gets transitive user IDs of group.
+     *
+     * @param id the group id
+     * @return the transitive users of group
+     * @throws EntityNotFoundException the entry not found exception
+     */
+    List<String> getTransitiveUserIdsOfGroup(String id)
+            throws EntityNotFoundException;
+
+    /**
+     * Gets transitive group IDs of user.
+     *
+     * @param id the user id
+     * @return the transitive groups of user
+     * @throws EntityNotFoundException the entry not found exception
+     */
+    List<String> getTransitiveGroupIdsOfUser(String id)
+            throws EntityNotFoundException;
+
+    /**
+     * Gets direct child group IDs of group.
+     *
+     * @param id the group id
+     * @return the direct child groups of group
+     * @throws EntityNotFoundException the entry not found exception
+     */
+    List<String> getDirectChildGroupIdsOfGroup(String id)
+            throws EntityNotFoundException;
+
+    /**
+     * Gets direct parent group IDs of group.
+     *
+     * @param id the group id
+     * @return the direct parent groups of group
+     * @throws EntityNotFoundException the entry not found exception
+     */
+    List<String> getDirectParentGroupIdsOfGroup(String id)
+            throws EntityNotFoundException;
+
+    /**
+     * Gets transitive child group IDs of group.
+     *
+     * @param id the group id
+     * @return the transitive child groups of group
+     * @throws EntityNotFoundException the entry not found exception
+     */
+    List<String> getTransitiveChildGroupIdsOfGroup(String id)
+            throws EntityNotFoundException;
+
+    /**
+     * Gets transitive parent group IDs of group.
+     *
+     * @param id the group id
+     * @return the transitive parent groups of group
+     * @throws EntityNotFoundException the entry not found exception
+     */
+    List<String> getTransitiveParentGroupIdsOfGroup(String id)
+            throws EntityNotFoundException;
 
     /**
      * Indicates whether the group is direct group member.
      *
-     * @param groupId1 the group id 1
-     * @param groupId2 the group id 2
+     * @param groupId1 the group ID of child group
+     * @param groupId2 the group ID of parent group
      * @return the boolean
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
      */
-    boolean isGroupDirectGroupMember(String groupId1, String groupId2)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    default boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
+
+        try {
+
+            return getDirectChildGroupsOfGroup(groupId2).stream()
+                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
+
+        } catch (EntityNotFoundException e) {
+
+            return false;
+        }
+    }
 
     /**
      * Indicates whether the user is direct group member.
      *
-     * @param userId  the user id
-     * @param groupId the group id
+     * @param userId  the user ID
+     * @param groupId the group ID
      * @return the boolean
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
      */
-    boolean isUserDirectGroupMember(String userId, String groupId)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    default boolean isUserDirectGroupMember(String userId, String groupId) {
+
+        try {
+
+            return getDirectUsersOfGroup(groupId).stream()
+                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
+
+        } catch (EntityNotFoundException e) {
+
+            return false;
+        }
+    }
 
     /**
      * Indicates whether the group is transitive group member.
      *
-     * @param groupId1 the group id 1
-     * @param groupId2 the group id 2
+     * @param groupId1 the group ID of child group
+     * @param groupId2 the group ID of parent group
      * @return the boolean
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
      */
-    boolean isGroupTransitiveGroupMember(String groupId1, String groupId2)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    default boolean isGroupTransitiveGroupMember(String groupId1, String groupId2) {
+
+        try {
+
+            return getTransitiveChildGroupsOfGroup(groupId2).stream()
+                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
+
+        } catch (EntityNotFoundException e) {
+
+            return false;
+        }
+    }
 
     /**
      * Indicates whether the user is transitive group member.
      *
-     * @param userId  the user id
-     * @param groupId the group id
+     * @param userId  the user ID
+     * @param groupId the group ID
      * @return the boolean
-     * @throws DirectoryAccessFailureException the directory access failure exception
-     * @throws SecurityProblemException        the security problem exception
-     * @throws EntryNotFoundException          the entry not found exception
      */
-    boolean isUserTransitiveGroupMember(String userId, String groupId)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException;
+    default boolean isUserTransitiveGroupMember(String userId, String groupId) {
+
+        try {
+
+            return getTransitiveUsersOfGroup(groupId).stream()
+                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
+
+        } catch (EntityNotFoundException e) {
+
+            return false;
+        }
+    }
 }

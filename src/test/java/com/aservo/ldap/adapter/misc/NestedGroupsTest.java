@@ -1,5 +1,7 @@
 package com.aservo.ldap.adapter.misc;
 
+import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.helper.AbstractTest;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.Attributes;
@@ -34,11 +36,11 @@ public class NestedGroupsTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        for (String entry : directoryBackend.getAllGroups()) {
+        for (GroupEntity entry : directoryBackend.getAllGroups()) {
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes, false));
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -62,11 +64,11 @@ public class NestedGroupsTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        for (String entry : directoryBackend.getAllUsers()) {
+        for (UserEntity entry : directoryBackend.getAllUsers()) {
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes, false));
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -90,11 +92,11 @@ public class NestedGroupsTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        for (String entry : directoryBackend.getAllGroups()) {
+        for (GroupEntity entry : directoryBackend.getAllGroups()) {
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, true));
+            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes, true));
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -118,11 +120,11 @@ public class NestedGroupsTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        for (String entry : directoryBackend.getAllUsers()) {
+        for (UserEntity entry : directoryBackend.getAllUsers()) {
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, true));
+            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes, true));
         }
 
         Assertions.assertFalse(results.hasMore());

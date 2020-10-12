@@ -22,7 +22,7 @@ package com.aservo.ldap.adapter.backend.exception;
  * The type Directory access failure exception.
  */
 public class DirectoryAccessFailureException
-        extends Exception {
+        extends RuntimeException {
 
     /**
      * Instantiates a new Directory access failure exception.

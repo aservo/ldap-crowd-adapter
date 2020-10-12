@@ -15,45 +15,34 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.util;
+package com.aservo.ldap.adapter.adapter.entity;
 
 
-/**
- * The enum Entry type.
- */
-public enum EntryType {
+public abstract class UnitEntity
+        extends Entity
+        implements DescribableEntity {
+
+    private final String description;
 
     /**
-     * Group entry type.
+     * Instantiates a new Unit.
+     *
+     * @param id          the id
+     * @param description the description
      */
-    GROUP(Utils.OU_GROUPS),
-    /**
-     * User entry type.
-     */
-    USER(Utils.OU_USERS),
-    /**
-     * Unit entry type.
-     */
-    UNIT("unit"),
-    /**
-     * Domain entry type.
-     */
-    DOMAIN("domain"),
-    /**
-     * Undefined entry type.
-     */
-    UNDEFINED(null);
+    public UnitEntity(String id, String description) {
 
-    private final String text;
-
-    EntryType(String text) {
-
-        this.text = text;
+        super(id);
+        this.description = description;
     }
 
-    @Override
-    public String toString() {
+    /**
+     * Gets description.
+     *
+     * @return the description
+     */
+    public String getDescription() {
 
-        return String.valueOf(text);
+        return description;
     }
 }

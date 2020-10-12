@@ -22,16 +22,15 @@
 
 package com.aservo.ldap.adapter;
 
+import com.aservo.ldap.adapter.adapter.LdapUtils;
+import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
-import com.aservo.ldap.adapter.backend.exception.EntryNotFoundException;
+import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
-import com.aservo.ldap.adapter.util.LdapHelper;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import javax.naming.AuthenticationException;
 import org.apache.directory.api.ldap.model.constants.AuthenticationLevel;
-import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.server.core.api.LdapPrincipal;
 import org.apache.directory.server.core.api.interceptor.context.BindOperationContext;
@@ -50,8 +49,6 @@ public class CommonAuthenticator
 
     private final DirectoryBackend directoryBackend;
     private final SchemaManager schemaManager;
-    private final Dn rootDn;
-    private final Dn usersDn;
 
     /**
      * Instantiates a new authenticator.
@@ -64,15 +61,12 @@ public class CommonAuthenticator
         super(AuthenticationLevel.SIMPLE);
         this.directoryBackend = directoryBackend;
         this.schemaManager = schemaManager;
-
-        this.rootDn = LdapHelper.createRootDn(schemaManager, directoryBackend.getId());
-        this.usersDn = LdapHelper.createUsersDn(schemaManager, directoryBackend.getId());
     }
 
     public LdapPrincipal authenticate(BindOperationContext context)
             throws Exception {
 
-        String userId = LdapHelper.getUserFromDn(rootDn, usersDn, context.getDn());
+        String userId = LdapUtils.getUserIdFromDn(schemaManager, directoryBackend, context.getDn().getName());
 
         if (userId != null) {
 
@@ -80,24 +74,24 @@ public class CommonAuthenticator
 
             try {
 
-                Map<String, String> userInfo = directoryBackend.getInfoFromAuthenticatedUser(userId, password);
+                UserEntity user = directoryBackend.getAuthenticatedUser(userId, password);
 
                 logger.info("[{}] - The user {} with DN={} has been successfully authenticated.",
                         context.getIoSession().getRemoteAddress(),
-                        userInfo.get(DirectoryBackend.USER_ID),
+                        user.getId(),
                         context.getDn());
 
                 return new LdapPrincipal(schemaManager, context.getDn(), AuthenticationLevel.SIMPLE);
 
             } catch (DirectoryAccessFailureException |
                     SecurityProblemException |
-                    EntryNotFoundException e) {
+                    EntityNotFoundException e) {
 
                 logger.info("[{}] - Authentication with DN={} could not be performed.",
                         context.getIoSession().getRemoteAddress(),
                         context.getDn());
 
-                // logger.warn("Authentication failed.", e);
+                logger.debug("Authentication failed.", e);
 
                 throw e;
             }

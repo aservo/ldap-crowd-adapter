@@ -2,10 +2,12 @@ package com.aservo.ldap.adapter.helper;
 
 import com.aservo.ldap.adapter.CommonLdapServer;
 import com.aservo.ldap.adapter.Main;
+import com.aservo.ldap.adapter.adapter.LdapUtils;
+import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.backend.CrowdDirectoryBackend;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.JsonDirectoryBackend;
-import com.aservo.ldap.adapter.util.Utils;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -15,8 +17,11 @@ import java.security.KeyPair;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
+import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
 import org.apache.commons.io.FileUtils;
@@ -226,7 +231,7 @@ public abstract class AbstractTest {
 
         NamingEnumeration ne1 = attributes.get(SchemaConstants.OU_AT).getAll();
 
-        Assertions.assertEquals(Utils.OU_GROUPS, ne1.next());
+        Assertions.assertEquals(LdapUtils.OU_GROUPS, ne1.next());
         Assertions.assertFalse(ne1.hasMore());
 
         NamingEnumeration ne2 = attributes.get(SchemaConstants.DESCRIPTION_AT).getAll();
@@ -246,7 +251,7 @@ public abstract class AbstractTest {
 
         NamingEnumeration ne1 = attributes.get(SchemaConstants.OU_AT).getAll();
 
-        Assertions.assertEquals(Utils.OU_USERS, ne1.next());
+        Assertions.assertEquals(LdapUtils.OU_USERS, ne1.next());
         Assertions.assertFalse(ne1.hasMore());
 
         NamingEnumeration ne2 = attributes.get(SchemaConstants.DESCRIPTION_AT).getAll();
@@ -267,24 +272,24 @@ public abstract class AbstractTest {
 
         NamingEnumeration ne1 = attributes.get(SchemaConstants.OU_AT).getAll();
 
-        Assertions.assertEquals(Utils.OU_GROUPS, ne1.next());
+        Assertions.assertEquals(LdapUtils.OU_GROUPS, ne1.next());
         Assertions.assertFalse(ne1.hasMore());
 
         NamingEnumeration ne2 = attributes.get(SchemaConstants.CN_AT).getAll();
 
         String entry = ne2.next().toString();
-        Map<String, String> info = directoryBackend.getGroupInfo(entry);
+        GroupEntity group = directoryBackend.getGroup(entry);
 
         Assertions.assertFalse(ne2.hasMore());
 
         NamingEnumeration ne3 = attributes.get(SchemaConstants.DESCRIPTION_AT).getAll();
 
-        Assertions.assertEquals(info.get(DirectoryBackend.GROUP_DESCRIPTION), ne3.next());
+        Assertions.assertEquals(group.getDescription(), ne3.next());
         Assertions.assertFalse(ne3.hasMore());
 
         if (flattening) {
 
-            List<String> userMembers = directoryBackend.getTransitiveUsersOfGroup(entry);
+            List<UserEntity> userMembers = directoryBackend.getTransitiveUsersOfGroup(entry);
 
             if (userMembers.isEmpty()) {
 
@@ -294,51 +299,56 @@ public abstract class AbstractTest {
 
                 NamingEnumeration ne4 = attributes.get(SchemaConstants.MEMBER_AT).getAll();
 
-                for (String x : userMembers)
-                    Assertions.assertEquals("cn=" + x + ",ou=users,dc=json", ne4.next());
+                for (UserEntity x : userMembers)
+                    Assertions.assertEquals("cn=" + x.getId() + ",ou=users,dc=json", ne4.next());
 
                 Assertions.assertFalse(ne4.hasMore());
             }
 
-            Assertions.assertNull(attributes.get(Utils.MEMBER_OF_AT));
+            Assertions.assertNull(attributes.get(LdapUtils.MEMBER_OF_AT));
 
         } else {
 
-            List<String> userMembers = directoryBackend.getDirectUsersOfGroup(entry);
-            List<String> groupMembers = directoryBackend.getDirectChildGroupsOfGroup(entry);
-            List<String> memberOfGroups = directoryBackend.getDirectParentGroupsOfGroup(entry);
+            Set<String> members =
+                    Stream.concat(
+                            directoryBackend.getDirectUsersOfGroup(entry).stream()
+                                    .map(x -> "cn=" + x.getId() + ",ou=users,dc=json"),
+                            directoryBackend.getDirectChildGroupsOfGroup(entry).stream()
+                                    .map(x -> "cn=" + x.getId() + ",ou=groups,dc=json"))
+                            .collect(Collectors.toSet());
 
-            if (userMembers.isEmpty() && groupMembers.isEmpty()) {
+            Set<String> memberOf =
+                    directoryBackend.getDirectParentGroupsOfGroup(entry).stream()
+                            .map(x -> "cn=" + x.getId() + ",ou=groups,dc=json")
+                            .collect(Collectors.toSet());
 
-                Assertions.assertNull(attributes.get(SchemaConstants.MEMBER_AT));
+            Attribute membersResultAttribute = attributes.get(SchemaConstants.MEMBER_AT);
+            List<String> membersResult = new ArrayList<>();
 
-            } else {
+            if (membersResultAttribute != null) {
 
-                NamingEnumeration ne4 = attributes.get(SchemaConstants.MEMBER_AT).getAll();
+                NamingEnumeration ne4 = membersResultAttribute.getAll();
 
-                for (String x : userMembers)
-                    Assertions.assertEquals("cn=" + x + ",ou=users,dc=json", ne4.next());
-
-                for (String x : groupMembers)
-                    Assertions.assertEquals("cn=" + x + ",ou=groups,dc=json", ne4.next());
-
-                Assertions.assertFalse(ne4.hasMore());
+                while (ne4.hasMore())
+                    membersResult.add(ne4.next().toString());
             }
 
-            if (memberOfGroups.isEmpty()) {
+            Attribute memberOfResultAttribute = attributes.get(LdapUtils.MEMBER_OF_AT);
+            List<String> memberOfResult = new ArrayList<>();
 
-                Assertions.assertNull(attributes.get(Utils.MEMBER_OF_AT));
+            if (memberOfResultAttribute != null) {
 
-            } else {
+                NamingEnumeration ne5 = memberOfResultAttribute.getAll();
 
-                NamingEnumeration ne5 = attributes.get(Utils.MEMBER_OF_AT).getAll();
-
-                for (String x : memberOfGroups)
-                    Assertions.assertEquals("cn=" + x + ",ou=groups,dc=json", ne5.next());
-
-                Assertions.assertFalse(ne5.hasMore());
+                while (ne5.hasMore())
+                    memberOfResult.add(ne5.next().toString());
             }
 
+            Assertions.assertEquals(members.size(), membersResult.size());
+            Assertions.assertEquals(memberOf.size(), memberOfResult.size());
+
+            Assertions.assertEquals(members, new HashSet<>(membersResult));
+            Assertions.assertEquals(memberOf, new HashSet<>(memberOfResult));
         }
 
         return entry;
@@ -357,60 +367,60 @@ public abstract class AbstractTest {
 
         NamingEnumeration ne1 = attributes.get(SchemaConstants.OU_AT).getAll();
 
-        Assertions.assertEquals(Utils.OU_USERS, ne1.next());
+        Assertions.assertEquals(LdapUtils.OU_USERS, ne1.next());
         Assertions.assertFalse(ne1.hasMore());
 
         NamingEnumeration ne2 = attributes.get(SchemaConstants.UID_AT).getAll();
 
         String entry = ne2.next().toString();
-        Map<String, String> info = directoryBackend.getUserInfo(entry);
+        UserEntity user = directoryBackend.getUser(entry);
 
         Assertions.assertFalse(ne2.hasMore());
 
         NamingEnumeration ne3 = attributes.get(SchemaConstants.CN_AT).getAll();
 
-        Assertions.assertEquals(info.get(DirectoryBackend.USER_ID), ne3.next());
+        Assertions.assertEquals(user.getId(), ne3.next());
         Assertions.assertFalse(ne3.hasMore());
 
-        NamingEnumeration ne4 = attributes.get(SchemaConstants.GN_AT).getAll();
+        NamingEnumeration ne4 = attributes.get(SchemaConstants.SN_AT).getAll();
 
-        Assertions.assertEquals(info.get(DirectoryBackend.USER_FIRST_NAME), ne4.next());
+        Assertions.assertEquals(user.getLastName(), ne4.next());
         Assertions.assertFalse(ne4.hasMore());
 
-        NamingEnumeration ne5 = attributes.get(SchemaConstants.SN_AT).getAll();
+        NamingEnumeration ne5 = attributes.get(SchemaConstants.GN_AT).getAll();
 
-        Assertions.assertEquals(info.get(DirectoryBackend.USER_LAST_NAME), ne5.next());
+        Assertions.assertEquals(user.getFirstName(), ne5.next());
         Assertions.assertFalse(ne5.hasMore());
 
         NamingEnumeration ne6 = attributes.get(SchemaConstants.DISPLAY_NAME_AT).getAll();
 
-        Assertions.assertEquals(info.get(DirectoryBackend.USER_DISPLAY_NAME), ne6.next());
+        Assertions.assertEquals(user.getDisplayName(), ne6.next());
         Assertions.assertFalse(ne6.hasMore());
 
         NamingEnumeration ne7 = attributes.get(SchemaConstants.MAIL_AT).getAll();
 
-        Assertions.assertEquals(info.get(DirectoryBackend.USER_EMAIL_ADDRESS), ne7.next());
+        Assertions.assertEquals(user.getEmail(), ne7.next());
         Assertions.assertFalse(ne7.hasMore());
 
         if (flattening) {
 
-            List<String> memberOfGroups = directoryBackend.getTransitiveGroupsOfUser(entry);
+            List<GroupEntity> memberOfGroups = directoryBackend.getTransitiveGroupsOfUser(entry);
 
-            NamingEnumeration ne9 = attributes.get(Utils.MEMBER_OF_AT).getAll();
+            NamingEnumeration ne9 = attributes.get(LdapUtils.MEMBER_OF_AT).getAll();
 
-            for (String x : memberOfGroups)
-                Assertions.assertEquals("cn=" + x + ",ou=groups,dc=json", ne9.next());
+            for (GroupEntity x : memberOfGroups)
+                Assertions.assertEquals("cn=" + x.getId() + ",ou=groups,dc=json", ne9.next());
 
             Assertions.assertFalse(ne9.hasMore());
 
         } else {
 
-            List<String> memberOfGroups = directoryBackend.getDirectGroupsOfUser(entry);
+            List<GroupEntity> memberOfGroups = directoryBackend.getDirectGroupsOfUser(entry);
 
-            NamingEnumeration ne9 = attributes.get(Utils.MEMBER_OF_AT).getAll();
+            NamingEnumeration ne9 = attributes.get(LdapUtils.MEMBER_OF_AT).getAll();
 
-            for (String x : memberOfGroups)
-                Assertions.assertEquals("cn=" + x + ",ou=groups,dc=json", ne9.next());
+            for (GroupEntity x : memberOfGroups)
+                Assertions.assertEquals("cn=" + x.getId() + ",ou=groups,dc=json", ne9.next());
 
             Assertions.assertFalse(ne9.hasMore());
         }

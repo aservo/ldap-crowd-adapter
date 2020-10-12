@@ -17,8 +17,16 @@
 
 package com.aservo.ldap.adapter.backend;
 
+import com.aservo.ldap.adapter.adapter.FilterMatcher;
+import com.aservo.ldap.adapter.adapter.LdapUtils;
+import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.UserEntity;
+import com.aservo.ldap.adapter.adapter.query.AndLogicExpression;
+import com.aservo.ldap.adapter.adapter.query.EqualOperator;
+import com.aservo.ldap.adapter.adapter.query.FilterNode;
+import com.aservo.ldap.adapter.adapter.query.OrLogicExpression;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
-import com.aservo.ldap.adapter.backend.exception.EntryNotFoundException;
+import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import com.atlassian.crowd.embedded.api.SearchRestriction;
 import com.atlassian.crowd.exception.*;
@@ -32,6 +40,8 @@ import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
 import java.util.*;
+import java.util.stream.Collectors;
+import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +53,6 @@ public class CrowdDirectoryBackend
         implements DirectoryBackend {
 
     private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
-
-    private final String id;
     private final CrowdClient crowdClient;
 
     /**
@@ -54,19 +62,16 @@ public class CrowdDirectoryBackend
      */
     public CrowdDirectoryBackend(Properties properties) {
 
-        id = "Crowd";
-
         ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(properties);
         crowdClient = new RestCrowdClientFactory().newInstance(props);
     }
 
     public String getId() {
 
-        return id;
+        return "crowd";
     }
 
-    public void startup()
-            throws DirectoryAccessFailureException, SecurityProblemException {
+    public void startup() {
 
         try {
 
@@ -83,24 +88,23 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public void shutdown()
-            throws DirectoryAccessFailureException, SecurityProblemException {
+    public void shutdown() {
 
         crowdClient.shutdown();
     }
 
-    public Map<String, String> getGroupInfo(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public GroupEntity getGroup(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getGroupInfo; id={}", id);
+        logger.info("Backend call: getGroup; id={}", id);
 
         try {
 
-            return mapGroupInfo(crowdClient.getGroup(id));
+            return createGroupEntity(crowdClient.getGroup(id));
 
         } catch (GroupNotFoundException e) {
 
-            throw new EntryNotFoundException(e);
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -113,18 +117,18 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public Map<String, String> getUserInfo(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public UserEntity getUser(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getUserInfo; id={}", id);
+        logger.info("Backend call: getUser; id={}", id);
 
         try {
 
-            return mapUserInfo(crowdClient.getUser(id));
+            return createUserEntity(crowdClient.getUser(id));
 
         } catch (UserNotFoundException e) {
 
-            throw new EntryNotFoundException(e);
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -137,18 +141,18 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public Map<String, String> getInfoFromAuthenticatedUser(String id, String password)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public UserEntity getAuthenticatedUser(String id, String password)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getInfoFromAuthenticatedUser; id={}", id);
+        logger.info("Backend call: getAuthenticatedUser; id={}", id);
 
         try {
 
-            return mapUserInfo(crowdClient.authenticateUser(id, password));
+            return createUserEntity(crowdClient.authenticateUser(id, password));
 
         } catch (UserNotFoundException e) {
 
-            throw new EntryNotFoundException(e);
+            throw new EntityNotFoundException(e);
 
         } catch (InactiveAccountException |
                 ExpiredCredentialException |
@@ -163,37 +167,19 @@ public class CrowdDirectoryBackend
         }
     }
 
-    private Map<String, String> mapGroupInfo(Group group) {
+    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        Map<String, String> map = new HashMap<>();
+        logger.info("Backend call: getGroups");
 
-        map.put(GROUP_ID, group.getName());
-        map.put(GROUP_DESCRIPTION, group.getDescription());
-
-        return map;
-    }
-
-    private Map<String, String> mapUserInfo(User user) {
-
-        Map<String, String> map = new HashMap<>();
-
-        map.put(USER_ID, user.getName());
-        map.put(USER_FIRST_NAME, user.getFirstName());
-        map.put(USER_LAST_NAME, user.getLastName());
-        map.put(USER_DISPLAY_NAME, user.getDisplayName());
-        map.put(USER_EMAIL_ADDRESS, user.getEmailAddress());
-
-        return map;
-    }
-
-    public List<String> getAllGroups()
-            throws DirectoryAccessFailureException, SecurityProblemException {
-
-        logger.info("Call: getAllGroups");
+        SearchRestriction restriction =
+                removeNullRestrictions(createGroupSearchRestriction(LdapUtils.removeNotExpressions(filterNode)));
 
         try {
 
-            return crowdClient.searchGroupNames(NullRestrictionImpl.INSTANCE, 0, Integer.MAX_VALUE);
+            return crowdClient.searchGroups(restriction, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createGroupEntity)
+                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                    .collect(Collectors.toList());
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -206,14 +192,19 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getAllUsers()
-            throws DirectoryAccessFailureException, SecurityProblemException {
+    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        logger.info("Call: getAllUsers");
+        logger.info("Backend call: getUsers");
+
+        SearchRestriction restriction =
+                removeNullRestrictions(createUserSearchRestriction(LdapUtils.removeNotExpressions(filterNode)));
 
         try {
 
-            return crowdClient.searchUserNames(NullRestrictionImpl.INSTANCE, 0, Integer.MAX_VALUE);
+            return crowdClient.searchUsers(restriction, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createUserEntity)
+                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                    .collect(Collectors.toList());
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -226,62 +217,20 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getGroupsByAttribute(String attribute, String value)
-            throws DirectoryAccessFailureException, SecurityProblemException {
+    public List<UserEntity> getDirectUsersOfGroup(String id)
+            throws EntityNotFoundException {
 
-        Map<String, String> map = new HashMap<>();
-
-        map.put(attribute, value);
-
-        return getGroupsByAttributes(map);
-    }
-
-    public List<String> getUsersByAttribute(String attribute, String value)
-            throws DirectoryAccessFailureException, SecurityProblemException {
-
-        Map<String, String> map = new HashMap<>();
-
-        map.put(attribute, value);
-
-        return getUsersByAttributes(map);
-    }
-
-    public List<String> getGroupsByAttributes(Map<String, String> attributeMap)
-            throws DirectoryAccessFailureException, SecurityProblemException {
-
-        logger.info("Call: getGroupsByAttributes");
-
-        if (attributeMap.isEmpty())
-            return getAllGroups();
-
-        List<SearchRestriction> restrictions = new ArrayList<>(attributeMap.size());
-
-        for (Map.Entry<String, String> entry : attributeMap.entrySet()) {
-
-            if (entry.getKey().equals(GROUP_ID)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(GroupTermKeys.NAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
-
-                restrictions.add(restriction);
-
-            } else if (entry.getKey().equals(GROUP_DESCRIPTION)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(GroupTermKeys.DESCRIPTION, MatchMode.EXACTLY_MATCHES, entry.getValue());
-
-                restrictions.add(restriction);
-
-            } else
-                throw new IllegalArgumentException("Cannot process unknown group attribute " + entry.getKey());
-        }
+        logger.info("Backend call: getDirectUsersOfGroup; id={}", id);
 
         try {
 
-            SearchRestriction restriction =
-                    new BooleanRestrictionImpl(BooleanRestriction.BooleanLogic.AND, restrictions);
+            return crowdClient.getUsersOfGroup(id, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createUserEntity)
+                    .collect(Collectors.toList());
 
-            return crowdClient.searchGroupNames(restriction, 0, Integer.MAX_VALUE);
+        } catch (GroupNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -294,63 +243,20 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getUsersByAttributes(Map<String, String> attributeMap)
-            throws DirectoryAccessFailureException, SecurityProblemException {
+    public List<GroupEntity> getDirectGroupsOfUser(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getUsersByAttributes");
-
-        if (attributeMap.isEmpty())
-            return getAllUsers();
-
-        List<SearchRestriction> restrictions = new ArrayList<>(attributeMap.size());
-
-        for (Map.Entry<String, String> entry : attributeMap.entrySet()) {
-
-            if (entry.getKey().equals(USER_ID)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.USERNAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
-
-                restrictions.add(restriction);
-
-            } else if (entry.getKey().equals(USER_FIRST_NAME)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.FIRST_NAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
-
-                restrictions.add(restriction);
-
-            } else if (entry.getKey().equals(USER_LAST_NAME)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.LAST_NAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
-
-                restrictions.add(restriction);
-
-            } else if (entry.getKey().equals(USER_DISPLAY_NAME)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.DISPLAY_NAME, MatchMode.EXACTLY_MATCHES, entry.getValue());
-
-                restrictions.add(restriction);
-
-            } else if (entry.getKey().equals(USER_EMAIL_ADDRESS)) {
-
-                SearchRestriction restriction =
-                        new TermRestriction<>(UserTermKeys.EMAIL, MatchMode.EXACTLY_MATCHES, entry.getValue());
-
-                restrictions.add(restriction);
-
-            } else
-                throw new IllegalArgumentException("Cannot process unknown user attribute " + entry.getKey());
-        }
+        logger.info("Backend call: getDirectGroupsOfUser; id={}", id);
 
         try {
 
-            SearchRestriction restriction =
-                    new BooleanRestrictionImpl(BooleanRestriction.BooleanLogic.AND, restrictions);
+            return crowdClient.getGroupsForUser(id, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createGroupEntity)
+                    .collect(Collectors.toList());
 
-            return crowdClient.searchUserNames(restriction, 0, Integer.MAX_VALUE);
+        } catch (UserNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -363,10 +269,127 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getDirectUsersOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<UserEntity> getTransitiveUsersOfGroup(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getDirectUsersOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveUsersOfGroup; id={}", id);
+
+        List<UserEntity> users = getDirectUsersOfGroup(id);
+
+        for (GroupEntity y : getTransitiveChildGroupsOfGroup(id))
+            for (UserEntity x : getDirectUsersOfGroup(y.getId()))
+                if (!users.contains(x))
+                    users.add(x);
+
+        return users;
+    }
+
+    public List<GroupEntity> getTransitiveGroupsOfUser(String id)
+            throws EntityNotFoundException {
+
+        logger.info("Backend call: getTransitiveGroupsOfUser; id={}", id);
+
+        List<GroupEntity> groups = getDirectGroupsOfUser(id);
+
+        for (GroupEntity y : new ArrayList<>(groups))
+            for (GroupEntity x : getTransitiveParentGroupsOfGroup(y.getId()))
+                if (!groups.contains(x))
+                    groups.add(x);
+
+        return groups;
+    }
+
+    public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        logger.info("Backend call: getDirectChildGroupsOfGroup; id={}", id);
+
+        try {
+
+            return crowdClient.getChildGroupsOfGroup(id, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createGroupEntity)
+                    .collect(Collectors.toList());
+
+        } catch (GroupNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        logger.info("Backend call: getDirectParentGroupsOfGroup; id={}", id);
+
+        try {
+
+            return crowdClient.getParentGroupsForGroup(id, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createGroupEntity)
+                    .collect(Collectors.toList());
+
+        } catch (GroupNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        logger.info("Backend call: getTransitiveChildGroupsOfGroup; id={}", id);
+
+        List<String> groupIds = getTransitiveChildGroupIdsOfGroup(id);
+
+        if (groupIds.isEmpty())
+            return Collections.emptyList();
+
+        return getGroups(new OrLogicExpression(
+                groupIds.stream()
+                        .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
+                        .collect(Collectors.toList())
+        ), Optional.empty());
+
+    }
+
+    public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        logger.info("Backend call: getTransitiveParentGroupsOfGroup; id={}", id);
+
+        List<String> groupIds = getTransitiveParentGroupIdsOfGroup(id);
+
+        if (groupIds.isEmpty())
+            return Collections.emptyList();
+
+        return getGroups(new OrLogicExpression(
+                groupIds.stream()
+                        .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
+                        .collect(Collectors.toList())
+        ), Optional.empty());
+    }
+
+    public List<String> getDirectUserIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        logger.info("Backend call: getDirectUserIdsOfGroup; id={}", id);
 
         try {
 
@@ -374,7 +397,7 @@ public class CrowdDirectoryBackend
 
         } catch (GroupNotFoundException e) {
 
-            throw new EntryNotFoundException(e);
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -387,10 +410,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getDirectGroupsOfUser(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<String> getDirectGroupIdsOfUser(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getDirectGroupsOfUser; id={}", id);
+        logger.info("Backend call: getDirectGroupIdsOfUser; id={}", id);
 
         try {
 
@@ -398,7 +421,7 @@ public class CrowdDirectoryBackend
 
         } catch (UserNotFoundException e) {
 
-            throw new EntryNotFoundException(e);
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -411,40 +434,40 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getTransitiveUsersOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<String> getTransitiveUserIdsOfGroup(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getTransitiveUsersOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveUserIdsOfGroup; id={}", id);
 
-        List<String> userIds = getDirectUsersOfGroup(id);
+        List<String> userIds = getDirectUserIdsOfGroup(id);
 
-        for (String y : getTransitiveChildGroupsOfGroup(id))
-            for (String x : getDirectUsersOfGroup(y))
+        for (String y : getTransitiveChildGroupIdsOfGroup(id))
+            for (String x : getDirectUserIdsOfGroup(y))
                 if (!userIds.contains(x))
                     userIds.add(x);
 
         return userIds;
     }
 
-    public List<String> getTransitiveGroupsOfUser(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<String> getTransitiveGroupIdsOfUser(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getTransitiveGroupsOfUser; id={}", id);
+        logger.info("Backend call: getTransitiveGroupIdsOfUser; id={}", id);
 
-        List<String> groupIds = getDirectGroupsOfUser(id);
+        List<String> groupIds = getDirectGroupIdsOfUser(id);
 
         for (String y : new ArrayList<>(groupIds))
-            for (String x : getTransitiveParentGroupsOfGroup(y))
+            for (String x : getTransitiveParentGroupIdsOfGroup(y))
                 if (!groupIds.contains(x))
                     groupIds.add(x);
 
         return groupIds;
     }
 
-    public List<String> getDirectChildGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<String> getDirectChildGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getDirectChildGroupsOfGroup; id={}", id);
+        logger.info("Backend call: getDirectChildGroupIdsOfGroup; id={}", id);
 
         try {
 
@@ -452,7 +475,7 @@ public class CrowdDirectoryBackend
 
         } catch (GroupNotFoundException e) {
 
-            throw new EntryNotFoundException(e);
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -465,10 +488,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getDirectParentGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<String> getDirectParentGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getDirectParentGroupsOfGroup; id={}", id);
+        logger.info("Backend call: getDirectParentGroupIdsOfGroup; id={}", id);
 
         try {
 
@@ -476,7 +499,7 @@ public class CrowdDirectoryBackend
 
         } catch (GroupNotFoundException e) {
 
-            throw new EntryNotFoundException(e);
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -489,36 +512,93 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getTransitiveChildGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<String> getTransitiveChildGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getTransitiveChildGroupsOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveChildGroupIdsOfGroup; id={}", id);
 
         List<String> groupIds = new ArrayList<>();
+        GroupEntity group = getGroup(id);
 
-        groupIds.add(id);
-        resolveGroupsDownwards(id, groupIds);
-        groupIds.remove(id);
+        groupIds.add(group.getId());
+        resolveGroupsDownwards(group.getId(), groupIds);
+        groupIds.remove(group.getId());
 
         return groupIds;
     }
 
-    public List<String> getTransitiveParentGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<String> getTransitiveParentGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getTransitiveParentGroupsOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveParentGroupIdsOfGroup; id={}", id);
 
         List<String> groupIds = new ArrayList<>();
+        GroupEntity group = getGroup(id);
 
-        groupIds.add(id);
-        resolveGroupsUpwards(id, groupIds);
-        groupIds.remove(id);
+        groupIds.add(group.getId());
+        resolveGroupsUpwards(group.getId(), groupIds);
+        groupIds.remove(group.getId());
 
         return groupIds;
+    }
+
+    @Override
+    public boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
+
+        try {
+
+            return crowdClient.isGroupDirectGroupMember(groupId1, groupId2);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    @Override
+    public boolean isUserDirectGroupMember(String userId, String groupId) {
+
+        try {
+
+            return crowdClient.isUserDirectGroupMember(userId, groupId);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    private GroupEntity createGroupEntity(Group group) {
+
+        return new GroupEntity(
+                group.getName(),
+                group.getDescription()
+        );
+    }
+
+    private UserEntity createUserEntity(User user) {
+
+        return new UserEntity(
+                user.getName(),
+                user.getLastName(),
+                user.getFirstName(),
+                user.getDisplayName(),
+                user.getEmailAddress()
+        );
     }
 
     private void resolveGroupsDownwards(String id, List<String> acc)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+            throws EntityNotFoundException {
 
         try {
 
@@ -532,7 +612,7 @@ public class CrowdDirectoryBackend
 
         } catch (GroupNotFoundException e) {
 
-            throw new EntryNotFoundException(e);
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -546,7 +626,7 @@ public class CrowdDirectoryBackend
     }
 
     private void resolveGroupsUpwards(String id, List<String> acc)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+            throws EntityNotFoundException {
 
         try {
 
@@ -560,7 +640,7 @@ public class CrowdDirectoryBackend
 
         } catch (GroupNotFoundException e) {
 
-            throw new EntryNotFoundException(e);
+            throw new EntityNotFoundException(e);
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -573,110 +653,157 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public boolean isGroupDirectGroupMember(String groupId1, String groupId2)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    private SearchRestriction createGroupSearchRestriction(FilterNode filterNode) {
 
-        logger.info("Call: isGroupDirectGroupMember");
+        if (filterNode instanceof AndLogicExpression) {
 
-        try {
+            return new BooleanRestrictionImpl(
+                    BooleanRestriction.BooleanLogic.AND,
+                    ((AndLogicExpression) filterNode).getChildren().stream()
+                            .map(this::createGroupSearchRestriction)
+                            .collect(Collectors.toList())
+            );
 
-            crowdClient.getGroup(groupId1);
-            crowdClient.getGroup(groupId2);
+        } else if (filterNode instanceof OrLogicExpression) {
 
-            return crowdClient.isGroupDirectGroupMember(groupId1, groupId2);
+            return new BooleanRestrictionImpl(
+                    BooleanRestriction.BooleanLogic.OR,
+                    ((OrLogicExpression) filterNode).getChildren().stream()
+                            .map(this::createGroupSearchRestriction)
+                            .collect(Collectors.toList())
+            );
 
-        } catch (GroupNotFoundException e) {
+        } else if (filterNode instanceof EqualOperator) {
 
-            throw new EntryNotFoundException(e);
+            switch (LdapUtils.normalizeAttribute(((EqualOperator) filterNode).getAttribute())) {
 
-        } catch (ApplicationPermissionException |
-                InvalidAuthenticationException e) {
+                case SchemaConstants.CN_AT:
+                case SchemaConstants.CN_AT_OID:
+                case SchemaConstants.COMMON_NAME_AT:
 
-            throw new SecurityProblemException(e);
+                    return new TermRestriction<>(
+                            GroupTermKeys.NAME,
+                            MatchMode.EXACTLY_MATCHES,
+                            ((EqualOperator) filterNode).getValue()
+                    );
 
-        } catch (OperationFailedException e) {
+                case SchemaConstants.DESCRIPTION_AT:
+                case SchemaConstants.DESCRIPTION_AT_OID:
 
-            throw new DirectoryAccessFailureException(e);
+                    return new TermRestriction<>(
+                            GroupTermKeys.DESCRIPTION,
+                            MatchMode.EXACTLY_MATCHES,
+                            ((EqualOperator) filterNode).getValue()
+                    );
+
+                default:
+                    break;
+            }
         }
+
+        return NullRestrictionImpl.INSTANCE;
     }
 
-    public boolean isUserDirectGroupMember(String userId, String groupId)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    private SearchRestriction createUserSearchRestriction(FilterNode filterNode) {
 
-        logger.info("Call: isUserDirectGroupMember");
+        if (filterNode instanceof AndLogicExpression) {
 
-        try {
+            return new BooleanRestrictionImpl(
+                    BooleanRestriction.BooleanLogic.AND,
+                    ((AndLogicExpression) filterNode).getChildren().stream()
+                            .map(this::createUserSearchRestriction)
+                            .collect(Collectors.toList())
+            );
 
-            crowdClient.getUser(userId);
-            crowdClient.getGroup(groupId);
+        } else if (filterNode instanceof OrLogicExpression) {
 
-            return crowdClient.isUserDirectGroupMember(userId, groupId);
+            return new BooleanRestrictionImpl(
+                    BooleanRestriction.BooleanLogic.OR,
+                    ((OrLogicExpression) filterNode).getChildren().stream()
+                            .map(this::createUserSearchRestriction)
+                            .collect(Collectors.toList())
+            );
 
-        } catch (GroupNotFoundException |
-                UserNotFoundException e) {
+        } else if (filterNode instanceof EqualOperator) {
 
-            throw new EntryNotFoundException(e);
+            switch (LdapUtils.normalizeAttribute(((EqualOperator) filterNode).getAttribute())) {
 
-        } catch (ApplicationPermissionException |
-                InvalidAuthenticationException e) {
+                case SchemaConstants.UID_AT:
+                case SchemaConstants.UID_AT_OID:
+                case SchemaConstants.CN_AT:
+                case SchemaConstants.CN_AT_OID:
+                case SchemaConstants.COMMON_NAME_AT:
 
-            throw new SecurityProblemException(e);
+                    return new TermRestriction<>(
+                            UserTermKeys.USERNAME,
+                            MatchMode.EXACTLY_MATCHES,
+                            ((EqualOperator) filterNode).getValue()
+                    );
 
-        } catch (OperationFailedException e) {
+                case SchemaConstants.SN_AT:
+                case SchemaConstants.SN_AT_OID:
+                case SchemaConstants.SURNAME_AT:
 
-            throw new DirectoryAccessFailureException(e);
+                    return new TermRestriction<>(
+                            UserTermKeys.LAST_NAME,
+                            MatchMode.EXACTLY_MATCHES,
+                            ((EqualOperator) filterNode).getValue()
+                    );
+
+                case SchemaConstants.GN_AT:
+                case SchemaConstants.GN_AT_OID:
+                case SchemaConstants.GIVENNAME_AT:
+
+                    return new TermRestriction<>(
+                            UserTermKeys.FIRST_NAME,
+                            MatchMode.EXACTLY_MATCHES,
+                            ((EqualOperator) filterNode).getValue()
+                    );
+
+                case SchemaConstants.DISPLAY_NAME_AT:
+                case SchemaConstants.DISPLAY_NAME_AT_OID:
+
+                    return new TermRestriction<>(
+                            UserTermKeys.DISPLAY_NAME,
+                            MatchMode.EXACTLY_MATCHES,
+                            ((EqualOperator) filterNode).getValue()
+                    );
+
+                case SchemaConstants.MAIL_AT:
+                case SchemaConstants.MAIL_AT_OID:
+
+                    return new TermRestriction<>(
+                            UserTermKeys.EMAIL,
+                            MatchMode.EXACTLY_MATCHES,
+                            ((EqualOperator) filterNode).getValue()
+                    );
+
+                default:
+                    break;
+            }
         }
+
+        return NullRestrictionImpl.INSTANCE;
     }
 
-    public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    private SearchRestriction removeNullRestrictions(SearchRestriction restriction) {
 
-        logger.info("Call: isGroupTransitiveGroupMember");
+        if (restriction instanceof BooleanRestriction) {
 
-        try {
+            List<SearchRestriction> sr =
+                    ((BooleanRestriction) restriction).getRestrictions().stream()
+                            .map(this::removeNullRestrictions)
+                            .filter(x -> !(x instanceof NullRestriction))
+                            .collect(Collectors.toList());
 
-            crowdClient.getGroup(groupId1);
-
-            return getTransitiveParentGroupsOfGroup(groupId2).contains(groupId1);
-
-        } catch (GroupNotFoundException e) {
-
-            throw new EntryNotFoundException(e);
-
-        } catch (ApplicationPermissionException |
-                InvalidAuthenticationException e) {
-
-            throw new SecurityProblemException(e);
-
-        } catch (OperationFailedException e) {
-
-            throw new DirectoryAccessFailureException(e);
+            if (sr.size() == 0)
+                return NullRestrictionImpl.INSTANCE;
+            else if (sr.size() == 1)
+                return removeNullRestrictions(sr.get(0));
+            else
+                return new BooleanRestrictionImpl(((BooleanRestriction) restriction).getBooleanLogic(), sr);
         }
-    }
 
-    public boolean isUserTransitiveGroupMember(String userId, String groupId)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
-
-        logger.info("Call: isUserTransitiveGroupMember");
-
-        try {
-
-            crowdClient.getUser(userId);
-
-            return getTransitiveUsersOfGroup(groupId).contains(userId);
-
-        } catch (UserNotFoundException e) {
-
-            throw new EntryNotFoundException(e);
-
-        } catch (ApplicationPermissionException |
-                InvalidAuthenticationException e) {
-
-            throw new SecurityProblemException(e);
-
-        } catch (OperationFailedException e) {
-
-            throw new DirectoryAccessFailureException(e);
-        }
+        return restriction;
     }
 }

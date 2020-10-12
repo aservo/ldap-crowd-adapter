@@ -13,7 +13,7 @@ public class BootIntegrationTest {
     @Test
     public void start() {
 
-        System.setProperty("directory-backend", "com.aservo.ldap.adapter.CrowdDirectoryBackend");
+        System.setProperty("directory-backend", "com.aservo.ldap.adapter.backend.CrowdDirectoryBackend");
 
         String[] args = new String[]{
                 "no-colors",

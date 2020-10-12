@@ -1,6 +1,10 @@
 package com.aservo.ldap.adapter.misc;
 
+import com.aservo.ldap.adapter.adapter.entity.Entity;
 import com.aservo.ldap.adapter.helper.AbstractTest;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.*;
 
 
@@ -19,14 +23,20 @@ public class CyclicGroupsTest
     public void test001()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{"UserA"},
-                directoryBackend.getTransitiveUsersOfGroup("GroupA").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA")),
+                directoryBackend.getTransitiveUsersOfGroup("GroupA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"UserB", "UserC"},
-                directoryBackend.getTransitiveUsersOfGroup("GroupB").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserB", "UserC")),
+                directoryBackend.getTransitiveUsersOfGroup("GroupB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"UserC", "UserB"},
-                directoryBackend.getTransitiveUsersOfGroup("GroupC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserC", "UserB")),
+                directoryBackend.getTransitiveUsersOfGroup("GroupC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -35,14 +45,20 @@ public class CyclicGroupsTest
     public void test002()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{"GroupA"},
-                directoryBackend.getTransitiveGroupsOfUser("UserA").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA")),
+                directoryBackend.getTransitiveGroupsOfUser("UserA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupB", "GroupC"},
-                directoryBackend.getTransitiveGroupsOfUser("UserB").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupB", "GroupC")),
+                directoryBackend.getTransitiveGroupsOfUser("UserB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupC", "GroupB"},
-                directoryBackend.getTransitiveGroupsOfUser("UserC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC", "GroupB")),
+                directoryBackend.getTransitiveGroupsOfUser("UserC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -51,14 +67,20 @@ public class CyclicGroupsTest
     public void test003()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupA").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getTransitiveChildGroupsOfGroup("GroupA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupC"},
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupB").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC")),
+                directoryBackend.getTransitiveChildGroupsOfGroup("GroupB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupB"},
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupB")),
+                directoryBackend.getTransitiveChildGroupsOfGroup("GroupC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -67,13 +89,19 @@ public class CyclicGroupsTest
     public void test004()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupA").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getTransitiveParentGroupsOfGroup("GroupA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupC"},
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupB").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC")),
+                directoryBackend.getTransitiveParentGroupsOfGroup("GroupB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupB"},
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupB")),
+                directoryBackend.getTransitiveParentGroupsOfGroup("GroupC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 }

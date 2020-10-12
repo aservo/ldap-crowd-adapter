@@ -1,11 +1,13 @@
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.backend.DirectoryBackend;
-import com.aservo.ldap.adapter.backend.exception.EntryNotFoundException;
+import com.aservo.ldap.adapter.adapter.entity.Entity;
+import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.helper.AbstractTest;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.*;
 
 
@@ -24,28 +26,28 @@ public class CrowdDirectoryBackendTest
         for (String index : indices) {
 
             Assertions.assertEquals("Group" + index,
-                    directoryBackend.getGroupInfo("Group" + index).get(DirectoryBackend.GROUP_ID));
+                    directoryBackend.getGroup("Group" + index).getId());
 
             Assertions.assertEquals("Description of Group" + index + ".",
-                    directoryBackend.getGroupInfo("Group" + index).get(DirectoryBackend.GROUP_DESCRIPTION));
+                    directoryBackend.getGroup("Group" + index).getDescription());
         }
 
         for (String index : indices) {
 
             Assertions.assertEquals("User" + index,
-                    directoryBackend.getUserInfo("User" + index).get(DirectoryBackend.USER_ID));
-
-            Assertions.assertEquals("FirstNameOfUser" + index,
-                    directoryBackend.getUserInfo("User" + index).get(DirectoryBackend.USER_FIRST_NAME));
+                    directoryBackend.getUser("User" + index).getId());
 
             Assertions.assertEquals("LastNameOfUser" + index,
-                    directoryBackend.getUserInfo("User" + index).get(DirectoryBackend.USER_LAST_NAME));
+                    directoryBackend.getUser("User" + index).getLastName());
+
+            Assertions.assertEquals("FirstNameOfUser" + index,
+                    directoryBackend.getUser("User" + index).getFirstName());
 
             Assertions.assertEquals("DisplayNameOfUser" + index,
-                    directoryBackend.getUserInfo("User" + index).get(DirectoryBackend.USER_DISPLAY_NAME));
+                    directoryBackend.getUser("User" + index).getDisplayName());
 
             Assertions.assertEquals(index.toLowerCase() + ".user@email.com",
-                    directoryBackend.getUserInfo("User" + index).get(DirectoryBackend.USER_EMAIL_ADDRESS));
+                    directoryBackend.getUser("User" + index).getEmail());
         }
     }
 
@@ -59,18 +61,18 @@ public class CrowdDirectoryBackendTest
 
             Assertions.assertEquals("User" + index,
                     directoryBackend
-                            .getInfoFromAuthenticatedUser("User" + index, "pw-user-" + index.toLowerCase())
-                            .get(DirectoryBackend.USER_ID));
+                            .getAuthenticatedUser("User" + index, "pw-user-" + index.toLowerCase())
+                            .getId());
         }
 
         Assertions.assertThrows(SecurityProblemException.class, () -> {
 
-            directoryBackend.getInfoFromAuthenticatedUser("UserA", "pw-incorrect");
+            directoryBackend.getAuthenticatedUser("UserA", "pw-incorrect");
         });
 
-        Assertions.assertThrows(EntryNotFoundException.class, () -> {
+        Assertions.assertThrows(EntityNotFoundException.class, () -> {
 
-            directoryBackend.getInfoFromAuthenticatedUser("non-existing-user", "pw");
+            directoryBackend.getAuthenticatedUser("non-existing-user", "pw");
         });
     }
 
@@ -80,11 +82,15 @@ public class CrowdDirectoryBackendTest
     public void test003()
             throws Exception {
 
-        Assertions.assertArrayEquals(indices.stream().map((x) -> "Group" + x).toArray(),
-                directoryBackend.getAllGroups().toArray());
+        Assertions.assertEquals(indices.stream().map((x) -> "Group" + x).collect(Collectors.toSet()),
+                directoryBackend.getAllGroups().stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(indices.stream().map((x) -> "User" + x).toArray(),
-                directoryBackend.getAllUsers().toArray());
+        Assertions.assertEquals(indices.stream().map((x) -> "User" + x).collect(Collectors.toSet()),
+                directoryBackend.getAllUsers().stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -93,20 +99,30 @@ public class CrowdDirectoryBackendTest
     public void test004()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{"GroupA", "GroupB"},
-                directoryBackend.getDirectGroupsOfUser("UserA").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB")),
+                directoryBackend.getDirectGroupsOfUser("UserA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupA", "GroupB"},
-                directoryBackend.getDirectGroupsOfUser("UserB").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB")),
+                directoryBackend.getDirectGroupsOfUser("UserB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupB"},
-                directoryBackend.getDirectGroupsOfUser("UserC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupB")),
+                directoryBackend.getDirectGroupsOfUser("UserC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupA", "GroupC"},
-                directoryBackend.getDirectGroupsOfUser("UserD").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupC")),
+                directoryBackend.getDirectGroupsOfUser("UserD").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupE"},
-                directoryBackend.getDirectGroupsOfUser("UserE").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE")),
+                directoryBackend.getDirectGroupsOfUser("UserE").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -115,20 +131,30 @@ public class CrowdDirectoryBackendTest
     public void test005()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{"UserA", "UserB", "UserD"},
-                directoryBackend.getDirectUsersOfGroup("GroupA").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserD")),
+                directoryBackend.getDirectUsersOfGroup("GroupA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"UserA", "UserB", "UserC"},
-                directoryBackend.getDirectUsersOfGroup("GroupB").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserC")),
+                directoryBackend.getDirectUsersOfGroup("GroupB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"UserD"},
-                directoryBackend.getDirectUsersOfGroup("GroupC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserD")),
+                directoryBackend.getDirectUsersOfGroup("GroupC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getDirectUsersOfGroup("GroupD").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getDirectUsersOfGroup("GroupD").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"UserE"},
-                directoryBackend.getDirectUsersOfGroup("GroupE").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserE")),
+                directoryBackend.getDirectUsersOfGroup("GroupE").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -137,20 +163,30 @@ public class CrowdDirectoryBackendTest
     public void test006()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getDirectChildGroupsOfGroup("GroupA").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getDirectChildGroupsOfGroup("GroupA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getDirectChildGroupsOfGroup("GroupB").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getDirectChildGroupsOfGroup("GroupB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupA"},
-                directoryBackend.getDirectChildGroupsOfGroup("GroupC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA")),
+                directoryBackend.getDirectChildGroupsOfGroup("GroupC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupC"},
-                directoryBackend.getDirectChildGroupsOfGroup("GroupD").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC")),
+                directoryBackend.getDirectChildGroupsOfGroup("GroupD").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupD"},
-                directoryBackend.getDirectChildGroupsOfGroup("GroupE").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD")),
+                directoryBackend.getDirectChildGroupsOfGroup("GroupE").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -159,20 +195,30 @@ public class CrowdDirectoryBackendTest
     public void test007()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{"GroupC"},
-                directoryBackend.getDirectParentGroupsOfGroup("GroupA").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC")),
+                directoryBackend.getDirectParentGroupsOfGroup("GroupA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getDirectParentGroupsOfGroup("GroupB").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getDirectParentGroupsOfGroup("GroupB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupD"},
-                directoryBackend.getDirectParentGroupsOfGroup("GroupC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD")),
+                directoryBackend.getDirectParentGroupsOfGroup("GroupC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupE"},
-                directoryBackend.getDirectParentGroupsOfGroup("GroupD").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE")),
+                directoryBackend.getDirectParentGroupsOfGroup("GroupD").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getDirectParentGroupsOfGroup("GroupE").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getDirectParentGroupsOfGroup("GroupE").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -181,20 +227,30 @@ public class CrowdDirectoryBackendTest
     public void test008()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{"GroupA", "GroupB", "GroupC", "GroupD", "GroupE"},
-                directoryBackend.getTransitiveGroupsOfUser("UserA").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB", "GroupC", "GroupD", "GroupE")),
+                directoryBackend.getTransitiveGroupsOfUser("UserA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupA", "GroupB", "GroupC", "GroupD", "GroupE"},
-                directoryBackend.getTransitiveGroupsOfUser("UserB").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB", "GroupC", "GroupD", "GroupE")),
+                directoryBackend.getTransitiveGroupsOfUser("UserB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupB"},
-                directoryBackend.getTransitiveGroupsOfUser("UserC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupB")),
+                directoryBackend.getTransitiveGroupsOfUser("UserC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupA", "GroupC", "GroupD", "GroupE"},
-                directoryBackend.getTransitiveGroupsOfUser("UserD").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupC", "GroupD", "GroupE")),
+                directoryBackend.getTransitiveGroupsOfUser("UserD").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupE"},
-                directoryBackend.getTransitiveGroupsOfUser("UserE").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE")),
+                directoryBackend.getTransitiveGroupsOfUser("UserE").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -203,20 +259,30 @@ public class CrowdDirectoryBackendTest
     public void test009()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{"UserA", "UserB", "UserD"},
-                directoryBackend.getTransitiveUsersOfGroup("GroupA").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserD")),
+                directoryBackend.getTransitiveUsersOfGroup("GroupA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"UserA", "UserB", "UserC"},
-                directoryBackend.getTransitiveUsersOfGroup("GroupB").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserC")),
+                directoryBackend.getTransitiveUsersOfGroup("GroupB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"UserD", "UserA", "UserB"},
-                directoryBackend.getTransitiveUsersOfGroup("GroupC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserD", "UserA", "UserB")),
+                directoryBackend.getTransitiveUsersOfGroup("GroupC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"UserD", "UserA", "UserB"},
-                directoryBackend.getTransitiveUsersOfGroup("GroupD").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserD", "UserA", "UserB")),
+                directoryBackend.getTransitiveUsersOfGroup("GroupD").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"UserE", "UserD", "UserA", "UserB"},
-                directoryBackend.getTransitiveUsersOfGroup("GroupE").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserE", "UserD", "UserA", "UserB")),
+                directoryBackend.getTransitiveUsersOfGroup("GroupE").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -225,20 +291,30 @@ public class CrowdDirectoryBackendTest
     public void test010()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupA").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getTransitiveChildGroupsOfGroup("GroupA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupB").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getTransitiveChildGroupsOfGroup("GroupB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupA"},
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA")),
+                directoryBackend.getTransitiveChildGroupsOfGroup("GroupC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupC", "GroupA"},
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupD").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC", "GroupA")),
+                directoryBackend.getTransitiveChildGroupsOfGroup("GroupD").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupD", "GroupC", "GroupA"},
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupE").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD", "GroupC", "GroupA")),
+                directoryBackend.getTransitiveChildGroupsOfGroup("GroupE").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 
     @Test
@@ -247,19 +323,29 @@ public class CrowdDirectoryBackendTest
     public void test011()
             throws Exception {
 
-        Assertions.assertArrayEquals(new String[]{"GroupC", "GroupD", "GroupE"},
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupA").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC", "GroupD", "GroupE")),
+                directoryBackend.getTransitiveParentGroupsOfGroup("GroupA").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupB").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getTransitiveParentGroupsOfGroup("GroupB").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupD", "GroupE"},
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupC").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD", "GroupE")),
+                directoryBackend.getTransitiveParentGroupsOfGroup("GroupC").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{"GroupE"},
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupD").toArray());
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE")),
+                directoryBackend.getTransitiveParentGroupsOfGroup("GroupD").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
 
-        Assertions.assertArrayEquals(new String[]{},
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupE").toArray());
+        Assertions.assertEquals(new HashSet<>(),
+                directoryBackend.getTransitiveParentGroupsOfGroup("GroupE").stream()
+                        .map(Entity::getId)
+                        .collect(Collectors.toSet()));
     }
 }

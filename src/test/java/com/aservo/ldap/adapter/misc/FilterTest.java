@@ -1,7 +1,9 @@
 package com.aservo.ldap.adapter.misc;
 
+import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.LdapUtils;
+import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.helper.AbstractTest;
-import com.aservo.ldap.adapter.util.Utils;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
@@ -47,18 +49,18 @@ public class FilterTest
         Assertions.assertTrue(results.hasMore());
         checkUsersEntry(((SearchResult) results.next()).getAttributes());
 
-        for (String entry : directoryBackend.getAllGroups()) {
+        for (GroupEntity group : directoryBackend.getAllGroups()) {
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, false));
+            Assertions.assertEquals(group.getId(), getAndCheckGroupEntry(attributes, false));
         }
 
-        for (String entry : directoryBackend.getAllUsers()) {
+        for (UserEntity user : directoryBackend.getAllUsers()) {
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, false));
+            Assertions.assertEquals(user.getId(), getAndCheckUserEntry(attributes, false));
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -132,7 +134,7 @@ public class FilterTest
         String filter =
                 "(&" +
                         "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + ")" +
-                        "(" + SchemaConstants.OU_AT + "=" + Utils.OU_GROUPS + ")" +
+                        "(" + SchemaConstants.OU_AT + "=" + LdapUtils.OU_GROUPS + ")" +
                         ")";
 
         InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
@@ -161,7 +163,7 @@ public class FilterTest
         String filter =
                 "(&" +
                         "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + ")" +
-                        "(" + SchemaConstants.OU_AT + "=" + Utils.OU_USERS + ")" +
+                        "(" + SchemaConstants.OU_AT + "=" + LdapUtils.OU_USERS + ")" +
                         ")";
 
         InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
@@ -236,11 +238,11 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        for (String entry : directoryBackend.getAllUsers()) {
+        for (UserEntity user : directoryBackend.getAllUsers()) {
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes, false));
+            Assertions.assertEquals(user.getId(), getAndCheckUserEntry(attributes, false));
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -275,11 +277,11 @@ public class FilterTest
         Assertions.assertTrue(results.hasMore());
         checkUsersEntry(((SearchResult) results.next()).getAttributes());
 
-        for (String entry : directoryBackend.getAllGroups()) {
+        for (GroupEntity group : directoryBackend.getAllGroups()) {
 
             Assertions.assertTrue(results.hasMore());
             Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes, false));
+            Assertions.assertEquals(group.getId(), getAndCheckGroupEntry(attributes, false));
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -325,6 +327,8 @@ public class FilterTest
             throws Exception {
 
         String base = "ou=groups,dc=json";
+
+        // ['GroupB', 'GroupC', 'GroupD']
 
         String filter =
                 "(&" +

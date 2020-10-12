@@ -1,7 +1,29 @@
+/*
+ * Copyright (c) 2019 ASERVO Software GmbH
+ * contact@aservo.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.aservo.ldap.adapter.backend;
 
+import com.aservo.ldap.adapter.adapter.FilterMatcher;
+import com.aservo.ldap.adapter.adapter.entity.Entity;
+import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.UserEntity;
+import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
-import com.aservo.ldap.adapter.backend.exception.EntryNotFoundException;
+import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -11,7 +33,10 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +49,8 @@ public class JsonDirectoryBackend
         implements DirectoryBackend {
 
     private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
-
-    private final String id;
-    private final List<Group> groups = new ArrayList<>();
-    private final List<User> users = new ArrayList<>();
-
+    private final List<Group> groupList = new ArrayList<>();
+    private final List<User> userList = new ArrayList<>();
     private final File dbFile;
 
     /**
@@ -37,8 +59,6 @@ public class JsonDirectoryBackend
      * @param properties the properties
      */
     public JsonDirectoryBackend(Properties properties) {
-
-        id = "JSON";
 
         try {
 
@@ -71,11 +91,10 @@ public class JsonDirectoryBackend
 
     public String getId() {
 
-        return id;
+        return "json";
     }
 
-    public void startup()
-            throws DirectoryAccessFailureException, SecurityProblemException {
+    public void startup() {
 
         try {
 
@@ -91,10 +110,10 @@ public class JsonDirectoryBackend
 
             for (JsonElement element : userNode) {
 
-                users.add(new User(
+                userList.add(new User(
                         element.getAsJsonObject().get("id").getAsString(),
-                        element.getAsJsonObject().get("first_name").getAsString(),
                         element.getAsJsonObject().get("last_name").getAsString(),
+                        element.getAsJsonObject().get("first_name").getAsString(),
                         element.getAsJsonObject().get("display_name").getAsString(),
                         element.getAsJsonObject().get("email").getAsString(),
                         element.getAsJsonObject().get("password").getAsString()
@@ -103,7 +122,7 @@ public class JsonDirectoryBackend
 
             for (JsonElement x : groupNode) {
 
-                groups.add(new Group(
+                groupList.add(new Group(
                         x.getAsJsonObject().get("id").getAsString(),
                         x.getAsJsonObject().get("description").getAsString()
                 ));
@@ -115,17 +134,17 @@ public class JsonDirectoryBackend
                 JsonArray groupMemberNode = x.getAsJsonObject().getAsJsonArray("group_members");
                 JsonArray userMemberNode = x.getAsJsonObject().getAsJsonArray("user_members");
 
-                Group group = groups.stream().filter(z -> z.getId().equals(groupId)).findAny()
+                Group group = groupList.stream().filter(z -> z.getId().equals(groupId)).findAny()
                         .orElseThrow(() -> new IllegalStateException("Unknown error."));
 
                 for (JsonElement y : groupMemberNode)
-                    group.addGroup(groups.stream().filter(z -> z.getId().equals(y.getAsString())).findAny()
+                    group.addGroup(groupList.stream().filter(z -> z.getId().equals(y.getAsString())).findAny()
                             .orElseThrow(() -> new IllegalArgumentException(
                                     "Cannot find group member with id " + y.getAsString()
                             )));
 
                 for (JsonElement y : userMemberNode)
-                    group.addUser(users.stream().filter(z -> z.getId().equals(y.getAsString())).findAny()
+                    group.addUser(userList.stream().filter(z -> z.getId().equals(y.getAsString())).findAny()
                             .orElseThrow(() -> new IllegalArgumentException(
                                     "Cannot find user member with id " + y.getAsString()
                             )));
@@ -137,297 +156,247 @@ public class JsonDirectoryBackend
         }
     }
 
-    public void shutdown()
-            throws DirectoryAccessFailureException, SecurityProblemException {
+    public void shutdown() {
 
-        groups.clear();
-        users.clear();
+        groupList.clear();
+        userList.clear();
     }
 
-    private Group findGroupById(String id)
-            throws EntryNotFoundException {
+    public GroupEntity getGroup(String id)
+            throws EntityNotFoundException {
 
-        return groups.stream()
-                .filter(x -> x.getId().equalsIgnoreCase(id))
-                .findAny()
-                .orElseThrow(() -> new EntryNotFoundException("Cannot find group with id " + id));
+        logger.info("Call: getGroup; id={}", id);
+
+        return findGroupById(id);
     }
 
-    private User findUserById(String id)
-            throws EntryNotFoundException {
+    public UserEntity getUser(String id)
+            throws EntityNotFoundException {
 
-        return users.stream()
-                .filter(x -> x.getId().equalsIgnoreCase(id))
-                .findAny()
-                .orElseThrow(() -> new EntryNotFoundException("Cannot find user with id " + id));
+        logger.info("Call: getUser; id={}", id);
+
+        return findUserById(id);
     }
 
-    public Map<String, String> getGroupInfo(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public UserEntity getAuthenticatedUser(String id, String password)
+            throws EntityNotFoundException {
 
-        logger.info("Call: getGroupInfo; id={}", id);
-
-        Group group = findGroupById(id);
-
-        return mapGroupInfo(group);
-    }
-
-    public Map<String, String> getUserInfo(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
-
-        logger.info("Call: getUserInfo; id={}", id);
-
-        User user = findUserById(id);
-
-        return mapUserInfo(user);
-    }
-
-    public Map<String, String> getInfoFromAuthenticatedUser(String id, String password)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
-
-        logger.info("Call: getInfoFromAuthenticatedUser; id={}", id);
+        logger.info("Call: getAuthenticatedUser; id={}", id);
 
         User user = findUserById(id);
 
         if (!user.getPassword().equals(password))
             throw new SecurityProblemException("Could not authenticate user with id " + id);
 
-        return mapUserInfo(user);
+        return user;
     }
 
-    private Map<String, String> mapGroupInfo(Group group) {
+    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        Map<String, String> map = new HashMap<>();
+        logger.info("Call: getGroups");
 
-        map.put(GROUP_ID, group.getId());
-        map.put(GROUP_DESCRIPTION, group.getDescription());
-
-        return map;
-    }
-
-    private Map<String, String> mapUserInfo(User user) {
-
-        Map<String, String> map = new HashMap<>();
-
-        map.put(USER_ID, user.getId());
-        map.put(USER_FIRST_NAME, user.getFirstName());
-        map.put(USER_LAST_NAME, user.getLastName());
-        map.put(USER_DISPLAY_NAME, user.getDisplayName());
-        map.put(USER_EMAIL_ADDRESS, user.getEmail());
-
-        return map;
-    }
-
-    public List<String> getAllGroups()
-            throws DirectoryAccessFailureException, SecurityProblemException {
-
-        logger.info("Call: getAllGroups");
-
-        return groups.stream()
-                .map(Group::getId)
+        return groupList.stream()
+                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
                 .collect(Collectors.toList());
     }
 
-    public List<String> getAllUsers()
-            throws DirectoryAccessFailureException, SecurityProblemException {
+    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        logger.info("Call: getAllUsers");
+        logger.info("Call: getUsers");
 
-        return users.stream()
-                .map(User::getId)
+        return userList.stream()
+                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
                 .collect(Collectors.toList());
     }
 
-    public List<String> getGroupsByAttribute(String attribute, String value)
-            throws DirectoryAccessFailureException, SecurityProblemException {
-
-        Map<String, String> map = new HashMap<>();
-
-        map.put(attribute, value);
-
-        return getGroupsByAttributes(map);
-    }
-
-    public List<String> getUsersByAttribute(String attribute, String value)
-            throws DirectoryAccessFailureException, SecurityProblemException {
-
-        Map<String, String> map = new HashMap<>();
-
-        map.put(attribute, value);
-
-        return getUsersByAttributes(map);
-    }
-
-    public List<String> getGroupsByAttributes(Map<String, String> attributeMap)
-            throws DirectoryAccessFailureException, SecurityProblemException {
-
-        logger.info("Call: getGroupsByAttributes");
-
-        if (attributeMap.isEmpty())
-            return getAllGroups();
-
-        return groups.stream().filter(group -> {
-
-            return attributeMap.entrySet().stream().allMatch(entry -> {
-
-                if (entry.getKey().equalsIgnoreCase(GROUP_ID))
-                    return group.getId().equalsIgnoreCase(entry.getValue());
-                else if (entry.getKey().equalsIgnoreCase(GROUP_DESCRIPTION))
-                    return group.getDescription().equalsIgnoreCase(entry.getValue());
-                else
-                    return false;
-            });
-        })
-                .map(Group::getId)
-                .collect(Collectors.toList());
-    }
-
-    public List<String> getUsersByAttributes(Map<String, String> attributeMap)
-            throws DirectoryAccessFailureException, SecurityProblemException {
-
-        logger.info("Call: getUsersByAttributes");
-
-        if (attributeMap.isEmpty())
-            return getAllUsers();
-
-        return users.stream().filter(user -> {
-
-            return attributeMap.entrySet().stream().allMatch(entry -> {
-
-                if (entry.getKey().equalsIgnoreCase(USER_ID))
-                    return user.getId().equalsIgnoreCase(entry.getValue());
-                else if (entry.getKey().equalsIgnoreCase(USER_FIRST_NAME))
-                    return user.getFirstName().equalsIgnoreCase(entry.getValue());
-                else if (entry.getKey().equalsIgnoreCase(USER_LAST_NAME))
-                    return user.getLastName().equalsIgnoreCase(entry.getValue());
-                else if (entry.getKey().equalsIgnoreCase(USER_DISPLAY_NAME))
-                    return user.getDisplayName().equalsIgnoreCase(entry.getValue());
-                else if (entry.getKey().equalsIgnoreCase(USER_EMAIL_ADDRESS))
-                    return user.getEmail().equalsIgnoreCase(entry.getValue());
-                else
-                    return false;
-            });
-        })
-                .map(User::getId)
-                .collect(Collectors.toList());
-    }
-
-    public List<String> getDirectUsersOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<UserEntity> getDirectUsersOfGroup(String id)
+            throws EntityNotFoundException {
 
         logger.info("Call: getDirectUsersOfGroup; id={}", id);
 
         Group group = findGroupById(id);
 
-        return group.userMembers.stream()
-                .map(User::getId)
-                .collect(Collectors.toList());
+        return new ArrayList<>(group.userMembers);
     }
 
-    public List<String> getDirectGroupsOfUser(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<GroupEntity> getDirectGroupsOfUser(String id)
+            throws EntityNotFoundException {
 
         logger.info("Call: getDirectGroupsOfUser; id={}", id);
 
         User user = findUserById(id);
 
-        return groups.stream()
+        return groupList.stream()
                 .filter(x -> x.getUserMembers().contains(user))
-                .map(Group::getId)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getTransitiveUsersOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<UserEntity> getTransitiveUsersOfGroup(String id)
+            throws EntityNotFoundException {
 
         logger.info("Call: getTransitiveUsersOfGroup; id={}", id);
 
-        List<String> userIds = getDirectUsersOfGroup(id);
+        List<UserEntity> users = getDirectUsersOfGroup(id);
 
-        for (String y : getTransitiveChildGroupsOfGroup(id))
-            for (String x : getDirectUsersOfGroup(y))
-                if (!userIds.contains(x))
-                    userIds.add(x);
+        for (GroupEntity y : getTransitiveChildGroupsOfGroup(id))
+            for (UserEntity x : getDirectUsersOfGroup(y.getId()))
+                if (!users.contains(x))
+                    users.add(x);
 
-        return userIds;
+        return users;
     }
 
-    public List<String> getTransitiveGroupsOfUser(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<GroupEntity> getTransitiveGroupsOfUser(String id)
+            throws EntityNotFoundException {
 
         logger.info("Call: getTransitiveGroupsOfUser; id={}", id);
 
-        List<String> groupIds = getDirectGroupsOfUser(id);
+        List<GroupEntity> groups = getDirectGroupsOfUser(id);
 
-        for (String y : new ArrayList<>(groupIds))
-            for (String x : getTransitiveParentGroupsOfGroup(y))
-                if (!groupIds.contains(x))
-                    groupIds.add(x);
+        for (GroupEntity y : new ArrayList<>(groups))
+            for (GroupEntity x : getTransitiveParentGroupsOfGroup(y.getId()))
+                if (!groups.contains(x))
+                    groups.add(x);
 
-        return groupIds;
+        return groups;
     }
 
-    public List<String> getDirectChildGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
+            throws EntityNotFoundException {
 
         logger.info("Call: getDirectChildGroupsOfGroup; id={}", id);
 
         Group group = findGroupById(id);
 
-        return group.groupMembers.stream()
-                .map(Group::getId)
-                .collect(Collectors.toList());
+        return new ArrayList<>(group.groupMembers);
     }
 
-    public List<String> getDirectParentGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
+            throws EntityNotFoundException {
 
         logger.info("Call: getDirectParentGroupsOfGroup; id={}", id);
 
         Group group = findGroupById(id);
 
-        return groups.stream()
+        return groupList.stream()
                 .filter(x -> x.getGroupMembers().contains(group))
-                .map(Group::getId)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getTransitiveChildGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
+            throws EntityNotFoundException {
 
         logger.info("Call: getTransitiveChildGroupsOfGroup; id={}", id);
 
-        List<Group> acc = new ArrayList<>();
+        List<Group> groups = new ArrayList<>();
         Group group = findGroupById(id);
 
-        acc.add(group);
-        resolveGroupsDownwards(group, acc);
-        acc.remove(group);
+        groups.add(group);
+        resolveGroupsDownwards(group, groups);
+        groups.remove(group);
 
-        return acc.stream()
-                .map(Group::getId)
-                .collect(Collectors.toList());
+        return new ArrayList<>(groups);
     }
 
-    public List<String> getTransitiveParentGroupsOfGroup(String id)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
+            throws EntityNotFoundException {
 
         logger.info("Call: getTransitiveParentGroupsOfGroup; id={}", id);
 
-        List<Group> acc = new ArrayList<>();
+        List<Group> groups = new ArrayList<>();
         Group group = findGroupById(id);
 
-        acc.add(group);
-        resolveGroupsUpwards(group, acc);
-        acc.remove(group);
+        groups.add(group);
+        resolveGroupsUpwards(group, groups);
+        groups.remove(group);
 
-        return acc.stream()
-                .map(Group::getId)
+        return new ArrayList<>(groups);
+    }
+
+    public List<String> getDirectUserIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return getDirectUsersOfGroup(id).stream()
+                .map(Entity::getId)
                 .collect(Collectors.toList());
     }
 
+    public List<String> getDirectGroupIdsOfUser(String id)
+            throws EntityNotFoundException {
+
+        return getDirectGroupsOfUser(id).stream()
+                .map(Entity::getId)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getTransitiveUserIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return getTransitiveUsersOfGroup(id).stream()
+                .map(Entity::getId)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getTransitiveGroupIdsOfUser(String id)
+            throws EntityNotFoundException {
+
+        return getTransitiveGroupsOfUser(id).stream()
+                .map(Entity::getId)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getDirectChildGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return getDirectChildGroupsOfGroup(id).stream()
+                .map(Entity::getId)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getDirectParentGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return getDirectParentGroupsOfGroup(id).stream()
+                .map(Entity::getId)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getTransitiveChildGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return getTransitiveChildGroupsOfGroup(id).stream()
+                .map(Entity::getId)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getTransitiveParentGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return getTransitiveParentGroupsOfGroup(id).stream()
+                .map(Entity::getId)
+                .collect(Collectors.toList());
+    }
+
+    private Group findGroupById(String id)
+            throws EntityNotFoundException {
+
+        return groupList.stream()
+                .filter(x -> x.getId().equalsIgnoreCase(id))
+                .findAny()
+                .orElseThrow(() -> new EntityNotFoundException("Cannot find group with id " + id));
+    }
+
+    private User findUserById(String id)
+            throws EntityNotFoundException {
+
+        return userList.stream()
+                .filter(x -> x.getId().equalsIgnoreCase(id))
+                .findAny()
+                .orElseThrow(() -> new EntityNotFoundException("Cannot find user with id " + id));
+    }
+
     private void resolveGroupsDownwards(Group group, List<Group> acc)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+            throws DirectoryAccessFailureException, SecurityProblemException, EntityNotFoundException {
 
         List<Group> result = group.getGroupMembers();
 
@@ -439,10 +408,10 @@ public class JsonDirectoryBackend
     }
 
     private void resolveGroupsUpwards(Group group, List<Group> acc)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+            throws DirectoryAccessFailureException, SecurityProblemException, EntityNotFoundException {
 
         List<Group> result =
-                groups.stream()
+                groupList.stream()
                         .filter(x -> x.getGroupMembers().contains(group))
                         .collect(Collectors.toList());
 
@@ -453,52 +422,9 @@ public class JsonDirectoryBackend
             resolveGroupsUpwards(x, acc);
     }
 
-    public boolean isGroupDirectGroupMember(String groupId1, String groupId2)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
+    private static class Group
+            extends GroupEntity {
 
-        logger.info("Call: isGroupDirectGroupMember");
-
-        findGroupById(groupId1);
-
-        return getDirectChildGroupsOfGroup(groupId2).stream()
-                .anyMatch(x -> x.equalsIgnoreCase(groupId1));
-    }
-
-    public boolean isUserDirectGroupMember(String userId, String groupId)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
-
-        logger.info("Call: isUserDirectGroupMember");
-
-        findUserById(userId);
-
-        return getDirectUsersOfGroup(groupId).stream()
-                .anyMatch(x -> x.equalsIgnoreCase(userId));
-    }
-
-    public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
-
-        logger.info("Call: isGroupTransitiveGroupMember");
-
-        findGroupById(groupId1);
-
-        return getTransitiveParentGroupsOfGroup(groupId2).contains(groupId1);
-    }
-
-    public boolean isUserTransitiveGroupMember(String userId, String groupId)
-            throws DirectoryAccessFailureException, SecurityProblemException, EntryNotFoundException {
-
-        logger.info("Call: isUserTransitiveGroupMember");
-
-        findUserById(userId);
-
-        return getTransitiveUsersOfGroup(groupId).contains(userId);
-    }
-
-    private static class Group {
-
-        private final String id;
-        private final String description;
         private final List<Group> groupMembers = new ArrayList<>();
         private final List<User> userMembers = new ArrayList<>();
 
@@ -510,49 +436,7 @@ public class JsonDirectoryBackend
          */
         public Group(String id, String description) {
 
-            this.id = id;
-            this.description = description;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-
-            if (this == obj)
-                return true;
-
-            if (obj == null)
-                return false;
-
-            if (!(obj instanceof Group))
-                return false;
-
-            return Objects.equals(id, ((Group) obj).id);
-        }
-
-        @Override
-        public int hashCode() {
-
-            return Objects.hash(id);
-        }
-
-        /**
-         * Gets id.
-         *
-         * @return the id
-         */
-        public String getId() {
-
-            return id;
-        }
-
-        /**
-         * Gets description.
-         *
-         * @return the description
-         */
-        public String getDescription() {
-
-            return description;
+            super(id, description);
         }
 
         /**
@@ -596,13 +480,9 @@ public class JsonDirectoryBackend
         }
     }
 
-    private static class User {
+    private static class User
+            extends UserEntity {
 
-        private final String id;
-        private final String firstName;
-        private final String lastName;
-        private final String displayName;
-        private final String email;
         private final String password;
 
         /**
@@ -615,85 +495,10 @@ public class JsonDirectoryBackend
          * @param email       the email
          * @param password    the password
          */
-        public User(String id, String firstName, String lastName, String displayName, String email, String password) {
+        public User(String id, String lastName, String firstName, String displayName, String email, String password) {
 
-            this.id = id;
-            this.firstName = firstName;
-            this.lastName = lastName;
-            this.displayName = displayName;
-            this.email = email;
+            super(id, lastName, firstName, displayName, email);
             this.password = password;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-
-            if (this == obj)
-                return true;
-
-            if (obj == null)
-                return false;
-
-            if (!(obj instanceof User))
-                return false;
-
-            return Objects.equals(id, ((User) obj).id);
-        }
-
-        @Override
-        public int hashCode() {
-
-            return Objects.hash(id);
-        }
-
-        /**
-         * Gets id.
-         *
-         * @return the id
-         */
-        public String getId() {
-
-            return id;
-        }
-
-        /**
-         * Gets first name.
-         *
-         * @return the first name
-         */
-        public String getFirstName() {
-
-            return firstName;
-        }
-
-        /**
-         * Gets last name.
-         *
-         * @return the last name
-         */
-        public String getLastName() {
-
-            return lastName;
-        }
-
-        /**
-         * Gets display name.
-         *
-         * @return the display name
-         */
-        public String getDisplayName() {
-
-            return displayName;
-        }
-
-        /**
-         * Gets email.
-         *
-         * @return the email
-         */
-        public String getEmail() {
-
-            return email;
         }
 
         /**

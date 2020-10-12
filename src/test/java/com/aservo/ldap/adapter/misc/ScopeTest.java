@@ -1,5 +1,7 @@
 package com.aservo.ldap.adapter.misc;
 
+import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.helper.AbstractTest;
 import java.util.Arrays;
 import java.util.List;
@@ -230,22 +232,22 @@ public class ScopeTest
         checkUsersEntry(((SearchResult) results1.next()).getAttributes());
         checkUsersEntry(((SearchResult) results2.next()).getAttributes());
 
-        for (String entry : directoryBackend.getAllGroups()) {
+        for (GroupEntity entry : directoryBackend.getAllGroups()) {
 
             Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes1, false));
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes2, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes1, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes2, false));
         }
 
-        for (String entry : directoryBackend.getAllUsers()) {
+        for (UserEntity entry : directoryBackend.getAllUsers()) {
 
             Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes1, false));
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes2, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes1, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes2, false));
         }
 
         Assertions.assertFalse(results1.hasMore() || results2.hasMore());
@@ -279,13 +281,13 @@ public class ScopeTest
         checkGroupsEntry(((SearchResult) results1.next()).getAttributes());
         checkGroupsEntry(((SearchResult) results2.next()).getAttributes());
 
-        for (String entry : directoryBackend.getAllGroups()) {
+        for (GroupEntity entry : directoryBackend.getAllGroups()) {
 
             Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes1, false));
-            Assertions.assertEquals(entry, getAndCheckGroupEntry(attributes2, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes1, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes2, false));
         }
 
         Assertions.assertFalse(results1.hasMore() || results2.hasMore());
@@ -319,13 +321,13 @@ public class ScopeTest
         checkUsersEntry(((SearchResult) results1.next()).getAttributes());
         checkUsersEntry(((SearchResult) results2.next()).getAttributes());
 
-        for (String entry : directoryBackend.getAllUsers()) {
+        for (UserEntity entry : directoryBackend.getAllUsers()) {
 
             Assertions.assertTrue(results1.hasMore() && results2.hasMore());
             Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
             Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes1, false));
-            Assertions.assertEquals(entry, getAndCheckUserEntry(attributes2, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes1, false));
+            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes2, false));
         }
 
         Assertions.assertFalse(results1.hasMore() || results2.hasMore());
