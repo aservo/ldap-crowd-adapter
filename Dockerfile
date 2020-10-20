@@ -18,6 +18,7 @@ ADD src/ /app/src/
 ADD project/build.properties /app/project/
 ADD project/plugins.sbt /app/project/
 ADD build.sbt /app/
+ADD init.sh /app/
 ADD start.sh /app/
 
 RUN groupadd -r -g 1000 appuser && \
@@ -86,4 +87,5 @@ RUN if [ -n "$JVM_ONLY_HTTP_PROXY_HOST" ]; then export JAVA_OPTS="-Dhttp.proxyHo
     if [ -n "$JVM_ONLY_NO_PROXY" ]; then export JAVA_OPTS="-Dhttp.nonProxyHosts=$JVM_ONLY_NO_PROXY $JAVA_OPTS"; fi && \
     sbt compile
 
+ENTRYPOINT ["/app/init.sh"]
 CMD ["/app/start.sh"]

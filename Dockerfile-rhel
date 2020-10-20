@@ -18,6 +18,7 @@ ADD src/ /app/src/
 ADD project/build.properties /app/project/
 ADD project/plugins.sbt /app/project/
 ADD build.sbt /app/
+ADD init.sh /app/
 ADD start.sh /app/
 
 RUN groupadd -r -g 1000 appuser && \
