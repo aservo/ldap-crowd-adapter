@@ -22,6 +22,7 @@
 
 package com.aservo.ldap.adapter;
 
+import com.aservo.ldap.adapter.backend.CachedDirectoryBackend;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
@@ -76,7 +77,16 @@ public class CommonLdapServer {
     public CommonLdapServer(ServerConfiguration serverConfig) {
 
         this.serverConfig = serverConfig;
-        this.directoryBackend = serverConfig.getDirectoryBackend();
+
+        if (serverConfig.isEntryCacheEnabled())
+            this.directoryBackend =
+                    new CachedDirectoryBackend(
+                            serverConfig.getDirectoryBackend(),
+                            serverConfig.getEntryCacheMaxSize(),
+                            serverConfig.getEntryCacheMaxAge()
+                    );
+        else
+            this.directoryBackend = serverConfig.getDirectoryBackend();
 
         createNewLoaders();
         directoryService = initDirectoryService();
