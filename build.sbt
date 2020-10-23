@@ -7,7 +7,7 @@ name := "Crowd-LDAP-Server"
 
 description := "LDAP Server Bridge for Crowd"
 
-version := "4.0.0"
+version := "5.0.0"
 
 autoScalaLibrary := false
 
