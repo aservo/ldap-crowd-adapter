@@ -3,7 +3,7 @@ organizationName := "ASERVO Software GmbH"
 
 organization := "com.aservo"
 
-name := "Crowd-LDAP-Server"
+name := "LDAP-Crowd-Adapter"
 
 description := "LDAP Server Bridge for Crowd"
 
