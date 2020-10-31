@@ -1,8 +1,7 @@
 LDAP Crowd Adapter
 ==================
 
-This project is an LDAP server implementation based on the Apache Directory Server. It allows authentication and
-authorization by delegating queries to an Atlassian Crowd installation using the Crowd REST-API.
+This project is an adapter that allows LDAP based clients to interact with Atlassian Crowd. This LDAP server implementation based on the Apache Directory Server. It allows authentication and authorization by delegating queries to an Atlassian Crowd instance using the Crowd REST-API.
 
 ### How to start
 
