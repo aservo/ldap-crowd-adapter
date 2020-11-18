@@ -52,7 +52,7 @@ libraryDependencies ++= Seq(
   "org.jetbrains" % "annotations" % "19.0.0",
   "com.google.code.gson" % "gson" % "2.8.6",
   "org.apache.directory.server" % "apacheds-all" % "2.0.0-M24",
-  "com.atlassian.crowd" % "crowd-integration-client-rest" % "4.1.2",
+  "com.atlassian.crowd" % "crowd-integration-client-rest" % "4.2.1",
   "com.atlassian.security" % "atlassian-cookie-tools" % "3.2.14" jar,
   "org.junit.platform" % "junit-platform-launcher" % "1.5.2" % "test,it",
   "org.junit.jupiter" % "junit-jupiter-engine" % "5.5.2" % "test,it",
