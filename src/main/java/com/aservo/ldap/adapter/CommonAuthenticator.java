@@ -28,9 +28,11 @@ import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
+import com.aservo.ldap.adapter.util.exception.InternalServerException;
 import java.nio.charset.StandardCharsets;
 import javax.naming.AuthenticationException;
 import org.apache.directory.api.ldap.model.constants.AuthenticationLevel;
+import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.server.core.api.LdapPrincipal;
 import org.apache.directory.server.core.api.interceptor.context.BindOperationContext;
@@ -66,48 +68,51 @@ public class CommonAuthenticator
     public LdapPrincipal authenticate(BindOperationContext context)
             throws Exception {
 
-        String userId = LdapUtils.getUserIdFromDn(schemaManager, directoryBackend, context.getDn().getName());
+        try {
 
-        if (userId != null) {
+            String userId = LdapUtils.getUserIdFromDn(schemaManager, directoryBackend, context.getDn().getName());
+
+            if (userId == null)
+                throw new LdapInvalidDnException("Cannot handle unexpected DN=" + context.getDn());
 
             String password = new String(context.getCredentials(), StandardCharsets.UTF_8);
 
-            try {
+            UserEntity user = directoryBackend.getAuthenticatedUser(userId, password);
 
-                UserEntity user = directoryBackend.getAuthenticatedUser(userId, password);
+            logger.info("[{}] - The user {} with DN={} has been successfully authenticated.",
+                    context.getIoSession().getRemoteAddress(),
+                    user.getId(),
+                    context.getDn());
 
-                logger.info("[{}] - The user {} with DN={} has been successfully authenticated.",
-                        context.getIoSession().getRemoteAddress(),
-                        user.getId(),
-                        context.getDn());
+            return new LdapPrincipal(schemaManager, context.getDn(), AuthenticationLevel.SIMPLE);
 
-                return new LdapPrincipal(schemaManager, context.getDn(), AuthenticationLevel.SIMPLE);
-
-            } catch (DirectoryAccessFailureException |
-                    SecurityProblemException |
-                    EntityNotFoundException e) {
-
-                logger.info("[{}] - Authentication with DN={} could not be performed.",
-                        context.getIoSession().getRemoteAddress(),
-                        context.getDn());
-
-                logger.debug("Authentication failed.", e);
-
-                throw e;
-            }
-
-        } else {
-
-            AuthenticationException error =
-                    new AuthenticationException("Cannot handle unexpected DN=" + context.getDn());
+        } catch (LdapInvalidDnException e) {
 
             logger.info("[{}] - Authentication with incorrect DN={} could not be performed.",
                     context.getIoSession().getRemoteAddress(),
                     context.getDn());
 
-            logger.warn("Authentication failed.", error);
+            logger.debug("Authentication failed.", e);
 
-            throw error;
+            throw new AuthenticationException(e.getMessage());
+
+        } catch (DirectoryAccessFailureException |
+                SecurityProblemException |
+                EntityNotFoundException e) {
+
+            logger.info("[{}] - Authentication with DN={} could not be performed.",
+                    context.getIoSession().getRemoteAddress(),
+                    context.getDn());
+
+            logger.debug("Authentication failed.", e);
+
+            throw new AuthenticationException(e.getMessage());
+
+        } catch (Exception e) {
+
+            logger.error("The authenticator caught an exception.", e);
+
+            throw new InternalServerException("The authenticator has detected an internal server error.");
         }
     }
 }

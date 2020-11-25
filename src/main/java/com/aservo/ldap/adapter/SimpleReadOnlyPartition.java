@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter;
 
+import com.aservo.ldap.adapter.util.exception.InternalServerException;
 import java.io.IOException;
 import java.io.OutputStream;
 import javax.naming.OperationNotSupportedException;
@@ -149,6 +150,12 @@ public abstract class SimpleReadOnlyPartition
                     cursor = new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager);
                     break;
             }
+
+        } catch (Exception e) {
+
+            logger.error("The partition caught an exception.", e);
+
+            throw new InternalServerException("The partition has detected an internal server error.");
 
         } finally {
 
