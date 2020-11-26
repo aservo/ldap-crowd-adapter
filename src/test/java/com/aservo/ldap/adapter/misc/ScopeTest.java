@@ -11,6 +11,7 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
+import org.apache.directory.api.ldap.model.name.Rdn;
 import org.junit.jupiter.api.*;
 
 
@@ -29,7 +30,7 @@ public class ScopeTest
     public void test001()
             throws Exception {
 
-        final String userName = "GroupE";
+        final String userName = "GroupE+,";
 
         Consumer<NamingEnumeration> consumer =
                 results -> {
@@ -49,8 +50,8 @@ public class ScopeTest
 
         List<String> baseList =
                 Arrays.asList(
-                        "cn=" + userName + ",dc=json",
-                        "cn=" + userName + ",ou=groups,dc=json"
+                        "cn=" + Rdn.escapeValue(userName) + ",dc=json",
+                        "cn=" + Rdn.escapeValue(userName) + ",ou=groups,dc=json"
                 );
 
         List<SearchControls> searchControlsList =
@@ -81,7 +82,7 @@ public class ScopeTest
     public void test002()
             throws Exception {
 
-        final String userName = "UserE";
+        final String userName = "UserE+,";
 
         Consumer<NamingEnumeration> consumer =
                 results -> {
@@ -101,8 +102,8 @@ public class ScopeTest
 
         List<String> baseList =
                 Arrays.asList(
-                        "cn=" + userName + ",dc=json",
-                        "cn=" + userName + ",ou=users,dc=json"
+                        "cn=" + Rdn.escapeValue(userName) + ",dc=json",
+                        "cn=" + Rdn.escapeValue(userName) + ",ou=users,dc=json"
                 );
 
         List<SearchControls> searchControlsList =

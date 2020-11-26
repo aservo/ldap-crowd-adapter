@@ -1,7 +1,7 @@
 package com.aservo.ldap.adapter.misc;
 
-import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
 import com.aservo.ldap.adapter.adapter.LdapUtils;
+import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.helper.AbstractTest;
 import javax.naming.NamingEnumeration;
@@ -10,6 +10,7 @@ import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.apache.directory.api.ldap.model.name.Rdn;
 import org.junit.jupiter.api.*;
 
 
@@ -333,7 +334,7 @@ public class FilterTest
         String filter =
                 "(&" +
                         "(objectClass=groupOfNames)" +
-                        "(|(cn=GroupB)(cn=GroupC)(cn=GroupD)(cn=GroupE))" +
+                        "(|(cn=GroupB)(cn=GroupC)(cn=GroupD)(cn=" + Rdn.escapeValue("GroupE+,") + "))" +
                         ")";
 
         InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
@@ -357,7 +358,7 @@ public class FilterTest
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes4 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupE", getAndCheckGroupEntry(attributes4, false));
+        Assertions.assertEquals("GroupE+,", getAndCheckGroupEntry(attributes4, false));
 
         Assertions.assertFalse(results.hasMore());
 

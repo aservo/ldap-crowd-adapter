@@ -31,6 +31,7 @@ import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
 import org.apache.directory.api.ldap.model.filter.*;
 import org.apache.directory.api.ldap.model.name.Dn;
+import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.jetbrains.annotations.Nullable;
 
@@ -116,11 +117,11 @@ public class LdapUtils {
 
                 case GROUP:
                     return new Dn(schemaManager, String.format("cn=%s,ou=%s,dc=%s",
-                            id, LdapUtils.OU_GROUPS, directoryBackend.getId()));
+                            Rdn.escapeValue(id), LdapUtils.OU_GROUPS, directoryBackend.getId()));
 
                 case USER:
                     return new Dn(schemaManager, String.format("cn=%s,ou=%s,dc=%s",
-                            id, LdapUtils.OU_USERS, directoryBackend.getId()));
+                            Rdn.escapeValue(id), LdapUtils.OU_USERS, directoryBackend.getId()));
 
                 default:
                     return createDn(schemaManager, directoryBackend, entityType);

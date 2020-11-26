@@ -39,13 +39,13 @@
       "user_members": []
     },
     {
-      "id": "GroupE",
-      "description": "Description of GroupE.",
+      "id": "GroupE+,",
+      "description": "Description of GroupE+,.",
       "group_members": [
         "GroupD"
       ],
       "user_members": [
-        "UserE"
+        "UserE+,"
       ]
     }
   ],
@@ -83,10 +83,10 @@
       "password": "pw-user-d"
     },
     {
-      "id": "UserE",
-      "first_name": "FirstNameOfUserE",
-      "last_name": "LastNameOfUserE",
-      "display_name": "DisplayNameOfUserE",
+      "id": "UserE+,",
+      "first_name": "FirstNameOfUserE+,",
+      "last_name": "LastNameOfUserE+,",
+      "display_name": "DisplayNameOfUserE+,",
       "email": "e.user@email.com",
       "password": "pw-user-e"
     }
