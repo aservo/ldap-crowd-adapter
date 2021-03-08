@@ -5,17 +5,11 @@ import com.aservo.ldap.adapter.Main;
 import com.aservo.ldap.adapter.adapter.LdapUtils;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
-import com.aservo.ldap.adapter.backend.CrowdDirectoryBackend;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.JsonDirectoryBackend;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.KeyPair;
-import java.security.Security;
-import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,7 +21,6 @@ import javax.naming.directory.InitialDirContext;
 import org.apache.commons.io.FileUtils;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.name.Rdn;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.*;
 
 
@@ -39,14 +32,11 @@ public abstract class AbstractTest {
     private static int counter = 0;
 
     private static final String host = "localhost";
-    private static final Path keyStoreFile = Paths.get("./tmp/local.keystore");
-    private static final String keyStorePassword = "changeit";
+    public static final int MODE_NESTED_GROUPS_PORT = 10390;
+    public static final int MODE_FLATTENING_PORT = 10391;
 
     private static final String dbUri1 = "file:./src/test/resources/com/aservo/ldap/adapter/db.json";
     private static final String dbUri2 = "file:./src/test/resources/com/aservo/ldap/adapter/db-cyclic-groups.json";
-
-    public static final int MODE_NESTED_GROUPS_PORT = 10390;
-    public static final int MODE_FLATTENING_PORT = 10391;
 
     protected DirectoryBackend directoryBackend;
     private final BackendConfig config;
@@ -78,17 +68,6 @@ public abstract class AbstractTest {
 
                 Files.createDirectories(testPath);
 
-                System.setProperty("javax.net.ssl.trustStore", keyStoreFile.toString());
-                System.setProperty("javax.net.ssl.trustStorePassword", keyStorePassword);
-
-                Security.addProvider(new BouncyCastleProvider());
-
-                KeyPair keyPair = CertificateGenerator.generateKeyPair();
-                X509Certificate cert = CertificateGenerator.generateX509Certificate(keyPair, "CN=" + host, 10);
-
-                CertificateGenerator.updateKeyStore(keyPair, cert, "self-signed", keyStoreFile.toFile(),
-                        keyStorePassword);
-
                 boot(MODE_NESTED_GROUPS_PORT, dbUri1, false);
                 boot(MODE_FLATTENING_PORT, dbUri1, true);
 
@@ -117,11 +96,9 @@ public abstract class AbstractTest {
     private static void boot(int port, String dbUri, boolean flattening)
             throws Exception {
 
+        System.setProperty("directory-backend", "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
         System.setProperty("ds-cache-directory", "./tmp/" + port + "/cache");
         System.setProperty("bind.address", host + ":" + port);
-        System.setProperty("ssl.enabled", "true");
-        System.setProperty("ssl.key-store-file", keyStoreFile.toString());
-        System.setProperty("ssl.key-store-password", keyStorePassword);
         System.setProperty("mode.flattening", Boolean.toString(flattening));
         System.setProperty("db-uri", dbUri);
 
@@ -145,37 +122,16 @@ public abstract class AbstractTest {
     public void begin()
             throws Exception {
 
-        if (config == BackendConfig.NONE) {
+        Properties properties = new Properties();
 
-            File configFile = new File("./etc", "backend.properties");
-            Properties properties = new Properties();
+        if (config == BackendConfig.NORMAL)
+            properties.setProperty("db-uri", dbUri1);
+        else if (config == BackendConfig.CYCLIC_GROUPS)
+            properties.setProperty("db-uri", dbUri2);
 
-            try {
+        directoryBackend = new JsonDirectoryBackend(properties);
 
-                properties.load(new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8));
-
-            } catch (IOException e) {
-
-                throw new UncheckedIOException(e);
-            }
-
-            directoryBackend = new CrowdDirectoryBackend(properties);
-
-            directoryBackend.startup();
-
-        } else {
-
-            Properties properties = new Properties();
-
-            if (config == BackendConfig.NORMAL)
-                properties.setProperty("db-uri", dbUri1);
-            else if (config == BackendConfig.CYCLIC_GROUPS)
-                properties.setProperty("db-uri", dbUri2);
-
-            directoryBackend = new JsonDirectoryBackend(properties);
-
-            directoryBackend.startup();
-        }
+        directoryBackend.startup();
     }
 
     @AfterEach
@@ -183,7 +139,6 @@ public abstract class AbstractTest {
             throws Exception {
 
         directoryBackend.shutdown();
-
         directoryBackend = null;
     }
 
@@ -196,7 +151,7 @@ public abstract class AbstractTest {
         env.put(Context.SECURITY_PRINCIPAL, "cn=" + userId + ",ou=users,dc=json");
         env.put(Context.SECURITY_CREDENTIALS, password);
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-        env.put(Context.PROVIDER_URL, "ldaps://" + host + ":" + port);
+        env.put(Context.PROVIDER_URL, "ldap://" + host + ":" + port);
 
         return new InitialDirContext(env);
     }

@@ -3,7 +3,7 @@ package com.aservo.ldap.adapter;
 import com.aservo.ldap.adapter.adapter.entity.Entity;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
-import com.aservo.ldap.adapter.helper.AbstractTest;
+import com.aservo.ldap.adapter.helper.AbstractIntegrationTest;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class CrowdDirectoryBackendTest
-        extends AbstractTest {
+        extends AbstractIntegrationTest {
 
     private final List<String> indices = Arrays.asList("A", "B", "C", "D", "E");
 

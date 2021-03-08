@@ -32,6 +32,8 @@ if (sys.env.contains("MAIN_REPO_URL"))
 else
   externalResolvers ++= Seq()
 
-addSbtPlugin("com.github.sbt" % "sbt-jacoco" % "3.1.0")
+addSbtPlugin("net.aichler" % "sbt-jupiter-interface" % "0.9.0")
 
-addSbtPlugin("com.github.mwz" % "sbt-sonar" % "2.0.0")
+addSbtPlugin("com.github.sbt" % "sbt-jacoco" % "3.3.0")
+
+addSbtPlugin("com.github.mwz" % "sbt-sonar" % "2.2.0")
