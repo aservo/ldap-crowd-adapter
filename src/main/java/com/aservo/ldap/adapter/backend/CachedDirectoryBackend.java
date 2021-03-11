@@ -97,6 +97,16 @@ public class CachedDirectoryBackend
         directUsersOfGroupCache.clear();
     }
 
+    public boolean isKnownGroup(String id) {
+
+        return groupIdToEntityCache.containsKey(id) || directoryBackend.isKnownGroup(id);
+    }
+
+    public boolean isKnownUser(String id) {
+
+        return userIdToEntityCache.containsKey(id) || directoryBackend.isKnownUser(id);
+    }
+
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 

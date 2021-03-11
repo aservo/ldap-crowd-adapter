@@ -50,6 +50,22 @@ public interface DirectoryBackend {
     void shutdown();
 
     /**
+     * Check the cache for a group entity.
+     *
+     * @param id the group ID
+     * @return boolean
+     */
+    boolean isKnownGroup(String id);
+
+    /**
+     * Check the cache for an user entity.
+     *
+     * @param id the user ID
+     * @return boolean
+     */
+    boolean isKnownUser(String id);
+
+    /**
      * Gets group info.
      *
      * @param id the group ID

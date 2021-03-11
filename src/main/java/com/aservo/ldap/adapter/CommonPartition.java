@@ -30,9 +30,11 @@ import com.aservo.ldap.adapter.adapter.query.EqualOperator;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.util.LruCacheMap;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
@@ -65,7 +67,6 @@ public class CommonPartition
 
     private final DirectoryBackend directoryBackend;
     private final ServerConfiguration serverConfig;
-    private final Map<Dn, Entry> ldifCache;
     private FilterMatcher filterMatcher;
     private DomainEntity domainEntity;
     private GroupUnitEntity groupUnitEntity;
@@ -83,11 +84,6 @@ public class CommonPartition
 
         this.directoryBackend = directoryBackend;
         this.serverConfig = serverConfig;
-
-        this.ldifCache =
-                Collections.synchronizedMap(
-                        new LruCacheMap<>(serverConfig.getEntryCacheMaxSize(), serverConfig.getEntryCacheMaxAge())
-                );
     }
 
     @Override
@@ -124,8 +120,6 @@ public class CommonPartition
     @Override
     protected void doDestroy()
             throws LdapException {
-
-        ldifCache.clear();
     }
 
     @Override
@@ -137,11 +131,7 @@ public class CommonPartition
     private Entry createEntry(Entity entity) {
 
         Dn queryDn = LdapUtils.createDn(schemaManager, directoryBackend, entity);
-
-        Entry entry = ldifCache.get(queryDn);
-
-        if (entry != null)
-            return entry;
+        Entry entry;
 
         if (entity instanceof DomainEntity) {
 
@@ -272,10 +262,6 @@ public class CommonPartition
         } else
             throw new IllegalArgumentException("Cannot create system entry for DN=" + queryDn);
 
-        // add to cache
-        if (serverConfig.isEntryCacheEnabled())
-            ldifCache.put(queryDn, entry);
-
         return entry;
     }
 
@@ -315,7 +301,54 @@ public class CommonPartition
     public ClonedServerEntry lookup(LookupOperationContext context)
             throws LdapException {
 
-        Entry entry = ldifCache.get(context.getDn());
+        logger.debug("Lookup cache for entry with DN={}",
+                context.getDn().getName());
+
+        Dn rootDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.DOMAIN);
+        Dn groupsDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.GROUP_UNIT);
+        Dn usersDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.USER_UNIT);
+        Entry entry = null;
+
+        if (context.getDn().equals(groupsDn)) {
+
+            entry = createEntry(groupUnitEntity);
+
+        } else if (context.getDn().getParent().equals(groupsDn)) {
+
+            String groupId = LdapUtils.getGroupIdFromDn(schemaManager, directoryBackend, context.getDn().getName());
+
+            if (groupId != null && directoryBackend.isKnownGroup(groupId)) {
+
+                try {
+
+                    entry = createEntry(directoryBackend.getGroup(groupId));
+
+                } catch (EntityNotFoundException e) {
+                }
+            }
+
+        } else if (context.getDn().equals(usersDn)) {
+
+            entry = createEntry(userUnitEntity);
+
+        } else if (context.getDn().getParent().equals(usersDn)) {
+
+            String userId = LdapUtils.getUserIdFromDn(schemaManager, directoryBackend, context.getDn().getName());
+
+            if (userId != null && directoryBackend.isKnownUser(userId)) {
+
+                try {
+
+                    entry = createEntry(directoryBackend.getUser(userId));
+
+                } catch (EntityNotFoundException e) {
+                }
+            }
+
+        } else if (context.getDn().equals(rootDn)) {
+
+            entry = createEntry(domainEntity);
+        }
 
         if (entry == null) {
 
@@ -339,9 +372,6 @@ public class CommonPartition
         Dn rootDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.DOMAIN);
         Dn groupsDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.GROUP_UNIT);
         Dn usersDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.USER_UNIT);
-
-        if (ldifCache.containsKey(context.getDn()))
-            return true;
 
         if (context.getDn().equals(groupsDn)) {
 

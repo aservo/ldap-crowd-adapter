@@ -93,6 +93,16 @@ public class CrowdDirectoryBackend
         crowdClient.shutdown();
     }
 
+    public boolean isKnownGroup(String id) {
+
+        return false;
+    }
+
+    public boolean isKnownUser(String id) {
+
+        return false;
+    }
+
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 
