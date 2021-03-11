@@ -22,7 +22,7 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.backend.CachedDirectoryBackend;
+import com.aservo.ldap.adapter.backend.CachedInMemoryDirectoryBackend;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
@@ -80,7 +80,7 @@ public class CommonLdapServer {
 
         if (serverConfig.isEntryCacheEnabled())
             this.directoryBackend =
-                    new CachedDirectoryBackend(
+                    new CachedInMemoryDirectoryBackend(
                             serverConfig.getDirectoryBackend(),
                             serverConfig.getEntryCacheMaxSize(),
                             serverConfig.getEntryCacheMaxAge()

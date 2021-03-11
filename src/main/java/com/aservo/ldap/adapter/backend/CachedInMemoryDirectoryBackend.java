@@ -31,9 +31,9 @@ import java.util.stream.Collectors;
 
 
 /**
- * A proxy for directory backends to cache entities.
+ * A proxy for directory backends to cache entities via in-memory strategy.
  */
-public class CachedDirectoryBackend
+public class CachedInMemoryDirectoryBackend
         implements DirectoryBackend {
 
     private final DirectoryBackend directoryBackend;
@@ -57,7 +57,7 @@ public class CachedDirectoryBackend
      * @param maxCacheSize     the maximum cache size
      * @param maxCacheAge      the maximum cache age
      */
-    public CachedDirectoryBackend(DirectoryBackend directoryBackend, int maxCacheSize, Duration maxCacheAge) {
+    public CachedInMemoryDirectoryBackend(DirectoryBackend directoryBackend, int maxCacheSize, Duration maxCacheAge) {
 
         this.directoryBackend = directoryBackend;
 
