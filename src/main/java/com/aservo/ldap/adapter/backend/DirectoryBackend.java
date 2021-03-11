@@ -52,7 +52,7 @@ public interface DirectoryBackend {
     /**
      * Gets group info.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -62,7 +62,7 @@ public interface DirectoryBackend {
     /**
      * Gets user info.
      *
-     * @param id the user id
+     * @param id the user ID
      * @return the user
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -72,7 +72,7 @@ public interface DirectoryBackend {
     /**
      * Gets info from authenticated user.
      *
-     * @param id       the user id
+     * @param id       the user ID
      * @param password the password
      * @return the authenticated user
      * @throws EntityNotFoundException the entry not found exception
@@ -121,7 +121,7 @@ public interface DirectoryBackend {
     /**
      * Gets direct users of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the direct users of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -131,7 +131,7 @@ public interface DirectoryBackend {
     /**
      * Gets direct groups of user.
      *
-     * @param id the user id
+     * @param id the user ID
      * @return the direct groups of user
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -141,7 +141,7 @@ public interface DirectoryBackend {
     /**
      * Gets transitive users of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the transitive users of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -151,7 +151,7 @@ public interface DirectoryBackend {
     /**
      * Gets transitive groups of user.
      *
-     * @param id the user id
+     * @param id the user ID
      * @return the transitive groups of user
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -161,7 +161,7 @@ public interface DirectoryBackend {
     /**
      * Gets direct child groups of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the direct child groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -171,7 +171,7 @@ public interface DirectoryBackend {
     /**
      * Gets direct parent groups of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the direct parent groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -181,7 +181,7 @@ public interface DirectoryBackend {
     /**
      * Gets transitive child groups of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the transitive child groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -191,7 +191,7 @@ public interface DirectoryBackend {
     /**
      * Gets transitive parent groups of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the transitive parent groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -201,7 +201,7 @@ public interface DirectoryBackend {
     /**
      * Gets direct user IDs of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the direct users of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -211,7 +211,7 @@ public interface DirectoryBackend {
     /**
      * Gets direct group IDs of user.
      *
-     * @param id the user id
+     * @param id the user ID
      * @return the direct groups of user
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -221,7 +221,7 @@ public interface DirectoryBackend {
     /**
      * Gets transitive user IDs of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the transitive users of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -231,7 +231,7 @@ public interface DirectoryBackend {
     /**
      * Gets transitive group IDs of user.
      *
-     * @param id the user id
+     * @param id the user ID
      * @return the transitive groups of user
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -241,7 +241,7 @@ public interface DirectoryBackend {
     /**
      * Gets direct child group IDs of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the direct child groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -251,7 +251,7 @@ public interface DirectoryBackend {
     /**
      * Gets direct parent group IDs of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the direct parent groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -261,7 +261,7 @@ public interface DirectoryBackend {
     /**
      * Gets transitive child group IDs of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the transitive child groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
@@ -271,7 +271,7 @@ public interface DirectoryBackend {
     /**
      * Gets transitive parent group IDs of group.
      *
-     * @param id the group id
+     * @param id the group ID
      * @return the transitive parent groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
