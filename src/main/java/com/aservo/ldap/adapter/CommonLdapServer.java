@@ -22,7 +22,6 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.backend.CachedInMemoryDirectoryBackend;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
@@ -33,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.commons.io.FileUtils;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.ldap.model.schema.registries.SchemaLoader;
@@ -77,16 +77,19 @@ public class CommonLdapServer {
     public CommonLdapServer(ServerConfiguration serverConfig) {
 
         this.serverConfig = serverConfig;
+        this.directoryBackend = serverConfig.getDirectoryBackend();
 
-        if (serverConfig.isEntryCacheEnabled())
-            this.directoryBackend =
-                    new CachedInMemoryDirectoryBackend(
-                            serverConfig.getDirectoryBackend(),
-                            serverConfig.getEntryCacheMaxSize(),
-                            serverConfig.getEntryCacheMaxAge()
-                    );
-        else
-            this.directoryBackend = serverConfig.getDirectoryBackend();
+        try {
+
+            if (Files.exists(serverConfig.getDsCacheDir()))
+                FileUtils.deleteDirectory(serverConfig.getDsCacheDir().toFile());
+
+            Files.createDirectories(serverConfig.getDsCacheDir());
+
+        } catch (IOException e) {
+
+            throw new UncheckedIOException(e);
+        }
 
         createNewLoaders();
         directoryService = initDirectoryService();

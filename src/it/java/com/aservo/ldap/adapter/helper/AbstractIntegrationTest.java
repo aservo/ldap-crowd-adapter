@@ -2,7 +2,6 @@ package com.aservo.ldap.adapter.helper;
 
 import com.aservo.ldap.adapter.CommonLdapServer;
 import com.aservo.ldap.adapter.Main;
-import com.aservo.ldap.adapter.backend.CrowdDirectoryBackend;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -103,7 +102,7 @@ public abstract class AbstractIntegrationTest {
         System.setProperty("ssl.key-store-password", keyStorePassword);
         System.setProperty("mode.flattening", Boolean.toString(flattening));
 
-        CommonLdapServer server = Main.createServerInstance();
+        CommonLdapServer server = Main.createServerInstance(Main.createConfiguration());
 
         // boot process
         server.startup();
@@ -135,7 +134,7 @@ public abstract class AbstractIntegrationTest {
             throw new UncheckedIOException(e);
         }
 
-        directoryBackend = new CrowdDirectoryBackend(properties);
+        directoryBackend = Main.createConfiguration(properties).getDirectoryBackend();
         directoryBackend.startup();
     }
 

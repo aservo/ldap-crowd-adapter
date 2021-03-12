@@ -39,7 +39,8 @@ public class Main {
 
         MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
         Logger logger = LoggerFactory.getLogger("Bootloader");
-        CommonLdapServer server = createServerInstance();
+        ServerConfiguration config = createConfiguration();
+        CommonLdapServer server = createServerInstance(config);
 
         logger.debug("Application is running with max memory: {}", memoryBean.getHeapMemoryUsage().getMax());
         logger.debug("Application is running with initial memory: {}", memoryBean.getHeapMemoryUsage().getInit());
@@ -50,12 +51,37 @@ public class Main {
     }
 
     /**
-     * Creates a server instance.
-     * It configures all system components including Crowd client api.
+     * Creates a server configuration instance.
+     * It configures all directory backends.
      *
-     * @return the server instance
+     * @return the server configuration instance
      */
-    public static CommonLdapServer createServerInstance() {
+    public static ServerConfiguration createConfiguration() {
+
+        return createConfiguration(new Properties());
+    }
+
+    /**
+     * Creates a server configuration instance.
+     * It configures all directory backends.
+     *
+     * @param backendProperties additional backend properties
+     * @return the server configuration instance
+     */
+    public static ServerConfiguration createConfiguration(Properties backendProperties) {
+
+        return createConfiguration(new Properties(), backendProperties);
+    }
+
+    /**
+     * Creates a server configuration instance.
+     * It configures all directory backends.
+     *
+     * @param serverProperties  additional server properties
+     * @param backendProperties additional backend properties
+     * @return the server configuration instance
+     */
+    public static ServerConfiguration createConfiguration(Properties serverProperties, Properties backendProperties) {
 
         // hard coded directory for initial configuration
         File configDir = new File("./etc");
@@ -66,18 +92,26 @@ public class Main {
         PropertyConfigurator.configure(loggingProperties);
 
         // load server configuration
-        Properties serverProperties = loadConfigFile(new File(configDir, "server.properties"));
-        serverProperties.putAll(System.getProperties());
+        Properties finalServerProperties = loadConfigFile(new File(configDir, "server.properties"));
+        finalServerProperties.putAll(System.getProperties());
+        finalServerProperties.putAll(serverProperties);
 
         // load backend configuration
-        Properties backendProperties = loadConfigFile(new File(configDir, "backend.properties"));
-        backendProperties.putAll(System.getProperties());
+        Properties finalBackendProperties = loadConfigFile(new File(configDir, "backend.properties"));
+        finalBackendProperties.putAll(System.getProperties());
+        finalBackendProperties.putAll(backendProperties);
 
-        // parse configuration
-        ServerConfiguration serverConfig = new ServerConfiguration(serverProperties, backendProperties);
+        return new ServerConfiguration(finalServerProperties, finalBackendProperties);
+    }
 
-        // return with server instance
-        return new CommonLdapServer(serverConfig);
+    /**
+     * Creates a server instance.
+     *
+     * @return the server instance
+     */
+    public static CommonLdapServer createServerInstance(ServerConfiguration config) {
+
+        return new CommonLdapServer(config);
     }
 
     private static void setLogLevel(Properties loggingProperties) {

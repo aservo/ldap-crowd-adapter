@@ -24,8 +24,8 @@ import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.LruCacheMap;
+import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.google.common.collect.Lists;
-import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 public class CachedInMemoryDirectoryBackend
         implements DirectoryBackend {
 
+    private final ServerConfiguration config;
     private final DirectoryBackend directoryBackend;
     private final Map<String, GroupEntity> groupIdToEntityCache;
     private final Map<String, UserEntity> userIdToEntityCache;
@@ -53,26 +54,26 @@ public class CachedInMemoryDirectoryBackend
     /**
      * Instantiates a new Crowd directory backend.
      *
+     * @param config           config the config instance of the server
      * @param directoryBackend the directory backend
-     * @param maxCacheSize     the maximum cache size
-     * @param maxCacheAge      the maximum cache age
      */
-    public CachedInMemoryDirectoryBackend(DirectoryBackend directoryBackend, int maxCacheSize, Duration maxCacheAge) {
+    public CachedInMemoryDirectoryBackend(ServerConfiguration config, DirectoryBackend directoryBackend) {
 
+        this.config = config;
         this.directoryBackend = directoryBackend;
 
-        this.groupIdToEntityCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.userIdToEntityCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.groupFilterToIdCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.userFilterToIdCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.directGroupsOfUserCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.directUsersOfGroupCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.transitiveUsersOfGroupCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.transitiveGroupsOfUserCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.directChildGroupsOfGroupCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.directParentGroupsOfGroupCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.transitiveChildGroupsOfGroupCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
-        this.transitiveParentGroupsOfGroupCache = Collections.synchronizedMap(new LruCacheMap<>(maxCacheSize, maxCacheAge));
+        this.groupIdToEntityCache = createCache();
+        this.userIdToEntityCache = createCache();
+        this.groupFilterToIdCache = createCache();
+        this.userFilterToIdCache = createCache();
+        this.directGroupsOfUserCache = createCache();
+        this.directUsersOfGroupCache = createCache();
+        this.transitiveUsersOfGroupCache = createCache();
+        this.transitiveGroupsOfUserCache = createCache();
+        this.directChildGroupsOfGroupCache = createCache();
+        this.directParentGroupsOfGroupCache = createCache();
+        this.transitiveChildGroupsOfGroupCache = createCache();
+        this.transitiveParentGroupsOfGroupCache = createCache();
     }
 
     public String getId() {
@@ -99,16 +100,25 @@ public class CachedInMemoryDirectoryBackend
 
     public boolean isKnownGroup(String id) {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.isKnownGroup(id);
+
         return groupIdToEntityCache.containsKey(id) || directoryBackend.isKnownGroup(id);
     }
 
     public boolean isKnownUser(String id) {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.isKnownUser(id);
 
         return userIdToEntityCache.containsKey(id) || directoryBackend.isKnownUser(id);
     }
 
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getGroup(id);
 
         GroupEntity group = groupIdToEntityCache.get(id);
 
@@ -124,6 +134,9 @@ public class CachedInMemoryDirectoryBackend
 
     public UserEntity getUser(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getUser(id);
 
         UserEntity user = userIdToEntityCache.get(id);
 
@@ -145,6 +158,9 @@ public class CachedInMemoryDirectoryBackend
 
     public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getGroups(filterNode, filterMatcher);
+
         List<GroupEntity> groups = lookupGroupEntities(groupFilterToIdCache, filterNode);
 
         if (groups != null)
@@ -158,6 +174,9 @@ public class CachedInMemoryDirectoryBackend
     }
 
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getUsers(filterNode, filterMatcher);
 
         List<UserEntity> users = lookupUserEntities(userFilterToIdCache, filterNode);
 
@@ -174,6 +193,9 @@ public class CachedInMemoryDirectoryBackend
     public List<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getDirectUsersOfGroup(id);
+
         List<UserEntity> users = lookupUserEntities(directUsersOfGroupCache, id);
 
         if (users != null)
@@ -188,6 +210,9 @@ public class CachedInMemoryDirectoryBackend
 
     public List<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getDirectGroupsOfUser(id);
 
         List<GroupEntity> groups = lookupGroupEntities(directGroupsOfUserCache, id);
 
@@ -204,6 +229,9 @@ public class CachedInMemoryDirectoryBackend
     public List<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getTransitiveUsersOfGroup(id);
+
         List<UserEntity> users = lookupUserEntities(transitiveUsersOfGroupCache, id);
 
         if (users != null)
@@ -218,6 +246,9 @@ public class CachedInMemoryDirectoryBackend
 
     public List<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getTransitiveGroupsOfUser(id);
 
         List<GroupEntity> groups = lookupGroupEntities(transitiveGroupsOfUserCache, id);
 
@@ -234,6 +265,9 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getDirectChildGroupsOfGroup(id);
+
         List<GroupEntity> groups = lookupGroupEntities(directChildGroupsOfGroupCache, id);
 
         if (groups != null)
@@ -248,6 +282,9 @@ public class CachedInMemoryDirectoryBackend
 
     public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getDirectParentGroupsOfGroup(id);
 
         List<GroupEntity> groups = lookupGroupEntities(directParentGroupsOfGroupCache, id);
 
@@ -264,6 +301,9 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getTransitiveChildGroupsOfGroup(id);
+
         List<GroupEntity> groups = lookupGroupEntities(transitiveChildGroupsOfGroupCache, id);
 
         if (groups != null)
@@ -278,6 +318,9 @@ public class CachedInMemoryDirectoryBackend
 
     public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getTransitiveParentGroupsOfGroup(id);
 
         List<GroupEntity> groups = lookupGroupEntities(transitiveParentGroupsOfGroupCache, id);
 
@@ -294,6 +337,9 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getDirectUserIdsOfGroup(id);
+
         Set<String> userIds = directUsersOfGroupCache.get(id);
 
         if (userIds != null)
@@ -308,6 +354,9 @@ public class CachedInMemoryDirectoryBackend
 
     public List<String> getDirectGroupIdsOfUser(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getDirectGroupIdsOfUser(id);
 
         Set<String> groupIds = directGroupsOfUserCache.get(id);
 
@@ -324,6 +373,9 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getTransitiveUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getTransitiveUserIdsOfGroup(id);
+
         Set<String> userIds = transitiveUsersOfGroupCache.get(id);
 
         if (userIds != null)
@@ -338,6 +390,9 @@ public class CachedInMemoryDirectoryBackend
 
     public List<String> getTransitiveGroupIdsOfUser(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getTransitiveGroupIdsOfUser(id);
 
         Set<String> groupIds = transitiveGroupsOfUserCache.get(id);
 
@@ -354,6 +409,9 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getDirectChildGroupIdsOfGroup(id);
+
         Set<String> groupIds = directChildGroupsOfGroupCache.get(id);
 
         if (groupIds != null)
@@ -368,6 +426,9 @@ public class CachedInMemoryDirectoryBackend
 
     public List<String> getDirectParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getDirectParentGroupIdsOfGroup(id);
 
         Set<String> groupIds = directParentGroupsOfGroupCache.get(id);
 
@@ -384,6 +445,9 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getTransitiveChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getTransitiveChildGroupIdsOfGroup(id);
+
         Set<String> groupIds = transitiveChildGroupsOfGroupCache.get(id);
 
         if (groupIds != null)
@@ -398,6 +462,9 @@ public class CachedInMemoryDirectoryBackend
 
     public List<String> getTransitiveParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
+
+        if (!config.isEntryCacheEnabled())
+            return directoryBackend.getTransitiveParentGroupIdsOfGroup(id);
 
         Set<String> groupIds = transitiveParentGroupsOfGroupCache.get(id);
 
@@ -460,5 +527,13 @@ public class CachedInMemoryDirectoryBackend
     private <T> void saveEntityIds(Map<T, Set<String>> cache, T id, List<String> groups) {
 
         cache.put(id, new HashSet<>(groups));
+    }
+
+    private <K, V> Map<K, V> createCache() {
+
+        return Collections.synchronizedMap(new LruCacheMap<>(
+                config.getEntryCacheMaxSize(),
+                config.getEntryCacheMaxAge()
+        ));
     }
 }

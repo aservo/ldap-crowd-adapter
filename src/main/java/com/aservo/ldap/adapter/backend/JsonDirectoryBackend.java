@@ -25,6 +25,7 @@ import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
+import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -36,7 +37,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,13 +56,13 @@ public class JsonDirectoryBackend
     /**
      * Instantiates a new JSON directory backend.
      *
-     * @param properties the properties
+     * @param config the config instance of the server
      */
-    public JsonDirectoryBackend(Properties properties) {
+    public JsonDirectoryBackend(ServerConfiguration config) {
 
         try {
 
-            String urlString = properties.getProperty("db-uri");
+            String urlString = config.getBackendProperties().getProperty("db-uri");
 
             if (urlString == null)
                 throw new IllegalArgumentException("Missing value for db-uri");

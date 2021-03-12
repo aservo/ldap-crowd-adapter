@@ -6,7 +6,6 @@ import com.aservo.ldap.adapter.adapter.LdapUtils;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
-import com.aservo.ldap.adapter.backend.JsonDirectoryBackend;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -96,13 +95,15 @@ public abstract class AbstractTest {
     private static void boot(int port, String dbUri, boolean flattening)
             throws Exception {
 
-        System.setProperty("directory-backend", "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
+        System.setProperty("directory-backend",
+                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend," +
+                        "com.aservo.ldap.adapter.backend.CachedInMemoryDirectoryBackend");
         System.setProperty("ds-cache-directory", "./tmp/" + port + "/cache");
         System.setProperty("bind.address", host + ":" + port);
         System.setProperty("mode.flattening", Boolean.toString(flattening));
         System.setProperty("db-uri", dbUri);
 
-        CommonLdapServer server = Main.createServerInstance();
+        CommonLdapServer server = Main.createServerInstance(Main.createConfiguration());
 
         // boot process
         server.startup();
@@ -129,7 +130,7 @@ public abstract class AbstractTest {
         else if (config == BackendConfig.CYCLIC_GROUPS)
             properties.setProperty("db-uri", dbUri2);
 
-        directoryBackend = new JsonDirectoryBackend(properties);
+        directoryBackend = Main.createConfiguration(properties).getDirectoryBackend();
 
         directoryBackend.startup();
     }

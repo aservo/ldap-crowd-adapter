@@ -28,6 +28,7 @@ import com.aservo.ldap.adapter.adapter.query.OrLogicExpression;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
+import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.atlassian.crowd.embedded.api.SearchRestriction;
 import com.atlassian.crowd.exception.*;
 import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;
@@ -39,7 +40,10 @@ import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKey
 import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.slf4j.Logger;
@@ -58,11 +62,11 @@ public class CrowdDirectoryBackend
     /**
      * Instantiates a new Crowd directory backend.
      *
-     * @param properties the properties
+     * @param config the config instance of the server
      */
-    public CrowdDirectoryBackend(Properties properties) {
+    public CrowdDirectoryBackend(ServerConfiguration config) {
 
-        ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(properties);
+        ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(config.getBackendProperties());
         crowdClient = new RestCrowdClientFactory().newInstance(props);
     }
 

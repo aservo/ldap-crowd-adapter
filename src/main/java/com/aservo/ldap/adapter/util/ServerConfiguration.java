@@ -18,14 +18,13 @@
 package com.aservo.ldap.adapter.util;
 
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
-import org.apache.commons.io.FileUtils;
+import java.util.stream.Collectors;
 
 
 /**
@@ -90,6 +89,7 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_BASE_DN_USERS_DESCRIPTION = "base-dn-users.description";
 
+    private final Properties backendProperties;
     private final Path cacheDir;
     private final String host;
     private final int port;
@@ -114,19 +114,9 @@ public class ServerConfiguration {
      */
     public ServerConfiguration(Properties serverProperties, Properties backendProperties) {
 
+        this.backendProperties = backendProperties;
+
         cacheDir = Paths.get(serverProperties.getProperty(CONFIG_DS_CACHE_DIR, "./cache")).toAbsolutePath().normalize();
-
-        try {
-
-            if (Files.exists(cacheDir))
-                FileUtils.deleteDirectory(cacheDir.toFile());
-
-            Files.createDirectories(cacheDir);
-
-        } catch (IOException e) {
-
-            throw new UncheckedIOException(e);
-        }
 
         String bindAddressValue = serverProperties.getProperty(CONFIG_BIND_ADDRESS, "localhost:10389");
 
@@ -177,27 +167,59 @@ public class ServerConfiguration {
 
         flattening = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_MODE_FLATTENING, "true"));
 
-        String directoryBackendClassValue = serverProperties.getProperty(CONFIG_DIRECTORY_BACKEND);
+        String directoryBackendClassesValue = serverProperties.getProperty(CONFIG_DIRECTORY_BACKEND);
 
-        if (directoryBackendClassValue == null || directoryBackendClassValue.isEmpty())
+        if (directoryBackendClassesValue == null || directoryBackendClassesValue.isEmpty())
             throw new IllegalArgumentException("Missing value for " + CONFIG_DIRECTORY_BACKEND);
+
+        List<String> directoryBackendClasses =
+                Arrays.stream(directoryBackendClassesValue.split(","))
+                        .map(x -> x.trim())
+                        .filter(x -> !x.isEmpty())
+                        .collect(Collectors.toList());
+
+        DirectoryBackend innerDirectoryBackend;
 
         try {
 
-            directoryBackend =
-                    (DirectoryBackend) Class.forName(directoryBackendClassValue)
-                            .getConstructor(Properties.class)
-                            .newInstance(backendProperties);
+            innerDirectoryBackend =
+                    (DirectoryBackend) Class.forName(directoryBackendClasses.get(0))
+                            .getConstructor(ServerConfiguration.class)
+                            .newInstance(this);
+
+            for (int i = 1; i < directoryBackendClasses.size(); i++) {
+
+                innerDirectoryBackend =
+                        (DirectoryBackend) Class.forName(directoryBackendClasses.get(i))
+                                .getConstructor(ServerConfiguration.class, DirectoryBackend.class)
+                                .newInstance(this, innerDirectoryBackend);
+            }
+
+            directoryBackend = innerDirectoryBackend;
+
+        } catch (ClassNotFoundException e) {
+
+            throw new IllegalArgumentException("Cannot find classes for directory backend definition: " +
+                    directoryBackendClassesValue, e);
 
         } catch (Exception e) {
 
-            throw new IllegalArgumentException("Cannot handle incorrect directory backend: " +
-                    directoryBackendClassValue, e);
+            throw new RuntimeException("Cannot instantiate directory backend.", e);
         }
 
         baseDnDescription = serverProperties.getProperty(CONFIG_BASE_DN_DESCRIPTION, "");
         baseDnGroupsDescription = serverProperties.getProperty(CONFIG_BASE_DN_GROUPS_DESCRIPTION, "");
         baseDnUsersDescription = serverProperties.getProperty(CONFIG_BASE_DN_USERS_DESCRIPTION, "");
+    }
+
+    /**
+     * Gets the backend properties.
+     *
+     * @return the properties
+     */
+    public Properties getBackendProperties() {
+
+        return backendProperties;
     }
 
     /**
