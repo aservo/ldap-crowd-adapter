@@ -69,6 +69,10 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_SSL_KEY_STORE_PW = "ssl.key-store-password";
     /**
+     * The constant CONFIG_MODE_ACTIVE_USERS_ONLY.
+     */
+    public static final String CONFIG_MODE_ACTIVE_USERS_ONLY = "mode.active-users-only";
+    /**
      * The constant CONFIG_MODE_FLATTENING.
      */
     public static final String CONFIG_MODE_FLATTENING = "mode.flattening";
@@ -100,6 +104,7 @@ public class ServerConfiguration {
     private final boolean sslEnabled;
     private final Path keyStoreFile;
     private final String keyStorePassword;
+    private final boolean activeUsersOnly;
     private final boolean flattening;
     private final DirectoryBackend directoryBackend;
     private final String baseDnDescription;
@@ -164,6 +169,8 @@ public class ServerConfiguration {
             keyStoreFile = null;
             keyStorePassword = null;
         }
+
+        activeUsersOnly = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_MODE_ACTIVE_USERS_ONLY, "false"));
 
         flattening = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_MODE_FLATTENING, "true"));
 
@@ -320,6 +327,16 @@ public class ServerConfiguration {
     public String getKeyStorePassword() {
 
         return keyStorePassword;
+    }
+
+    /**
+     * Is active users only boolean.
+     *
+     * @return the boolean
+     */
+    public boolean isActiveUsersOnly() {
+
+        return activeUsersOnly;
     }
 
     /**

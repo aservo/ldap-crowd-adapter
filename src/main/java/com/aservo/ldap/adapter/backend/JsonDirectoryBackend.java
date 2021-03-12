@@ -116,7 +116,8 @@ public class JsonDirectoryBackend
                         element.getAsJsonObject().get("first_name").getAsString(),
                         element.getAsJsonObject().get("display_name").getAsString(),
                         element.getAsJsonObject().get("email").getAsString(),
-                        element.getAsJsonObject().get("password").getAsString()
+                        element.getAsJsonObject().get("password").getAsString(),
+                        element.getAsJsonObject().get("active").getAsBoolean()
                 ));
             }
 
@@ -520,10 +521,12 @@ public class JsonDirectoryBackend
          * @param displayName the display name
          * @param email       the email
          * @param password    the password
+         * @param active      the active flag
          */
-        public User(String id, String lastName, String firstName, String displayName, String email, String password) {
+        public User(String id, String lastName, String firstName, String displayName, String email, String password,
+                    boolean active) {
 
-            super(id, lastName, firstName, displayName, email);
+            super(id, lastName, firstName, displayName, email, active);
             this.password = password;
         }
 

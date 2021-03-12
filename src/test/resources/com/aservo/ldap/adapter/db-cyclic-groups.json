@@ -38,7 +38,8 @@
       "last_name": "LastNameOfUserA",
       "display_name": "DisplayNameOfUserA",
       "email": "a.user@email.com",
-      "password": "pw-user-a"
+      "password": "pw-user-a",
+      "active": true
     },
     {
       "id": "UserB",
@@ -46,7 +47,8 @@
       "last_name": "LastNameOfUserB",
       "display_name": "DisplayNameOfUserB",
       "email": "b.user@email.com",
-      "password": "pw-user-b"
+      "password": "pw-user-b",
+      "active": true
     },
     {
       "id": "UserC",
@@ -54,7 +56,8 @@
       "last_name": "LastNameOfUserC",
       "display_name": "DisplayNameOfUserC",
       "email": "c.user@email.com",
-      "password": "pw-user-c"
+      "password": "pw-user-c",
+      "active": true
     }
   ]
 }

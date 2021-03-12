@@ -57,6 +57,7 @@ public class CrowdDirectoryBackend
         implements DirectoryBackend {
 
     private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
+    private final ServerConfiguration config;
     private final CrowdClient crowdClient;
 
     /**
@@ -65,6 +66,8 @@ public class CrowdDirectoryBackend
      * @param config the config instance of the server
      */
     public CrowdDirectoryBackend(ServerConfiguration config) {
+
+        this.config = config;
 
         ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(config.getBackendProperties());
         crowdClient = new RestCrowdClientFactory().newInstance(props);
@@ -138,7 +141,12 @@ public class CrowdDirectoryBackend
 
         try {
 
-            return createUserEntity(crowdClient.getUser(id));
+            UserEntity entity = createUserEntity(crowdClient.getUser(id));
+
+            if (config.isActiveUsersOnly() && !entity.isActive())
+                throw new UserNotFoundException("Will not deliver an inactive user.");
+
+            return entity;
 
         } catch (UserNotFoundException e) {
 
@@ -212,6 +220,10 @@ public class CrowdDirectoryBackend
 
         SearchRestriction restriction =
                 removeNullRestrictions(createUserSearchRestriction(LdapUtils.removeNotExpressions(filterNode)));
+
+        if (config.isActiveUsersOnly())
+            restriction = new BooleanRestrictionImpl(BooleanRestriction.BooleanLogic.AND, restriction,
+                    new TermRestriction<>(UserTermKeys.ACTIVE, MatchMode.EXACTLY_MATCHES, true));
 
         try {
 
@@ -607,7 +619,8 @@ public class CrowdDirectoryBackend
                 user.getLastName(),
                 user.getFirstName(),
                 user.getDisplayName(),
-                user.getEmailAddress()
+                user.getEmailAddress(),
+                user.isActive()
         );
     }
 

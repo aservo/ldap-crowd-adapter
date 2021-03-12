@@ -28,6 +28,7 @@ public class UserEntity
     private final String firstName;
     private final String displayName;
     private final String email;
+    private final boolean active;
 
     /**
      * Instantiates a new User.
@@ -37,14 +38,16 @@ public class UserEntity
      * @param firstName   the first name
      * @param displayName the display name
      * @param email       the email
+     * @param active      the active flag
      */
-    public UserEntity(String id, String lastName, String firstName, String displayName, String email) {
+    public UserEntity(String id, String lastName, String firstName, String displayName, String email, boolean active) {
 
         super(id);
         this.lastName = lastName;
         this.firstName = firstName;
         this.displayName = displayName;
         this.email = email;
+        this.active = active;
     }
 
     /**
@@ -85,6 +88,16 @@ public class UserEntity
     public String getEmail() {
 
         return email;
+    }
+
+    /**
+     * Check if user is active.
+     *
+     * @return the boolean
+     */
+    public boolean isActive() {
+
+        return active;
     }
 
     /**
