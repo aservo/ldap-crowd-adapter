@@ -123,14 +123,17 @@ public abstract class AbstractTest {
     public void begin()
             throws Exception {
 
-        Properties properties = new Properties();
+        Properties serverProperties = new Properties();
+        Properties backendProperties= new Properties();
+
+        serverProperties.setProperty("directory-backend", "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
 
         if (config == BackendConfig.NORMAL)
-            properties.setProperty("db-uri", dbUri1);
+            backendProperties.setProperty("db-uri", dbUri1);
         else if (config == BackendConfig.CYCLIC_GROUPS)
-            properties.setProperty("db-uri", dbUri2);
+            backendProperties.setProperty("db-uri", dbUri2);
 
-        directoryBackend = Main.createConfiguration(properties).getDirectoryBackend();
+        directoryBackend = Main.createConfiguration(serverProperties, backendProperties).getDirectoryBackend();
 
         directoryBackend.startup();
     }

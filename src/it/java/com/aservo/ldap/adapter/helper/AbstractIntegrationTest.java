@@ -94,7 +94,9 @@ public abstract class AbstractIntegrationTest {
     private static void boot(int port, boolean flattening)
             throws Exception {
 
-        System.setProperty("directory-backend", "com.aservo.ldap.adapter.backend.CrowdDirectoryBackend");
+        System.setProperty("directory-backend",
+                "com.aservo.ldap.adapter.backend.CrowdDirectoryBackend," +
+                        "com.aservo.ldap.adapter.backend.CachedInMemoryDirectoryBackend");
         System.setProperty("ds-cache-directory", "./tmp/" + port + "/cache");
         System.setProperty("bind.address", host + ":" + port);
         System.setProperty("ssl.enabled", "true");
@@ -123,18 +125,22 @@ public abstract class AbstractIntegrationTest {
             throws Exception {
 
         File configFile = new File("./etc", "backend.properties");
-        Properties properties = new Properties();
+
+        Properties serverProperties = new Properties();
+        Properties backendProperties = new Properties();
+
+        serverProperties.setProperty("directory-backend", "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
 
         try {
 
-            properties.load(new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8));
+            backendProperties.load(new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8));
 
         } catch (IOException e) {
 
             throw new UncheckedIOException(e);
         }
 
-        directoryBackend = Main.createConfiguration(properties).getDirectoryBackend();
+        directoryBackend = Main.createConfiguration(serverProperties, backendProperties).getDirectoryBackend();
         directoryBackend.startup();
     }
 
