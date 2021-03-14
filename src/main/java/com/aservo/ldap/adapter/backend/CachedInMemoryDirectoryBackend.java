@@ -34,10 +34,8 @@ import java.util.stream.Collectors;
  * A proxy for directory backends to cache entities via in-memory strategy.
  */
 public class CachedInMemoryDirectoryBackend
-        implements DirectoryBackend {
+        extends CachedDirectoryBackend {
 
-    private final ServerConfiguration config;
-    private final DirectoryBackend directoryBackend;
     private final Map<String, GroupEntity> groupIdToEntityCache;
     private final Map<String, UserEntity> userIdToEntityCache;
     private final Map<FilterNode, Set<String>> groupFilterToIdCache;
@@ -59,8 +57,7 @@ public class CachedInMemoryDirectoryBackend
      */
     public CachedInMemoryDirectoryBackend(ServerConfiguration config, DirectoryBackend directoryBackend) {
 
-        this.config = config;
-        this.directoryBackend = directoryBackend;
+        super(config, directoryBackend);
 
         this.groupIdToEntityCache = createCache();
         this.userIdToEntityCache = createCache();
@@ -76,19 +73,16 @@ public class CachedInMemoryDirectoryBackend
         this.transitiveParentGroupsOfGroupCache = createCache();
     }
 
-    public String getId() {
-
-        return directoryBackend.getId();
-    }
-
+    @Override
     public void startup() {
 
-        directoryBackend.startup();
+        super.startup();
     }
 
+    @Override
     public void shutdown() {
 
-        directoryBackend.shutdown();
+        super.shutdown();
 
         groupIdToEntityCache.clear();
         userIdToEntityCache.clear();
@@ -100,7 +94,7 @@ public class CachedInMemoryDirectoryBackend
 
     public boolean isKnownGroup(String id) {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.isKnownGroup(id);
 
         return groupIdToEntityCache.containsKey(id) || directoryBackend.isKnownGroup(id);
@@ -108,7 +102,7 @@ public class CachedInMemoryDirectoryBackend
 
     public boolean isKnownUser(String id) {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.isKnownUser(id);
 
         return userIdToEntityCache.containsKey(id) || directoryBackend.isKnownUser(id);
@@ -117,7 +111,7 @@ public class CachedInMemoryDirectoryBackend
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getGroup(id);
 
         GroupEntity group = groupIdToEntityCache.get(id);
@@ -135,7 +129,7 @@ public class CachedInMemoryDirectoryBackend
     public UserEntity getUser(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getUser(id);
 
         UserEntity user = userIdToEntityCache.get(id);
@@ -158,7 +152,7 @@ public class CachedInMemoryDirectoryBackend
 
     public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getGroups(filterNode, filterMatcher);
 
         List<GroupEntity> groups = lookupGroupEntities(groupFilterToIdCache, filterNode);
@@ -175,7 +169,7 @@ public class CachedInMemoryDirectoryBackend
 
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getUsers(filterNode, filterMatcher);
 
         List<UserEntity> users = lookupUserEntities(userFilterToIdCache, filterNode);
@@ -193,7 +187,7 @@ public class CachedInMemoryDirectoryBackend
     public List<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getDirectUsersOfGroup(id);
 
         List<UserEntity> users = lookupUserEntities(directUsersOfGroupCache, id);
@@ -211,7 +205,7 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getDirectGroupsOfUser(id);
 
         List<GroupEntity> groups = lookupGroupEntities(directGroupsOfUserCache, id);
@@ -229,7 +223,7 @@ public class CachedInMemoryDirectoryBackend
     public List<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getTransitiveUsersOfGroup(id);
 
         List<UserEntity> users = lookupUserEntities(transitiveUsersOfGroupCache, id);
@@ -247,7 +241,7 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getTransitiveGroupsOfUser(id);
 
         List<GroupEntity> groups = lookupGroupEntities(transitiveGroupsOfUserCache, id);
@@ -265,7 +259,7 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getDirectChildGroupsOfGroup(id);
 
         List<GroupEntity> groups = lookupGroupEntities(directChildGroupsOfGroupCache, id);
@@ -283,7 +277,7 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getDirectParentGroupsOfGroup(id);
 
         List<GroupEntity> groups = lookupGroupEntities(directParentGroupsOfGroupCache, id);
@@ -301,7 +295,7 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getTransitiveChildGroupsOfGroup(id);
 
         List<GroupEntity> groups = lookupGroupEntities(transitiveChildGroupsOfGroupCache, id);
@@ -319,7 +313,7 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getTransitiveParentGroupsOfGroup(id);
 
         List<GroupEntity> groups = lookupGroupEntities(transitiveParentGroupsOfGroupCache, id);
@@ -337,7 +331,7 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getDirectUserIdsOfGroup(id);
 
         Set<String> userIds = directUsersOfGroupCache.get(id);
@@ -355,7 +349,7 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getDirectGroupIdsOfUser(id);
 
         Set<String> groupIds = directGroupsOfUserCache.get(id);
@@ -373,7 +367,7 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getTransitiveUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getTransitiveUserIdsOfGroup(id);
 
         Set<String> userIds = transitiveUsersOfGroupCache.get(id);
@@ -391,7 +385,7 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getTransitiveGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getTransitiveGroupIdsOfUser(id);
 
         Set<String> groupIds = transitiveGroupsOfUserCache.get(id);
@@ -409,7 +403,7 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getDirectChildGroupIdsOfGroup(id);
 
         Set<String> groupIds = directChildGroupsOfGroupCache.get(id);
@@ -427,7 +421,7 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getDirectParentGroupIdsOfGroup(id);
 
         Set<String> groupIds = directParentGroupsOfGroupCache.get(id);
@@ -445,7 +439,7 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getTransitiveChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getTransitiveChildGroupIdsOfGroup(id);
 
         Set<String> groupIds = transitiveChildGroupsOfGroupCache.get(id);
@@ -463,7 +457,7 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getTransitiveParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!config.isEntryCacheEnabled())
+        if (!entryCacheEnabled)
             return directoryBackend.getTransitiveParentGroupIdsOfGroup(id);
 
         Set<String> groupIds = transitiveParentGroupsOfGroupCache.get(id);
@@ -531,9 +525,6 @@ public class CachedInMemoryDirectoryBackend
 
     private <K, V> Map<K, V> createCache() {
 
-        return Collections.synchronizedMap(new LruCacheMap<>(
-                config.getEntryCacheMaxSize(),
-                config.getEntryCacheMaxAge()
-        ));
+        return Collections.synchronizedMap(new LruCacheMap<>(entryCacheMaxSize, entryCacheMaxAge));
     }
 }

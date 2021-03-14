@@ -40,10 +40,7 @@ import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKey
 import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.slf4j.Logger;
@@ -56,9 +53,20 @@ import org.slf4j.LoggerFactory;
 public class CrowdDirectoryBackend
         implements DirectoryBackend {
 
+    /**
+     * The constant CONFIG_READINESS_CHECK.
+     */
+    public static final String CONFIG_READINESS_CHECK = "readiness-check";
+    /**
+     * The constant CONFIG_PASS_ACTIVE_USERS_ONLY.
+     */
+    public static final String CONFIG_PASS_ACTIVE_USERS_ONLY = "pass-active-users-only";
+
     private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
     private final ServerConfiguration config;
     private final CrowdClient crowdClient;
+    private final boolean useReadinessCheck;
+    private final boolean activeUsersOnly;
 
     /**
      * Instantiates a new Crowd directory backend.
@@ -67,9 +75,14 @@ public class CrowdDirectoryBackend
      */
     public CrowdDirectoryBackend(ServerConfiguration config) {
 
+        Properties properties = config.getBackendProperties();
+
         this.config = config;
 
-        ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(config.getBackendProperties());
+        useReadinessCheck = Boolean.parseBoolean(properties.getProperty(CONFIG_READINESS_CHECK, "true"));
+        activeUsersOnly = Boolean.parseBoolean(properties.getProperty(CONFIG_PASS_ACTIVE_USERS_ONLY, "false"));
+
+        ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(properties);
         crowdClient = new RestCrowdClientFactory().newInstance(props);
     }
 
@@ -82,7 +95,8 @@ public class CrowdDirectoryBackend
 
         try {
 
-            crowdClient.testConnection();
+            if (useReadinessCheck)
+                crowdClient.testConnection();
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -143,7 +157,7 @@ public class CrowdDirectoryBackend
 
             UserEntity entity = createUserEntity(crowdClient.getUser(id));
 
-            if (config.isActiveUsersOnly() && !entity.isActive())
+            if (activeUsersOnly && !entity.isActive())
                 throw new UserNotFoundException("Will not deliver an inactive user.");
 
             return entity;
@@ -221,7 +235,7 @@ public class CrowdDirectoryBackend
         SearchRestriction restriction =
                 removeNullRestrictions(createUserSearchRestriction(LdapUtils.removeNotExpressions(filterNode)));
 
-        if (config.isActiveUsersOnly())
+        if (activeUsersOnly)
             restriction = new BooleanRestrictionImpl(BooleanRestriction.BooleanLogic.AND, restriction,
                     new TermRestriction<>(UserTermKeys.ACTIVE, MatchMode.EXACTLY_MATCHES, true));
 

@@ -20,7 +20,6 @@ package com.aservo.ldap.adapter.util;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -41,22 +40,6 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_BIND_ADDRESS = "bind.address";
     /**
-     * The constant CONFIG_ENTRY_CACHE_ENABLED.
-     */
-    public static final String CONFIG_ENTRY_CACHE_ENABLED = "entry-cache.enabled";
-    /**
-     * The constant CONFIG_ENTRY_CACHE_MAX_SIZE.
-     */
-    public static final String CONFIG_ENTRY_CACHE_MAX_SIZE = "entry-cache.max-size";
-    /**
-     * The constant CONFIG_ENTRY_CACHE_MAX_AGE.
-     */
-    public static final String CONFIG_ENTRY_CACHE_MAX_AGE = "entry-cache.max-age";
-    /**
-     * The constant CONFIG_READINESS_CHECK.
-     */
-    public static final String CONFIG_READINESS_CHECK = "readiness-check";
-    /**
      * The constant CONFIG_SSL_ENABLED.
      */
     public static final String CONFIG_SSL_ENABLED = "ssl.enabled";
@@ -68,10 +51,6 @@ public class ServerConfiguration {
      * The constant CONFIG_SSL_KEY_STORE_PW.
      */
     public static final String CONFIG_SSL_KEY_STORE_PW = "ssl.key-store-password";
-    /**
-     * The constant CONFIG_MODE_ACTIVE_USERS_ONLY.
-     */
-    public static final String CONFIG_MODE_ACTIVE_USERS_ONLY = "mode.active-users-only";
     /**
      * The constant CONFIG_MODE_FLATTENING.
      */
@@ -97,14 +76,9 @@ public class ServerConfiguration {
     private final Path cacheDir;
     private final String host;
     private final int port;
-    private final boolean entryCacheEnabled;
-    private final int entryCacheMaxSize;
-    private final Duration entryCacheMaxAge;
-    private final boolean readinessCheck;
     private final boolean sslEnabled;
     private final Path keyStoreFile;
     private final String keyStorePassword;
-    private final boolean activeUsersOnly;
     private final boolean flattening;
     private final DirectoryBackend directoryBackend;
     private final String baseDnDescription;
@@ -133,20 +107,6 @@ public class ServerConfiguration {
         host = bindAddressParts[0];
         port = Integer.parseInt(bindAddressParts[1]);
 
-        // entry-cache support
-        entryCacheEnabled = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_ENTRY_CACHE_ENABLED, "false"));
-        entryCacheMaxSize = Integer.parseInt(serverProperties.getProperty(CONFIG_ENTRY_CACHE_MAX_SIZE, "300"));
-        entryCacheMaxAge = Duration.parse(serverProperties.getProperty(CONFIG_ENTRY_CACHE_MAX_AGE, "PT1H"));
-
-        if (entryCacheMaxSize <= 0)
-            throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_SIZE);
-
-        if (entryCacheMaxAge.isNegative() || entryCacheMaxAge.isZero())
-            throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_AGE);
-
-        // require connection check to backend at startup
-        readinessCheck = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_READINESS_CHECK, "true"));
-
         // SSL support
         sslEnabled = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_SSL_ENABLED, "false"));
 
@@ -169,8 +129,6 @@ public class ServerConfiguration {
             keyStoreFile = null;
             keyStorePassword = null;
         }
-
-        activeUsersOnly = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_MODE_ACTIVE_USERS_ONLY, "false"));
 
         flattening = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_MODE_FLATTENING, "true"));
 
@@ -260,46 +218,6 @@ public class ServerConfiguration {
     }
 
     /**
-     * Is entry cache enabled boolean.
-     *
-     * @return the boolean
-     */
-    public boolean isEntryCacheEnabled() {
-
-        return entryCacheEnabled;
-    }
-
-    /**
-     * Gets entry cache maximum size.
-     *
-     * @return the entry cache max size
-     */
-    public int getEntryCacheMaxSize() {
-
-        return entryCacheMaxSize;
-    }
-
-    /**
-     * Gets entry cache maximum age.
-     *
-     * @return the entry cache max age
-     */
-    public Duration getEntryCacheMaxAge() {
-
-        return entryCacheMaxAge;
-    }
-
-    /**
-     * Check the connection to the backend.
-     *
-     * @return the boolean
-     */
-    public boolean requireReadinessCheck() {
-
-        return readinessCheck;
-    }
-
-    /**
      * Is SSL enabled boolean.
      *
      * @return the boolean
@@ -327,16 +245,6 @@ public class ServerConfiguration {
     public String getKeyStorePassword() {
 
         return keyStorePassword;
-    }
-
-    /**
-     * Is active users only boolean.
-     *
-     * @return the boolean
-     */
-    public boolean isActiveUsersOnly() {
-
-        return activeUsersOnly;
     }
 
     /**

@@ -112,9 +112,7 @@ public class CommonLdapServer {
 
         try {
 
-            if (serverConfig.requireReadinessCheck())
-                directoryBackend.startup();
-
+            directoryBackend.startup();
             directoryService.startup();
 
             LdapServer server = new LdapServer();
