@@ -23,7 +23,7 @@ import java.util.Properties;
 
 
 public abstract class CachedDirectoryBackend
-        implements DirectoryBackend {
+        extends ProxyDirectoryBackend {
 
     /**
      * The constant CONFIG_ENTRY_CACHE_ENABLED.
@@ -38,18 +38,15 @@ public abstract class CachedDirectoryBackend
      */
     public static final String CONFIG_ENTRY_CACHE_MAX_AGE = "entry-cache.max-age";
 
-    protected final ServerConfiguration config;
-    protected final DirectoryBackend directoryBackend;
     protected final boolean entryCacheEnabled;
     protected final int entryCacheMaxSize;
     protected final Duration entryCacheMaxAge;
 
     protected CachedDirectoryBackend(ServerConfiguration config, DirectoryBackend directoryBackend) {
 
-        Properties properties = config.getBackendProperties();
+        super(config, directoryBackend);
 
-        this.config = config;
-        this.directoryBackend = directoryBackend;
+        Properties properties = config.getBackendProperties();
 
         entryCacheEnabled = Boolean.parseBoolean(properties.getProperty(CONFIG_ENTRY_CACHE_ENABLED, "false"));
         entryCacheMaxSize = Integer.parseInt(properties.getProperty(CONFIG_ENTRY_CACHE_MAX_SIZE, "300"));
@@ -60,23 +57,5 @@ public abstract class CachedDirectoryBackend
 
         if (entryCacheMaxAge.isNegative() || entryCacheMaxAge.isZero())
             throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_AGE);
-    }
-
-    @Override
-    public String getId() {
-
-        return directoryBackend.getId();
-    }
-
-    @Override
-    public void startup() {
-
-        directoryBackend.startup();
-    }
-
-    @Override
-    public void shutdown() {
-
-        directoryBackend.shutdown();
     }
 }
