@@ -40,7 +40,9 @@ import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKey
 import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.slf4j.Logger;
@@ -314,14 +316,25 @@ public class CrowdDirectoryBackend
 
         logger.info("Backend call: getTransitiveUsersOfGroup; id={}", id);
 
-        List<UserEntity> users = getDirectUsersOfGroup(id);
+        try {
 
-        for (GroupEntity y : getTransitiveChildGroupsOfGroup(id))
-            for (UserEntity x : getDirectUsersOfGroup(y.getId()))
-                if (!users.contains(x))
-                    users.add(x);
+            return crowdClient.getNestedUsersOfGroup(id, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createUserEntity)
+                    .collect(Collectors.toList());
 
-        return users;
+        } catch (GroupNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
     }
 
     public List<GroupEntity> getTransitiveGroupsOfUser(String id)
@@ -329,14 +342,25 @@ public class CrowdDirectoryBackend
 
         logger.info("Backend call: getTransitiveGroupsOfUser; id={}", id);
 
-        List<GroupEntity> groups = getDirectGroupsOfUser(id);
+        try {
 
-        for (GroupEntity y : new ArrayList<>(groups))
-            for (GroupEntity x : getTransitiveParentGroupsOfGroup(y.getId()))
-                if (!groups.contains(x))
-                    groups.add(x);
+            return crowdClient.getGroupsForNestedUser(id, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createGroupEntity)
+                    .collect(Collectors.toList());
 
-        return groups;
+        } catch (UserNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
     }
 
     public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
@@ -396,17 +420,25 @@ public class CrowdDirectoryBackend
 
         logger.info("Backend call: getTransitiveChildGroupsOfGroup; id={}", id);
 
-        List<String> groupIds = getTransitiveChildGroupIdsOfGroup(id);
+        try {
 
-        if (groupIds.isEmpty())
-            return Collections.emptyList();
+            return crowdClient.getNestedChildGroupsOfGroup(id, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createGroupEntity)
+                    .collect(Collectors.toList());
 
-        return getGroups(new OrLogicExpression(
-                groupIds.stream()
-                        .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
-                        .collect(Collectors.toList())
-        ), Optional.empty());
+        } catch (GroupNotFoundException e) {
 
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
     }
 
     public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
@@ -414,16 +446,25 @@ public class CrowdDirectoryBackend
 
         logger.info("Backend call: getTransitiveParentGroupsOfGroup; id={}", id);
 
-        List<String> groupIds = getTransitiveParentGroupIdsOfGroup(id);
+        try {
 
-        if (groupIds.isEmpty())
-            return Collections.emptyList();
+            return crowdClient.getParentGroupsForNestedGroup(id, 0, Integer.MAX_VALUE).stream()
+                    .map(this::createGroupEntity)
+                    .collect(Collectors.toList());
 
-        return getGroups(new OrLogicExpression(
-                groupIds.stream()
-                        .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
-                        .collect(Collectors.toList())
-        ), Optional.empty());
+        } catch (GroupNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
     }
 
     public List<String> getDirectUserIdsOfGroup(String id)
@@ -479,14 +520,23 @@ public class CrowdDirectoryBackend
 
         logger.info("Backend call: getTransitiveUserIdsOfGroup; id={}", id);
 
-        List<String> userIds = getDirectUserIdsOfGroup(id);
+        try {
 
-        for (String y : getTransitiveChildGroupIdsOfGroup(id))
-            for (String x : getDirectUserIdsOfGroup(y))
-                if (!userIds.contains(x))
-                    userIds.add(x);
+            return crowdClient.getNamesOfNestedUsersOfGroup(id, 0, Integer.MAX_VALUE);
 
-        return userIds;
+        } catch (GroupNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
     }
 
     public List<String> getTransitiveGroupIdsOfUser(String id)
@@ -494,14 +544,23 @@ public class CrowdDirectoryBackend
 
         logger.info("Backend call: getTransitiveGroupIdsOfUser; id={}", id);
 
-        List<String> groupIds = getDirectGroupIdsOfUser(id);
+        try {
 
-        for (String y : new ArrayList<>(groupIds))
-            for (String x : getTransitiveParentGroupIdsOfGroup(y))
-                if (!groupIds.contains(x))
-                    groupIds.add(x);
+            return crowdClient.getNamesOfGroupsForNestedUser(id, 0, Integer.MAX_VALUE);
 
-        return groupIds;
+        } catch (UserNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
     }
 
     public List<String> getDirectChildGroupIdsOfGroup(String id)
@@ -557,14 +616,23 @@ public class CrowdDirectoryBackend
 
         logger.info("Backend call: getTransitiveChildGroupIdsOfGroup; id={}", id);
 
-        List<String> groupIds = new ArrayList<>();
-        GroupEntity group = getGroup(id);
+        try {
 
-        groupIds.add(group.getId());
-        resolveGroupsDownwards(group.getId(), groupIds);
-        groupIds.remove(group.getId());
+            return crowdClient.getNamesOfNestedChildGroupsOfGroup(id, 0, Integer.MAX_VALUE);
 
-        return groupIds;
+        } catch (GroupNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
     }
 
     public List<String> getTransitiveParentGroupIdsOfGroup(String id)
@@ -572,14 +640,23 @@ public class CrowdDirectoryBackend
 
         logger.info("Backend call: getTransitiveParentGroupIdsOfGroup; id={}", id);
 
-        List<String> groupIds = new ArrayList<>();
-        GroupEntity group = getGroup(id);
+        try {
 
-        groupIds.add(group.getId());
-        resolveGroupsUpwards(group.getId(), groupIds);
-        groupIds.remove(group.getId());
+            return crowdClient.getNamesOfParentGroupsForNestedGroup(id, 0, Integer.MAX_VALUE);
 
-        return groupIds;
+        } catch (GroupNotFoundException e) {
+
+            throw new EntityNotFoundException(e);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
     }
 
     @Override
@@ -636,62 +713,6 @@ public class CrowdDirectoryBackend
                 user.getEmailAddress(),
                 user.isActive()
         );
-    }
-
-    private void resolveGroupsDownwards(String id, List<String> acc)
-            throws EntityNotFoundException {
-
-        try {
-
-            List<String> result = crowdClient.getNamesOfChildGroupsOfGroup(id, 0, Integer.MAX_VALUE);
-
-            result.removeAll(acc);
-            acc.addAll(result);
-
-            for (String x : result)
-                resolveGroupsDownwards(x, acc);
-
-        } catch (GroupNotFoundException e) {
-
-            throw new EntityNotFoundException(e);
-
-        } catch (ApplicationPermissionException |
-                InvalidAuthenticationException e) {
-
-            throw new SecurityProblemException(e);
-
-        } catch (OperationFailedException e) {
-
-            throw new DirectoryAccessFailureException(e);
-        }
-    }
-
-    private void resolveGroupsUpwards(String id, List<String> acc)
-            throws EntityNotFoundException {
-
-        try {
-
-            List<String> result = crowdClient.getNamesOfParentGroupsForGroup(id, 0, Integer.MAX_VALUE);
-
-            result.removeAll(acc);
-            acc.addAll(result);
-
-            for (String x : result)
-                resolveGroupsUpwards(x, acc);
-
-        } catch (GroupNotFoundException e) {
-
-            throw new EntityNotFoundException(e);
-
-        } catch (ApplicationPermissionException |
-                InvalidAuthenticationException e) {
-
-            throw new SecurityProblemException(e);
-
-        } catch (OperationFailedException e) {
-
-            throw new DirectoryAccessFailureException(e);
-        }
     }
 
     private SearchRestriction createGroupSearchRestriction(FilterNode filterNode) {

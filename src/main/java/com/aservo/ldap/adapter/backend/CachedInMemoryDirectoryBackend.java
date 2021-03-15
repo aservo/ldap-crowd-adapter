@@ -21,13 +21,16 @@ import com.aservo.ldap.adapter.adapter.FilterMatcher;
 import com.aservo.ldap.adapter.adapter.entity.Entity;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
+import com.aservo.ldap.adapter.adapter.query.EqualOperator;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
+import com.aservo.ldap.adapter.adapter.query.OrLogicExpression;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.LruCacheMap;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.google.common.collect.Lists;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 
 
 /**
@@ -42,12 +45,8 @@ public class CachedInMemoryDirectoryBackend
     private final Map<FilterNode, Set<String>> userFilterToIdCache;
     private final Map<String, Set<String>> directGroupsOfUserCache;
     private final Map<String, Set<String>> directUsersOfGroupCache;
-    private final Map<String, Set<String>> transitiveUsersOfGroupCache;
-    private final Map<String, Set<String>> transitiveGroupsOfUserCache;
     private final Map<String, Set<String>> directChildGroupsOfGroupCache;
     private final Map<String, Set<String>> directParentGroupsOfGroupCache;
-    private final Map<String, Set<String>> transitiveChildGroupsOfGroupCache;
-    private final Map<String, Set<String>> transitiveParentGroupsOfGroupCache;
 
     /**
      * Instantiates a new Crowd directory backend.
@@ -59,18 +58,14 @@ public class CachedInMemoryDirectoryBackend
 
         super(config, directoryBackend);
 
-        this.groupIdToEntityCache = createCache();
-        this.userIdToEntityCache = createCache();
-        this.groupFilterToIdCache = createCache();
-        this.userFilterToIdCache = createCache();
-        this.directGroupsOfUserCache = createCache();
-        this.directUsersOfGroupCache = createCache();
-        this.transitiveUsersOfGroupCache = createCache();
-        this.transitiveGroupsOfUserCache = createCache();
-        this.directChildGroupsOfGroupCache = createCache();
-        this.directParentGroupsOfGroupCache = createCache();
-        this.transitiveChildGroupsOfGroupCache = createCache();
-        this.transitiveParentGroupsOfGroupCache = createCache();
+        groupIdToEntityCache = createCache();
+        userIdToEntityCache = createCache();
+        groupFilterToIdCache = createCache();
+        userFilterToIdCache = createCache();
+        directGroupsOfUserCache = createCache();
+        directUsersOfGroupCache = createCache();
+        directChildGroupsOfGroupCache = createCache();
+        directParentGroupsOfGroupCache = createCache();
     }
 
     @Override
@@ -90,6 +85,8 @@ public class CachedInMemoryDirectoryBackend
         userFilterToIdCache.clear();
         directGroupsOfUserCache.clear();
         directUsersOfGroupCache.clear();
+        directChildGroupsOfGroupCache.clear();
+        directParentGroupsOfGroupCache.clear();
     }
 
     @Override
@@ -161,7 +158,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<GroupEntity> result = directoryBackend.getGroups(filterNode, filterMatcher);
 
-        saveGroupEntities(groupFilterToIdCache, filterNode, result);
+        saveGroupEntities(groupFilterToIdCache, filterNode, new HashSet<>(result));
 
         return result;
     }
@@ -179,7 +176,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<UserEntity> result = directoryBackend.getUsers(filterNode, filterMatcher);
 
-        saveUserEntities(userFilterToIdCache, filterNode, result);
+        saveUserEntities(userFilterToIdCache, filterNode, new HashSet<>(result));
 
         return result;
     }
@@ -198,7 +195,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<UserEntity> result = directoryBackend.getDirectUsersOfGroup(id);
 
-        saveUserEntities(directUsersOfGroupCache, id, result);
+        saveUserEntities(directUsersOfGroupCache, id, new HashSet<>(result));
 
         return result;
     }
@@ -217,7 +214,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<GroupEntity> result = directoryBackend.getDirectGroupsOfUser(id);
 
-        saveGroupEntities(directGroupsOfUserCache, id, result);
+        saveGroupEntities(directGroupsOfUserCache, id, new HashSet<>(result));
 
         return result;
     }
@@ -229,16 +226,14 @@ public class CachedInMemoryDirectoryBackend
         if (!entryCacheEnabled)
             return super.getTransitiveUsersOfGroup(id);
 
-        List<UserEntity> users = lookupUserEntities(transitiveUsersOfGroupCache, id);
+        List<UserEntity> users = getDirectUsersOfGroup(id);
 
-        if (users != null)
-            return users;
+        for (GroupEntity y : getTransitiveChildGroupsOfGroup(id))
+            for (UserEntity x : getDirectUsersOfGroup(y.getId()))
+                if (!users.contains(x))
+                    users.add(x);
 
-        List<UserEntity> result = directoryBackend.getTransitiveUsersOfGroup(id);
-
-        saveUserEntities(transitiveUsersOfGroupCache, id, result);
-
-        return result;
+        return users;
     }
 
     @Override
@@ -248,16 +243,14 @@ public class CachedInMemoryDirectoryBackend
         if (!entryCacheEnabled)
             return super.getTransitiveGroupsOfUser(id);
 
-        List<GroupEntity> groups = lookupGroupEntities(transitiveGroupsOfUserCache, id);
+        List<GroupEntity> groups = getDirectGroupsOfUser(id);
 
-        if (groups != null)
-            return groups;
+        for (GroupEntity y : new ArrayList<>(groups))
+            for (GroupEntity x : getTransitiveParentGroupsOfGroup(y.getId()))
+                if (!groups.contains(x))
+                    groups.add(x);
 
-        List<GroupEntity> result = directoryBackend.getTransitiveGroupsOfUser(id);
-
-        saveGroupEntities(transitiveGroupsOfUserCache, id, result);
-
-        return result;
+        return groups;
     }
 
     @Override
@@ -274,7 +267,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<GroupEntity> result = directoryBackend.getDirectChildGroupsOfGroup(id);
 
-        saveGroupEntities(directChildGroupsOfGroupCache, id, result);
+        saveGroupEntities(directChildGroupsOfGroupCache, id, new HashSet<>(result));
 
         return result;
     }
@@ -293,7 +286,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<GroupEntity> result = directoryBackend.getDirectParentGroupsOfGroup(id);
 
-        saveGroupEntities(directParentGroupsOfGroupCache, id, result);
+        saveGroupEntities(directParentGroupsOfGroupCache, id, new HashSet<>(result));
 
         return result;
     }
@@ -305,16 +298,16 @@ public class CachedInMemoryDirectoryBackend
         if (!entryCacheEnabled)
             return super.getTransitiveChildGroupsOfGroup(id);
 
-        List<GroupEntity> groups = lookupGroupEntities(transitiveChildGroupsOfGroupCache, id);
+        List<String> groupIds = getTransitiveChildGroupIdsOfGroup(id);
 
-        if (groups != null)
-            return groups;
+        if (groupIds.isEmpty())
+            return Collections.emptyList();
 
-        List<GroupEntity> result = directoryBackend.getTransitiveChildGroupsOfGroup(id);
-
-        saveGroupEntities(transitiveChildGroupsOfGroupCache, id, result);
-
-        return result;
+        return getGroups(new OrLogicExpression(
+                groupIds.stream()
+                        .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
+                        .collect(Collectors.toList())
+        ), Optional.empty());
     }
 
     @Override
@@ -324,16 +317,16 @@ public class CachedInMemoryDirectoryBackend
         if (!entryCacheEnabled)
             return super.getTransitiveParentGroupsOfGroup(id);
 
-        List<GroupEntity> groups = lookupGroupEntities(transitiveParentGroupsOfGroupCache, id);
+        List<String> groupIds = getTransitiveParentGroupIdsOfGroup(id);
 
-        if (groups != null)
-            return groups;
+        if (groupIds.isEmpty())
+            return Collections.emptyList();
 
-        List<GroupEntity> result = directoryBackend.getTransitiveParentGroupsOfGroup(id);
-
-        saveGroupEntities(transitiveParentGroupsOfGroupCache, id, result);
-
-        return result;
+        return getGroups(new OrLogicExpression(
+                groupIds.stream()
+                        .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
+                        .collect(Collectors.toList())
+        ), Optional.empty());
     }
 
     @Override
@@ -350,7 +343,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<String> result = directoryBackend.getDirectUserIdsOfGroup(id);
 
-        saveEntityIds(directUsersOfGroupCache, id, result);
+        directUsersOfGroupCache.put(id, new HashSet<>(result));
 
         return result;
     }
@@ -369,7 +362,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<String> result = directoryBackend.getDirectGroupIdsOfUser(id);
 
-        saveEntityIds(directGroupsOfUserCache, id, result);
+        directGroupsOfUserCache.put(id, new HashSet<>(result));
 
         return result;
     }
@@ -381,16 +374,14 @@ public class CachedInMemoryDirectoryBackend
         if (!entryCacheEnabled)
             return super.getTransitiveUserIdsOfGroup(id);
 
-        Set<String> userIds = transitiveUsersOfGroupCache.get(id);
+        List<String> userIds = getDirectUserIdsOfGroup(id);
 
-        if (userIds != null)
-            return Lists.newArrayList(userIds);
+        for (String y : getTransitiveChildGroupIdsOfGroup(id))
+            for (String x : getDirectUserIdsOfGroup(y))
+                if (!userIds.contains(x))
+                    userIds.add(x);
 
-        List<String> result = directoryBackend.getTransitiveUserIdsOfGroup(id);
-
-        saveEntityIds(transitiveUsersOfGroupCache, id, result);
-
-        return result;
+        return userIds;
     }
 
     @Override
@@ -400,16 +391,14 @@ public class CachedInMemoryDirectoryBackend
         if (!entryCacheEnabled)
             return super.getTransitiveGroupIdsOfUser(id);
 
-        Set<String> groupIds = transitiveGroupsOfUserCache.get(id);
+        List<String> groupIds = getDirectGroupIdsOfUser(id);
 
-        if (groupIds != null)
-            return Lists.newArrayList(groupIds);
+        for (String y : new ArrayList<>(groupIds))
+            for (String x : getTransitiveParentGroupIdsOfGroup(y))
+                if (!groupIds.contains(x))
+                    groupIds.add(x);
 
-        List<String> result = directoryBackend.getTransitiveGroupIdsOfUser(id);
-
-        saveEntityIds(transitiveGroupsOfUserCache, id, result);
-
-        return result;
+        return groupIds;
     }
 
     @Override
@@ -426,7 +415,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<String> result = directoryBackend.getDirectChildGroupIdsOfGroup(id);
 
-        saveEntityIds(directChildGroupsOfGroupCache, id, result);
+        directChildGroupsOfGroupCache.put(id, new HashSet<>(result));
 
         return result;
     }
@@ -445,7 +434,7 @@ public class CachedInMemoryDirectoryBackend
 
         List<String> result = directoryBackend.getDirectParentGroupIdsOfGroup(id);
 
-        saveEntityIds(directParentGroupsOfGroupCache, id, result);
+        directParentGroupsOfGroupCache.put(id, new HashSet<>(result));
 
         return result;
     }
@@ -457,16 +446,14 @@ public class CachedInMemoryDirectoryBackend
         if (!entryCacheEnabled)
             return super.getTransitiveChildGroupIdsOfGroup(id);
 
-        Set<String> groupIds = transitiveChildGroupsOfGroupCache.get(id);
+        List<String> groupIds = new ArrayList<>();
+        GroupEntity group = getGroup(id);
 
-        if (groupIds != null)
-            return Lists.newArrayList(groupIds);
+        groupIds.add(group.getId());
+        resolveGroupsDownwards(group.getId(), groupIds);
+        groupIds.remove(group.getId());
 
-        List<String> result = directoryBackend.getTransitiveChildGroupIdsOfGroup(id);
-
-        saveEntityIds(transitiveChildGroupsOfGroupCache, id, result);
-
-        return result;
+        return groupIds;
     }
 
     @Override
@@ -476,16 +463,14 @@ public class CachedInMemoryDirectoryBackend
         if (!entryCacheEnabled)
             return super.getTransitiveParentGroupIdsOfGroup(id);
 
-        Set<String> groupIds = transitiveParentGroupsOfGroupCache.get(id);
+        List<String> groupIds = new ArrayList<>();
+        GroupEntity group = getGroup(id);
 
-        if (groupIds != null)
-            return Lists.newArrayList(groupIds);
+        groupIds.add(group.getId());
+        resolveGroupsUpwards(group.getId(), groupIds);
+        groupIds.remove(group.getId());
 
-        List<String> result = directoryBackend.getTransitiveParentGroupIdsOfGroup(id);
-
-        saveEntityIds(transitiveParentGroupsOfGroupCache, id, result);
-
-        return result;
+        return groupIds;
     }
 
     private <T> List<GroupEntity> lookupGroupEntities(Map<T, Set<String>> cache, T id) {
@@ -522,25 +507,44 @@ public class CachedInMemoryDirectoryBackend
         return null;
     }
 
-    private <T> void saveGroupEntities(Map<T, Set<String>> cache, T id, List<GroupEntity> groups) {
+    private <T> void saveGroupEntities(Map<T, Set<String>> cache, T id, Set<GroupEntity> groups) {
 
         groups.forEach(x -> groupIdToEntityCache.put(x.getId(), x));
         cache.put(id, groups.stream().map(Entity::getId).collect(Collectors.toSet()));
     }
 
-    private <T> void saveUserEntities(Map<T, Set<String>> cache, T id, List<UserEntity> users) {
+    private <T> void saveUserEntities(Map<T, Set<String>> cache, T id, Set<UserEntity> users) {
 
         users.forEach(x -> userIdToEntityCache.put(x.getId(), x));
         cache.put(id, users.stream().map(Entity::getId).collect(Collectors.toSet()));
     }
 
-    private <T> void saveEntityIds(Map<T, Set<String>> cache, T id, List<String> groups) {
-
-        cache.put(id, new HashSet<>(groups));
-    }
-
     private <K, V> Map<K, V> createCache() {
 
         return Collections.synchronizedMap(new LruCacheMap<>(entryCacheMaxSize, entryCacheMaxAge));
+    }
+
+    private void resolveGroupsDownwards(String id, List<String> acc)
+            throws EntityNotFoundException {
+
+        List<String> result = getDirectChildGroupIdsOfGroup(id);
+
+        result.removeAll(acc);
+        acc.addAll(result);
+
+        for (String x : result)
+            resolveGroupsDownwards(x, acc);
+    }
+
+    private void resolveGroupsUpwards(String id, List<String> acc)
+            throws EntityNotFoundException {
+
+        List<String> result = getDirectParentGroupIdsOfGroup(id);
+
+        result.removeAll(acc);
+        acc.addAll(result);
+
+        for (String x : result)
+            resolveGroupsUpwards(x, acc);
     }
 }
