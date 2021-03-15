@@ -92,17 +92,11 @@ public class CachedInMemoryDirectoryBackend
     @Override
     public boolean isKnownGroup(String id) {
 
-        if (!entryCacheEnabled)
-            return super.isKnownGroup(id);
-
         return groupIdToEntityCache.containsKey(id) || directoryBackend.isKnownGroup(id);
     }
 
     @Override
     public boolean isKnownUser(String id) {
-
-        if (!entryCacheEnabled)
-            return super.isKnownUser(id);
 
         return userIdToEntityCache.containsKey(id) || directoryBackend.isKnownUser(id);
     }
@@ -111,9 +105,6 @@ public class CachedInMemoryDirectoryBackend
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getGroup(id);
-
         GroupEntity group = groupIdToEntityCache.get(id);
 
         if (group != null)
@@ -121,7 +112,8 @@ public class CachedInMemoryDirectoryBackend
 
         GroupEntity result = directoryBackend.getGroup(id);
 
-        groupIdToEntityCache.put(id, result);
+        if (entryCacheEnabled)
+            groupIdToEntityCache.put(id, result);
 
         return result;
     }
@@ -130,9 +122,6 @@ public class CachedInMemoryDirectoryBackend
     public UserEntity getUser(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getUser(id);
-
         UserEntity user = userIdToEntityCache.get(id);
 
         if (user != null)
@@ -140,16 +129,14 @@ public class CachedInMemoryDirectoryBackend
 
         UserEntity result = directoryBackend.getUser(id);
 
-        userIdToEntityCache.put(id, result);
+        if (entryCacheEnabled)
+            userIdToEntityCache.put(id, result);
 
         return result;
     }
 
     @Override
     public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
-
-        if (!entryCacheEnabled)
-            return super.getGroups(filterNode, filterMatcher);
 
         List<GroupEntity> groups = lookupGroupEntities(groupFilterToIdCache, filterNode);
 
@@ -158,16 +145,14 @@ public class CachedInMemoryDirectoryBackend
 
         List<GroupEntity> result = directoryBackend.getGroups(filterNode, filterMatcher);
 
-        saveGroupEntities(groupFilterToIdCache, filterNode, new HashSet<>(result));
+        if (entryCacheEnabled)
+            saveGroupEntities(groupFilterToIdCache, filterNode, new HashSet<>(result));
 
         return result;
     }
 
     @Override
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
-
-        if (!entryCacheEnabled)
-            return super.getUsers(filterNode, filterMatcher);
 
         List<UserEntity> users = lookupUserEntities(userFilterToIdCache, filterNode);
 
@@ -176,7 +161,8 @@ public class CachedInMemoryDirectoryBackend
 
         List<UserEntity> result = directoryBackend.getUsers(filterNode, filterMatcher);
 
-        saveUserEntities(userFilterToIdCache, filterNode, new HashSet<>(result));
+        if (entryCacheEnabled)
+            saveUserEntities(userFilterToIdCache, filterNode, new HashSet<>(result));
 
         return result;
     }
@@ -185,9 +171,6 @@ public class CachedInMemoryDirectoryBackend
     public List<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getDirectUsersOfGroup(id);
-
         List<UserEntity> users = lookupUserEntities(directUsersOfGroupCache, id);
 
         if (users != null)
@@ -195,7 +178,8 @@ public class CachedInMemoryDirectoryBackend
 
         List<UserEntity> result = directoryBackend.getDirectUsersOfGroup(id);
 
-        saveUserEntities(directUsersOfGroupCache, id, new HashSet<>(result));
+        if (entryCacheEnabled)
+            saveUserEntities(directUsersOfGroupCache, id, new HashSet<>(result));
 
         return result;
     }
@@ -204,9 +188,6 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getDirectGroupsOfUser(id);
-
         List<GroupEntity> groups = lookupGroupEntities(directGroupsOfUserCache, id);
 
         if (groups != null)
@@ -214,7 +195,8 @@ public class CachedInMemoryDirectoryBackend
 
         List<GroupEntity> result = directoryBackend.getDirectGroupsOfUser(id);
 
-        saveGroupEntities(directGroupsOfUserCache, id, new HashSet<>(result));
+        if (entryCacheEnabled)
+            saveGroupEntities(directGroupsOfUserCache, id, new HashSet<>(result));
 
         return result;
     }
@@ -222,9 +204,6 @@ public class CachedInMemoryDirectoryBackend
     @Override
     public List<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
-
-        if (!entryCacheEnabled)
-            return super.getTransitiveUsersOfGroup(id);
 
         List<UserEntity> users = getDirectUsersOfGroup(id);
 
@@ -240,9 +219,6 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getTransitiveGroupsOfUser(id);
-
         List<GroupEntity> groups = getDirectGroupsOfUser(id);
 
         for (GroupEntity y : new ArrayList<>(groups))
@@ -257,9 +233,6 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getDirectChildGroupsOfGroup(id);
-
         List<GroupEntity> groups = lookupGroupEntities(directChildGroupsOfGroupCache, id);
 
         if (groups != null)
@@ -267,7 +240,8 @@ public class CachedInMemoryDirectoryBackend
 
         List<GroupEntity> result = directoryBackend.getDirectChildGroupsOfGroup(id);
 
-        saveGroupEntities(directChildGroupsOfGroupCache, id, new HashSet<>(result));
+        if (entryCacheEnabled)
+            saveGroupEntities(directChildGroupsOfGroupCache, id, new HashSet<>(result));
 
         return result;
     }
@@ -276,9 +250,6 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getDirectParentGroupsOfGroup(id);
-
         List<GroupEntity> groups = lookupGroupEntities(directParentGroupsOfGroupCache, id);
 
         if (groups != null)
@@ -286,7 +257,8 @@ public class CachedInMemoryDirectoryBackend
 
         List<GroupEntity> result = directoryBackend.getDirectParentGroupsOfGroup(id);
 
-        saveGroupEntities(directParentGroupsOfGroupCache, id, new HashSet<>(result));
+        if (entryCacheEnabled)
+            saveGroupEntities(directParentGroupsOfGroupCache, id, new HashSet<>(result));
 
         return result;
     }
@@ -294,9 +266,6 @@ public class CachedInMemoryDirectoryBackend
     @Override
     public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
-
-        if (!entryCacheEnabled)
-            return super.getTransitiveChildGroupsOfGroup(id);
 
         List<String> groupIds = getTransitiveChildGroupIdsOfGroup(id);
 
@@ -314,9 +283,6 @@ public class CachedInMemoryDirectoryBackend
     public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getTransitiveParentGroupsOfGroup(id);
-
         List<String> groupIds = getTransitiveParentGroupIdsOfGroup(id);
 
         if (groupIds.isEmpty())
@@ -333,9 +299,6 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getDirectUserIdsOfGroup(id);
-
         Set<String> userIds = directUsersOfGroupCache.get(id);
 
         if (userIds != null)
@@ -343,7 +306,8 @@ public class CachedInMemoryDirectoryBackend
 
         List<String> result = directoryBackend.getDirectUserIdsOfGroup(id);
 
-        directUsersOfGroupCache.put(id, new HashSet<>(result));
+        if (entryCacheEnabled)
+            directUsersOfGroupCache.put(id, new HashSet<>(result));
 
         return result;
     }
@@ -352,9 +316,6 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getDirectGroupIdsOfUser(id);
-
         Set<String> groupIds = directGroupsOfUserCache.get(id);
 
         if (groupIds != null)
@@ -362,7 +323,8 @@ public class CachedInMemoryDirectoryBackend
 
         List<String> result = directoryBackend.getDirectGroupIdsOfUser(id);
 
-        directGroupsOfUserCache.put(id, new HashSet<>(result));
+        if (entryCacheEnabled)
+            directGroupsOfUserCache.put(id, new HashSet<>(result));
 
         return result;
     }
@@ -370,9 +332,6 @@ public class CachedInMemoryDirectoryBackend
     @Override
     public List<String> getTransitiveUserIdsOfGroup(String id)
             throws EntityNotFoundException {
-
-        if (!entryCacheEnabled)
-            return super.getTransitiveUserIdsOfGroup(id);
 
         List<String> userIds = getDirectUserIdsOfGroup(id);
 
@@ -388,9 +347,6 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getTransitiveGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getTransitiveGroupIdsOfUser(id);
-
         List<String> groupIds = getDirectGroupIdsOfUser(id);
 
         for (String y : new ArrayList<>(groupIds))
@@ -405,9 +361,6 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getDirectChildGroupIdsOfGroup(id);
-
         Set<String> groupIds = directChildGroupsOfGroupCache.get(id);
 
         if (groupIds != null)
@@ -415,7 +368,8 @@ public class CachedInMemoryDirectoryBackend
 
         List<String> result = directoryBackend.getDirectChildGroupIdsOfGroup(id);
 
-        directChildGroupsOfGroupCache.put(id, new HashSet<>(result));
+        if (entryCacheEnabled)
+            directChildGroupsOfGroupCache.put(id, new HashSet<>(result));
 
         return result;
     }
@@ -424,9 +378,6 @@ public class CachedInMemoryDirectoryBackend
     public List<String> getDirectParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        if (!entryCacheEnabled)
-            return super.getDirectParentGroupIdsOfGroup(id);
-
         Set<String> groupIds = directParentGroupsOfGroupCache.get(id);
 
         if (groupIds != null)
@@ -434,7 +385,8 @@ public class CachedInMemoryDirectoryBackend
 
         List<String> result = directoryBackend.getDirectParentGroupIdsOfGroup(id);
 
-        directParentGroupsOfGroupCache.put(id, new HashSet<>(result));
+        if (entryCacheEnabled)
+            directParentGroupsOfGroupCache.put(id, new HashSet<>(result));
 
         return result;
     }
@@ -442,9 +394,6 @@ public class CachedInMemoryDirectoryBackend
     @Override
     public List<String> getTransitiveChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
-
-        if (!entryCacheEnabled)
-            return super.getTransitiveChildGroupIdsOfGroup(id);
 
         List<String> groupIds = new ArrayList<>();
         GroupEntity group = getGroup(id);
@@ -459,9 +408,6 @@ public class CachedInMemoryDirectoryBackend
     @Override
     public List<String> getTransitiveParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
-
-        if (!entryCacheEnabled)
-            return super.getTransitiveParentGroupIdsOfGroup(id);
 
         List<String> groupIds = new ArrayList<>();
         GroupEntity group = getGroup(id);
