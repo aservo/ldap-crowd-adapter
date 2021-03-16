@@ -227,6 +227,12 @@ public class JsonDirectoryBackend
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+
+        return getGroups(filterNode, filterMatcher).subList(startIndex, startIndex + maxResults);
+    }
+
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
         logger.info("Call: getUsers");
@@ -234,6 +240,12 @@ public class JsonDirectoryBackend
         return userList.stream()
                 .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+
+        return getUsers(filterNode, filterMatcher).subList(startIndex, startIndex + maxResults);
     }
 
     public List<UserEntity> getDirectUsersOfGroup(String id)

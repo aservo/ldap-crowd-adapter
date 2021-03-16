@@ -107,6 +107,16 @@ public interface DirectoryBackend {
     }
 
     /**
+     * Gets all groups.
+     *
+     * @return the groups
+     */
+    default List<GroupEntity> getAllGroups(int startIndex, int maxResults) {
+
+        return getGroups(new NullNode(), Optional.empty(), startIndex, maxResults);
+    }
+
+    /**
      * Gets all users.
      *
      * @return the users
@@ -114,6 +124,16 @@ public interface DirectoryBackend {
     default List<UserEntity> getAllUsers() {
 
         return getUsers(new NullNode(), Optional.empty());
+    }
+
+    /**
+     * Gets all users.
+     *
+     * @return the users
+     */
+    default List<UserEntity> getAllUsers(int startIndex, int maxResults) {
+
+        return getUsers(new NullNode(), Optional.empty(), startIndex, maxResults);
     }
 
     /**
@@ -130,9 +150,33 @@ public interface DirectoryBackend {
      *
      * @param filterNode    the filter expression node
      * @param filterMatcher the optional filter matcher
+     * @param startIndex    the start index
+     * @param maxResults    the maximum results
+     * @return the filtered users
+     */
+    List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
+                                int startIndex, int maxResults);
+
+    /**
+     * Gets users by filter expression.
+     *
+     * @param filterNode    the filter expression node
+     * @param filterMatcher the optional filter matcher
      * @return the filtered users
      */
     List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher);
+
+    /**
+     * Gets users by filter expression.
+     *
+     * @param filterNode    the filter expression node
+     * @param filterMatcher the optional filter matcher
+     * @param startIndex    the start index
+     * @param maxResults    the maximum results
+     * @return the filtered users
+     */
+    List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
+                              int startIndex, int maxResults);
 
     /**
      * Gets direct users of group.

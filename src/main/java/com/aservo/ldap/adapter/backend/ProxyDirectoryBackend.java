@@ -97,9 +97,21 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
+    public List<GroupEntity> getAllGroups(int startIndex, int maxResults) {
+
+        return directoryBackend.getAllGroups(startIndex, maxResults);
+    }
+
+    @Override
     public List<UserEntity> getAllUsers() {
 
         return directoryBackend.getAllUsers();
+    }
+
+    @Override
+    public List<UserEntity> getAllUsers(int startIndex, int maxResults) {
+
+        return directoryBackend.getAllUsers(startIndex, maxResults);
     }
 
     @Override
@@ -109,9 +121,21 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
+    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+
+        return directoryBackend.getGroups(filterNode, filterMatcher, startIndex, maxResults);
+    }
+
+    @Override
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
         return directoryBackend.getUsers(filterNode, filterMatcher);
+    }
+
+    @Override
+    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+
+        return directoryBackend.getUsers(filterNode, filterMatcher, startIndex, maxResults);
     }
 
     @Override

@@ -207,6 +207,12 @@ public class CrowdDirectoryBackend
 
     public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
+        return getGroups(filterNode, filterMatcher, 0, Integer.MAX_VALUE);
+    }
+
+    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
+                                       int startIndex, int maxResults) {
+
         logger.info("Backend call: getGroups");
 
         SearchRestriction restriction =
@@ -214,7 +220,7 @@ public class CrowdDirectoryBackend
 
         try {
 
-            return crowdClient.searchGroups(restriction, 0, Integer.MAX_VALUE).stream()
+            return crowdClient.searchGroups(restriction, startIndex, maxResults).stream()
                     .map(this::createGroupEntity)
                     .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
                     .collect(Collectors.toList());
@@ -232,6 +238,12 @@ public class CrowdDirectoryBackend
 
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
+         return getUsers(filterNode, filterMatcher, 0, Integer.MAX_VALUE);
+    }
+
+    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
+                                     int startIndex, int maxResults) {
+
         logger.info("Backend call: getUsers");
 
         SearchRestriction restriction =
@@ -243,7 +255,7 @@ public class CrowdDirectoryBackend
 
         try {
 
-            return crowdClient.searchUsers(restriction, 0, Integer.MAX_VALUE).stream()
+            return crowdClient.searchUsers(restriction, startIndex, maxResults).stream()
                     .map(this::createUserEntity)
                     .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
                     .collect(Collectors.toList());
