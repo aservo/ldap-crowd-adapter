@@ -18,6 +18,7 @@
 package com.aservo.ldap.adapter.util;
 
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.NestedDirectoryBackend;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -143,20 +144,20 @@ public class ServerConfiguration {
                         .filter(x -> !x.isEmpty())
                         .collect(Collectors.toList());
 
-        DirectoryBackend innerDirectoryBackend;
+        NestedDirectoryBackend innerDirectoryBackend;
 
         try {
 
             innerDirectoryBackend =
-                    (DirectoryBackend) Class.forName(directoryBackendClasses.get(0))
+                    (NestedDirectoryBackend) Class.forName(directoryBackendClasses.get(0))
                             .getConstructor(ServerConfiguration.class)
                             .newInstance(this);
 
             for (int i = 1; i < directoryBackendClasses.size(); i++) {
 
                 innerDirectoryBackend =
-                        (DirectoryBackend) Class.forName(directoryBackendClasses.get(i))
-                                .getConstructor(ServerConfiguration.class, DirectoryBackend.class)
+                        (NestedDirectoryBackend) Class.forName(directoryBackendClasses.get(i))
+                                .getConstructor(ServerConfiguration.class, NestedDirectoryBackend.class)
                                 .newInstance(this, innerDirectoryBackend);
             }
 

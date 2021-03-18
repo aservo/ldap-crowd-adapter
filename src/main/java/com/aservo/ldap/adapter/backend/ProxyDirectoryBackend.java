@@ -28,12 +28,12 @@ import java.util.Optional;
 
 
 public abstract class ProxyDirectoryBackend
-        implements DirectoryBackend {
+        implements NestedDirectoryBackend {
 
     protected final ServerConfiguration config;
-    protected final DirectoryBackend directoryBackend;
+    protected final NestedDirectoryBackend directoryBackend;
 
-    protected ProxyDirectoryBackend(ServerConfiguration config, DirectoryBackend directoryBackend) {
+    protected ProxyDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
         this.config = config;
         this.directoryBackend = directoryBackend;

@@ -54,7 +54,7 @@ public class CachedInMemoryDirectoryBackend
      * @param config           config the config instance of the server
      * @param directoryBackend the directory backend
      */
-    public CachedInMemoryDirectoryBackend(ServerConfiguration config, DirectoryBackend directoryBackend) {
+    public CachedInMemoryDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
         super(config, directoryBackend);
 

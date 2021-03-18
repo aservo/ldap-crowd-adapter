@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
  * The Crowd client API directory backend.
  */
 public class CrowdDirectoryBackend
-        implements DirectoryBackend {
+        implements NestedDirectoryBackend {
 
     /**
      * The constant CONFIG_READINESS_CHECK.
@@ -238,7 +238,7 @@ public class CrowdDirectoryBackend
 
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-         return getUsers(filterNode, filterMatcher, 0, Integer.MAX_VALUE);
+        return getUsers(filterNode, filterMatcher, 0, Integer.MAX_VALUE);
     }
 
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,

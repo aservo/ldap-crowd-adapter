@@ -42,7 +42,7 @@ public abstract class CachedDirectoryBackend
     protected final int entryCacheMaxSize;
     protected final Duration entryCacheMaxAge;
 
-    protected CachedDirectoryBackend(ServerConfiguration config, DirectoryBackend directoryBackend) {
+    protected CachedDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
         super(config, directoryBackend);
 

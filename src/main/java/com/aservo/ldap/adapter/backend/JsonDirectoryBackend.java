@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * The JSON directory backend API for test scenarios.
  */
 public class JsonDirectoryBackend
-        implements DirectoryBackend {
+        implements NestedDirectoryBackend {
 
     private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
     private final List<Group> groupList = new ArrayList<>();
