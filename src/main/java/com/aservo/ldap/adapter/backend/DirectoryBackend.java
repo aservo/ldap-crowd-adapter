@@ -19,6 +19,7 @@ package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.adapter.FilterMatcher;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.adapter.query.NullNode;
@@ -55,7 +56,10 @@ public interface DirectoryBackend {
      * @param id the group ID
      * @return boolean
      */
-    boolean isKnownGroup(String id);
+    default boolean isKnownGroup(String id) {
+
+        return false;
+    }
 
     /**
      * Check the cache for an user entity.
@@ -63,7 +67,10 @@ public interface DirectoryBackend {
      * @param id the user ID
      * @return boolean
      */
-    boolean isKnownUser(String id);
+    default boolean isKnownUser(String id) {
+
+        return false;
+    }
 
     /**
      * Gets group info.
@@ -417,4 +424,11 @@ public interface DirectoryBackend {
             return false;
         }
     }
+
+    /**
+     * Returns an iterable sequence of membership entities.
+     *
+     * @return the iterable object with membership elements
+     */
+    Iterable<MembershipEntity> getMemberships();
 }

@@ -20,6 +20,7 @@ package com.aservo.ldap.adapter.backend;
 import com.aservo.ldap.adapter.adapter.FilterMatcher;
 import com.aservo.ldap.adapter.adapter.LdapUtils;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.adapter.query.AndLogicExpression;
 import com.aservo.ldap.adapter.adapter.query.EqualOperator;
@@ -33,6 +34,7 @@ import com.atlassian.crowd.embedded.api.SearchRestriction;
 import com.atlassian.crowd.exception.*;
 import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;
 import com.atlassian.crowd.model.group.Group;
+import com.atlassian.crowd.model.group.Membership;
 import com.atlassian.crowd.model.user.User;
 import com.atlassian.crowd.search.query.entity.restriction.*;
 import com.atlassian.crowd.search.query.entity.restriction.constants.GroupTermKeys;
@@ -40,11 +42,13 @@ import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKey
 import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -695,6 +699,50 @@ public class CrowdDirectoryBackend
         try {
 
             return crowdClient.isUserDirectGroupMember(userId, groupId);
+
+        } catch (ApplicationPermissionException |
+                InvalidAuthenticationException e) {
+
+            throw new SecurityProblemException(e);
+
+        } catch (OperationFailedException e) {
+
+            throw new DirectoryAccessFailureException(e);
+        }
+    }
+
+    public Iterable<MembershipEntity> getMemberships() {
+
+        try {
+
+            Iterator<Membership> memberships = crowdClient.getMemberships().iterator();
+
+            return new Iterable<MembershipEntity>() {
+
+                @NotNull
+                @Override
+                public Iterator<MembershipEntity> iterator() {
+
+                    return new Iterator<MembershipEntity>() {
+
+                        @Override
+                        public boolean hasNext() {
+
+                            return memberships.hasNext();
+                        }
+
+                        @Override
+                        public MembershipEntity next() {
+
+                            Membership membership = memberships.next();
+
+                            return new MembershipEntity(membership.getGroupName(),
+                                    membership.getChildGroupNames(),
+                                    membership.getUserNames());
+                        }
+                    };
+                }
+            };
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {

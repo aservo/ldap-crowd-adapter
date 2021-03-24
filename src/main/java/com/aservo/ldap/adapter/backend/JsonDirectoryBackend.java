@@ -20,6 +20,7 @@ package com.aservo.ldap.adapter.backend;
 import com.aservo.ldap.adapter.adapter.FilterMatcher;
 import com.aservo.ldap.adapter.adapter.entity.Entity;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.naming.OperationNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -414,6 +416,13 @@ public class JsonDirectoryBackend
         return getTransitiveParentGroupsOfGroup(id).stream()
                 .map(Entity::getId)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Iterable<MembershipEntity> getMemberships() {
+
+        throw new RuntimeException(new OperationNotSupportedException(
+                "The method getMemberships is not supported by JSON directory backend."));
     }
 
     private Group findGroupById(String id)

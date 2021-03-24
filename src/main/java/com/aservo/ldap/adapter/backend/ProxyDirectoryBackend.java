@@ -19,6 +19,7 @@ package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.adapter.FilterMatcher;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
@@ -55,6 +56,84 @@ public abstract class ProxyDirectoryBackend
     public void shutdown() {
 
         directoryBackend.shutdown();
+    }
+
+    @Override
+    public void withWriteAccess(Runnable runnable) {
+
+        directoryBackend.withWriteAccess(runnable);
+    }
+
+    @Override
+    public void upsertGroup(String id) {
+
+        directoryBackend.upsertGroup(id);
+    }
+
+    @Override
+    public int upsertAllGroups(int startIndex, int maxResults) {
+
+        return directoryBackend.upsertAllGroups(startIndex, maxResults);
+    }
+
+    @Override
+    public int upsertAllGroups() {
+
+        return directoryBackend.upsertAllGroups();
+    }
+
+    @Override
+    public void upsertUser(String id) {
+
+        directoryBackend.upsertUser(id);
+    }
+
+    @Override
+    public int upsertAllUsers(int startIndex, int maxResults) {
+
+        return directoryBackend.upsertAllUsers(startIndex, maxResults);
+    }
+
+    @Override
+    public int upsertAllUsers() {
+
+        return directoryBackend.upsertAllUsers();
+    }
+
+    @Override
+    public void upsertMembership(MembershipEntity membership) {
+
+        directoryBackend.upsertMembership(membership);
+    }
+
+    @Override
+    public void dropGroup(String id) {
+
+        directoryBackend.dropGroup(id);
+    }
+
+    @Override
+    public void dropAllGroups() {
+
+        directoryBackend.dropAllGroups();
+    }
+
+    @Override
+    public void dropUser(String id) {
+
+        directoryBackend.dropUser(id);
+    }
+
+    @Override
+    public void dropAllUsers() {
+
+        directoryBackend.dropAllUsers();
+    }
+
+    @Override
+    public void dropMembership(MembershipEntity membership) {
+
+        directoryBackend.dropMembership(membership);
     }
 
     @Override
@@ -272,5 +351,11 @@ public abstract class ProxyDirectoryBackend
     public boolean isUserTransitiveGroupMember(String userId, String groupId) {
 
         return directoryBackend.isUserTransitiveGroupMember(userId, groupId);
+    }
+
+    @Override
+    public Iterable<MembershipEntity> getMemberships() {
+
+        return directoryBackend.getMemberships();
     }
 }

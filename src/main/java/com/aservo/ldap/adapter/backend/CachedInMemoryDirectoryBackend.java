@@ -20,6 +20,7 @@ package com.aservo.ldap.adapter.backend;
 import com.aservo.ldap.adapter.adapter.FilterMatcher;
 import com.aservo.ldap.adapter.adapter.entity.Entity;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
+import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.adapter.query.EqualOperator;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
@@ -28,9 +29,13 @@ import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.LruCacheMap;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.google.common.collect.Lists;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -38,6 +43,24 @@ import org.apache.directory.api.ldap.model.constants.SchemaConstants;
  */
 public class CachedInMemoryDirectoryBackend
         extends CachedDirectoryBackend {
+
+    /**
+     * The constant CONFIG_ENTRY_CACHE_ENABLED.
+     */
+    public static final String CONFIG_ENTRY_CACHE_ENABLED = "entry-cache.enabled";
+
+    /**
+     * The constant CONFIG_ENTRY_CACHE_MAX_SIZE.
+     */
+    public static final String CONFIG_ENTRY_CACHE_MAX_SIZE = "entry-cache.max-size";
+    /**
+     * The constant CONFIG_ENTRY_CACHE_MAX_AGE.
+     */
+    public static final String CONFIG_ENTRY_CACHE_MAX_AGE = "entry-cache.max-age";
+
+    private final Logger logger = LoggerFactory.getLogger(CachedInMemoryDirectoryBackend.class);
+
+    private final boolean entryCacheEnabled;
 
     private final Map<String, GroupEntity> groupIdToEntityCache;
     private final Map<String, UserEntity> userIdToEntityCache;
@@ -58,14 +81,26 @@ public class CachedInMemoryDirectoryBackend
 
         super(config, directoryBackend);
 
-        groupIdToEntityCache = createCache();
-        userIdToEntityCache = createCache();
-        groupFilterToIdCache = createCache();
-        userFilterToIdCache = createCache();
-        directGroupsOfUserCache = createCache();
-        directUsersOfGroupCache = createCache();
-        directChildGroupsOfGroupCache = createCache();
-        directParentGroupsOfGroupCache = createCache();
+        Properties properties = config.getBackendProperties();
+
+        entryCacheEnabled = Boolean.parseBoolean(properties.getProperty(CONFIG_ENTRY_CACHE_ENABLED, "false"));
+        int entryCacheMaxSize = Integer.parseInt(properties.getProperty(CONFIG_ENTRY_CACHE_MAX_SIZE, "300"));
+        Duration entryCacheMaxAge = Duration.parse(properties.getProperty(CONFIG_ENTRY_CACHE_MAX_AGE, "PT1H"));
+
+        if (entryCacheMaxSize <= 0)
+            throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_SIZE);
+
+        if (entryCacheMaxAge.isNegative() || entryCacheMaxAge.isZero())
+            throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_AGE);
+
+        groupIdToEntityCache = createCache(entryCacheMaxSize, entryCacheMaxAge);
+        userIdToEntityCache = createCache(entryCacheMaxSize, entryCacheMaxAge);
+        groupFilterToIdCache = createCache(entryCacheMaxSize, entryCacheMaxAge);
+        userFilterToIdCache = createCache(entryCacheMaxSize, entryCacheMaxAge);
+        directGroupsOfUserCache = createCache(entryCacheMaxSize, entryCacheMaxAge);
+        directUsersOfGroupCache = createCache(entryCacheMaxSize, entryCacheMaxAge);
+        directChildGroupsOfGroupCache = createCache(entryCacheMaxSize, entryCacheMaxAge);
+        directParentGroupsOfGroupCache = createCache(entryCacheMaxSize, entryCacheMaxAge);
     }
 
     @Override
@@ -90,15 +125,263 @@ public class CachedInMemoryDirectoryBackend
     }
 
     @Override
+    public void upsertGroup(String id) {
+
+        super.upsertGroup(id);
+
+        if (!entryCacheEnabled)
+            return;
+
+        try {
+
+            GroupEntity entity = directoryBackend.getGroup(id);
+
+            groupIdToEntityCache.put(entity.getId(), entity);
+
+            for (Map.Entry<FilterNode, Set<String>> entry : groupFilterToIdCache.entrySet())
+                entry.getValue().remove(entity.getId());
+
+        } catch (EntityNotFoundException e) {
+
+            logger.warn("The group entity no longer exists.", e);
+        }
+    }
+
+    @Override
+    public int upsertAllGroups(int startIndex, int maxResults) {
+
+        super.upsertAllGroups(startIndex, maxResults);
+
+        if (!entryCacheEnabled)
+            return 0;
+
+        List<GroupEntity> entities = directoryBackend.getAllGroups(startIndex, maxResults);
+
+        entities.forEach(entity -> {
+
+            groupIdToEntityCache.put(entity.getId(), entity);
+
+            for (Map.Entry<FilterNode, Set<String>> entry : groupFilterToIdCache.entrySet())
+                entry.getValue().remove(entity.getId());
+        });
+
+        return entities.size();
+    }
+
+    @Override
+    public int upsertAllGroups() {
+
+        super.upsertAllGroups();
+
+        if (!entryCacheEnabled)
+            return 0;
+
+        List<GroupEntity> entities = directoryBackend.getAllGroups();
+
+        entities.forEach(entity -> {
+
+            groupIdToEntityCache.put(entity.getId(), entity);
+
+            for (Map.Entry<FilterNode, Set<String>> entry : groupFilterToIdCache.entrySet())
+                entry.getValue().remove(entity.getId());
+        });
+
+        return entities.size();
+    }
+
+    @Override
+    public void upsertUser(String id) {
+
+        super.upsertUser(id);
+
+        if (!entryCacheEnabled)
+            return;
+
+        try {
+
+            UserEntity entity = directoryBackend.getUser(id);
+
+            userIdToEntityCache.put(entity.getId(), entity);
+
+            for (Map.Entry<FilterNode, Set<String>> entry : userFilterToIdCache.entrySet())
+                entry.getValue().remove(entity.getId());
+
+        } catch (EntityNotFoundException e) {
+
+            logger.warn("The user entity no longer exists.", e);
+        }
+    }
+
+    @Override
+    public int upsertAllUsers(int startIndex, int maxResults) {
+
+        super.upsertAllUsers(startIndex, maxResults);
+
+        if (!entryCacheEnabled)
+            return 0;
+
+        List<UserEntity> entities = directoryBackend.getAllUsers(startIndex, maxResults);
+
+        entities.forEach(entity -> {
+
+            userIdToEntityCache.put(entity.getId(), entity);
+
+            for (Map.Entry<FilterNode, Set<String>> entry : userFilterToIdCache.entrySet())
+                entry.getValue().remove(entity.getId());
+        });
+
+        return entities.size();
+    }
+
+    @Override
+    public int upsertAllUsers() {
+
+        super.upsertAllUsers();
+
+        if (!entryCacheEnabled)
+            return 0;
+
+        List<UserEntity> entities = directoryBackend.getAllUsers();
+
+        entities.forEach(entity -> {
+
+            userIdToEntityCache.put(entity.getId(), entity);
+
+            for (Map.Entry<FilterNode, Set<String>> entry : userFilterToIdCache.entrySet())
+                entry.getValue().remove(entity.getId());
+        });
+
+        return entities.size();
+    }
+
+    @Override
+    public void upsertMembership(MembershipEntity membership) {
+
+        super.upsertMembership(membership);
+
+        if (!entryCacheEnabled)
+            return;
+
+        Optional.ofNullable(directUsersOfGroupCache.get(membership.getParentGroupId()))
+                .ifPresent(x -> x.addAll(membership.getMemberUserIds()));
+
+        for (String userId : membership.getMemberUserIds())
+            Optional.ofNullable(directGroupsOfUserCache.get(userId))
+                    .ifPresent(x -> x.add(membership.getParentGroupId()));
+
+        Optional.ofNullable(directChildGroupsOfGroupCache.get(membership.getParentGroupId()))
+                .ifPresent(x -> x.addAll(membership.getMemberGroupIds()));
+
+        for (String groupId : membership.getMemberGroupIds())
+            Optional.ofNullable(directParentGroupsOfGroupCache.get(groupId))
+                    .ifPresent(x -> x.add(membership.getParentGroupId()));
+    }
+
+    @Override
+    public void dropGroup(String id) {
+
+        super.dropGroup(id);
+
+        if (!entryCacheEnabled)
+            return;
+
+        for (Map.Entry<FilterNode, Set<String>> entry : groupFilterToIdCache.entrySet())
+            entry.getValue().remove(id);
+
+        for (Map.Entry<String, Set<String>> entry : directGroupsOfUserCache.entrySet())
+            entry.getValue().remove(id);
+
+        for (Map.Entry<String, Set<String>> entry : directChildGroupsOfGroupCache.entrySet())
+            entry.getValue().remove(id);
+
+        for (Map.Entry<String, Set<String>> entry : directParentGroupsOfGroupCache.entrySet())
+            entry.getValue().remove(id);
+
+        directChildGroupsOfGroupCache.remove(id);
+        directParentGroupsOfGroupCache.remove(id);
+        directUsersOfGroupCache.remove(id);
+        groupIdToEntityCache.remove(id);
+    }
+
+    @Override
+    public void dropAllGroups() {
+
+        super.dropAllGroups();
+
+        if (!entryCacheEnabled)
+            return;
+
+        groupIdToEntityCache.clear();
+        groupFilterToIdCache.clear();
+        directChildGroupsOfGroupCache.clear();
+        directParentGroupsOfGroupCache.clear();
+    }
+
+    @Override
+    public void dropUser(String id) {
+
+        super.dropUser(id);
+
+        if (!entryCacheEnabled)
+            return;
+
+        for (Map.Entry<FilterNode, Set<String>> entry : userFilterToIdCache.entrySet())
+            entry.getValue().remove(id);
+
+        for (Map.Entry<String, Set<String>> entry : directUsersOfGroupCache.entrySet())
+            entry.getValue().remove(id);
+
+        directGroupsOfUserCache.remove(id);
+        userIdToEntityCache.remove(id);
+    }
+
+    @Override
+    public void dropAllUsers() {
+
+        super.dropAllUsers();
+
+        if (!entryCacheEnabled)
+            return;
+
+        userIdToEntityCache.clear();
+        userFilterToIdCache.clear();
+        directGroupsOfUserCache.clear();
+        directUsersOfGroupCache.clear();
+    }
+
+    @Override
+    public void dropMembership(MembershipEntity membership) {
+
+        super.dropMembership(membership);
+
+        if (!entryCacheEnabled)
+            return;
+
+        Optional.ofNullable(directUsersOfGroupCache.get(membership.getParentGroupId()))
+                .ifPresent(x -> x.removeAll(membership.getMemberUserIds()));
+
+        for (String userId : membership.getMemberUserIds())
+            Optional.ofNullable(directGroupsOfUserCache.get(userId))
+                    .ifPresent(x -> x.remove(membership.getParentGroupId()));
+
+        Optional.ofNullable(directChildGroupsOfGroupCache.get(membership.getParentGroupId()))
+                .ifPresent(x -> x.removeAll(membership.getMemberGroupIds()));
+
+        for (String groupId : membership.getMemberGroupIds())
+            Optional.ofNullable(directParentGroupsOfGroupCache.get(groupId))
+                    .ifPresent(x -> x.remove(membership.getParentGroupId()));
+    }
+
+    @Override
     public boolean isKnownGroup(String id) {
 
-        return groupIdToEntityCache.containsKey(id) || directoryBackend.isKnownGroup(id);
+        return entryCacheEnabled && groupIdToEntityCache.containsKey(id) || directoryBackend.isKnownGroup(id);
     }
 
     @Override
     public boolean isKnownUser(String id) {
 
-        return userIdToEntityCache.containsKey(id) || directoryBackend.isKnownUser(id);
+        return entryCacheEnabled && userIdToEntityCache.containsKey(id) || directoryBackend.isKnownUser(id);
     }
 
     @Override
@@ -419,6 +702,48 @@ public class CachedInMemoryDirectoryBackend
         return groupIds;
     }
 
+    @Override
+    public Iterable<MembershipEntity> getMemberships() {
+
+        Iterator<MembershipEntity> memberships = directoryBackend.getMemberships().iterator();
+
+        return new Iterable<MembershipEntity>() {
+
+            @NotNull
+            @Override
+            public Iterator<MembershipEntity> iterator() {
+
+                return new Iterator<MembershipEntity>() {
+
+                    @Override
+                    public boolean hasNext() {
+
+                        return memberships.hasNext();
+                    }
+
+                    @Override
+                    public MembershipEntity next() {
+
+                        MembershipEntity membership = memberships.next();
+
+                        directChildGroupsOfGroupCache.put(membership.getParentGroupId(), membership.getMemberGroupIds());
+                        directUsersOfGroupCache.put(membership.getParentGroupId(), membership.getMemberUserIds());
+
+                        for (String groupId : membership.getMemberGroupIds())
+                            Optional.ofNullable(directParentGroupsOfGroupCache.get(groupId))
+                                    .ifPresent(x -> x.add(membership.getParentGroupId()));
+
+                        for (String userId : membership.getMemberUserIds())
+                            Optional.ofNullable(directGroupsOfUserCache.get(userId))
+                                    .ifPresent(x -> x.add(membership.getParentGroupId()));
+
+                        return membership;
+                    }
+                };
+            }
+        };
+    }
+
     private <T> List<GroupEntity> lookupGroupEntities(Map<T, Set<String>> cache, T id) {
 
         Set<String> groupIds = cache.get(id);
@@ -465,7 +790,7 @@ public class CachedInMemoryDirectoryBackend
         cache.put(id, users.stream().map(Entity::getId).collect(Collectors.toSet()));
     }
 
-    private <K, V> Map<K, V> createCache() {
+    private <K, V> Map<K, V> createCache(int entryCacheMaxSize, Duration entryCacheMaxAge) {
 
         return Collections.synchronizedMap(new LruCacheMap<>(entryCacheMaxSize, entryCacheMaxAge));
     }
