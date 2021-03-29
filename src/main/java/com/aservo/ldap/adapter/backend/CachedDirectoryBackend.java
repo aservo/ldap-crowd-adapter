@@ -18,44 +18,13 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.util.ServerConfiguration;
-import java.time.Duration;
-import java.util.Properties;
 
 
 public abstract class CachedDirectoryBackend
         extends ProxyDirectoryBackend {
 
-    /**
-     * The constant CONFIG_ENTRY_CACHE_ENABLED.
-     */
-    public static final String CONFIG_ENTRY_CACHE_ENABLED = "entry-cache.enabled";
-    /**
-     * The constant CONFIG_ENTRY_CACHE_MAX_SIZE.
-     */
-    public static final String CONFIG_ENTRY_CACHE_MAX_SIZE = "entry-cache.max-size";
-    /**
-     * The constant CONFIG_ENTRY_CACHE_MAX_AGE.
-     */
-    public static final String CONFIG_ENTRY_CACHE_MAX_AGE = "entry-cache.max-age";
-
-    protected final boolean entryCacheEnabled;
-    protected final int entryCacheMaxSize;
-    protected final Duration entryCacheMaxAge;
-
     protected CachedDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
         super(config, directoryBackend);
-
-        Properties properties = config.getBackendProperties();
-
-        entryCacheEnabled = Boolean.parseBoolean(properties.getProperty(CONFIG_ENTRY_CACHE_ENABLED, "false"));
-        entryCacheMaxSize = Integer.parseInt(properties.getProperty(CONFIG_ENTRY_CACHE_MAX_SIZE, "300"));
-        entryCacheMaxAge = Duration.parse(properties.getProperty(CONFIG_ENTRY_CACHE_MAX_AGE, "PT1H"));
-
-        if (entryCacheMaxSize <= 0)
-            throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_SIZE);
-
-        if (entryCacheMaxAge.isNegative() || entryCacheMaxAge.isZero())
-            throw new IllegalArgumentException("Expect value greater than zero for " + CONFIG_ENTRY_CACHE_MAX_AGE);
     }
 }
