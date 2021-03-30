@@ -63,16 +63,11 @@ public class CrowdDirectoryBackend
      * The constant CONFIG_READINESS_CHECK.
      */
     public static final String CONFIG_READINESS_CHECK = "readiness-check";
-    /**
-     * The constant CONFIG_PASS_ACTIVE_USERS_ONLY.
-     */
-    public static final String CONFIG_PASS_ACTIVE_USERS_ONLY = "pass-active-users-only";
 
     private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
     private final ServerConfiguration config;
     private final CrowdClient crowdClient;
     private final boolean useReadinessCheck;
-    private final boolean activeUsersOnly;
 
     /**
      * Instantiates a new Crowd directory backend.
@@ -86,7 +81,6 @@ public class CrowdDirectoryBackend
         this.config = config;
 
         useReadinessCheck = Boolean.parseBoolean(properties.getProperty(CONFIG_READINESS_CHECK, "true"));
-        activeUsersOnly = Boolean.parseBoolean(properties.getProperty(CONFIG_PASS_ACTIVE_USERS_ONLY, "false"));
 
         ClientProperties props = ClientPropertiesImpl.newInstanceFromProperties(properties);
         crowdClient = new RestCrowdClientFactory().newInstance(props);
@@ -162,9 +156,6 @@ public class CrowdDirectoryBackend
         try {
 
             UserEntity entity = createUserEntity(crowdClient.getUser(id));
-
-            if (activeUsersOnly && !entity.isActive())
-                throw new UserNotFoundException("Will not deliver an inactive user.");
 
             return entity;
 
@@ -252,10 +243,6 @@ public class CrowdDirectoryBackend
 
         SearchRestriction restriction =
                 removeNullRestrictions(createUserSearchRestriction(LdapUtils.removeNotExpressions(filterNode)));
-
-        if (activeUsersOnly)
-            restriction = new BooleanRestrictionImpl(BooleanRestriction.BooleanLogic.AND, restriction,
-                    new TermRestriction<>(UserTermKeys.ACTIVE, MatchMode.EXACTLY_MATCHES, true));
 
         try {
 
