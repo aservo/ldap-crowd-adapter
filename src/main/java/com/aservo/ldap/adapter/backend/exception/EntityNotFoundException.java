@@ -22,7 +22,7 @@ package com.aservo.ldap.adapter.backend.exception;
  * The type Entry not found exception.
  */
 public class EntityNotFoundException
-        extends Exception {
+        extends RuntimeException {
 
     /**
      * Instantiates a new Entry not found exception.
