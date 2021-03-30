@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 public class JsonDirectoryBackend
         implements NestedDirectoryBackend {
 
-    private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
+    private final Logger logger = LoggerFactory.getLogger(JsonDirectoryBackend.class);
     private final List<Group> groupList = new ArrayList<>();
     private final List<User> userList = new ArrayList<>();
     private final File dbFile;
