@@ -127,7 +127,7 @@ public class CrowdDirectoryBackend
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getGroup; id={}", id);
+        logger.info("Backend call: getGroup; ID={}", id);
 
         try {
 
@@ -151,7 +151,7 @@ public class CrowdDirectoryBackend
     public UserEntity getUser(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getUser; id={}", id);
+        logger.info("Backend call: getUser; ID={}", id);
 
         try {
 
@@ -177,7 +177,7 @@ public class CrowdDirectoryBackend
     public UserEntity getAuthenticatedUser(String id, String password)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getAuthenticatedUser; id={}", id);
+        logger.info("Backend call: getAuthenticatedUser; ID={}", id);
 
         try {
 
@@ -208,7 +208,7 @@ public class CrowdDirectoryBackend
     public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
                                        int startIndex, int maxResults) {
 
-        logger.info("Backend call: getGroups");
+        logger.info("Backend call: getGroups({}, {})", startIndex, maxResults);
 
         SearchRestriction restriction =
                 removeNullRestrictions(createGroupSearchRestriction(LdapUtils.removeNotExpressions(filterNode)));
@@ -239,7 +239,7 @@ public class CrowdDirectoryBackend
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
                                      int startIndex, int maxResults) {
 
-        logger.info("Backend call: getUsers");
+        logger.info("Backend call: getUsers({}, {})", startIndex, maxResults);
 
         SearchRestriction restriction =
                 removeNullRestrictions(createUserSearchRestriction(LdapUtils.removeNotExpressions(filterNode)));
@@ -265,7 +265,7 @@ public class CrowdDirectoryBackend
     public List<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectUsersOfGroup; id={}", id);
+        logger.info("Backend call: getDirectUsersOfGroup; ID={}", id);
 
         try {
 
@@ -291,7 +291,7 @@ public class CrowdDirectoryBackend
     public List<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectGroupsOfUser; id={}", id);
+        logger.info("Backend call: getDirectGroupsOfUser; ID={}", id);
 
         try {
 
@@ -317,7 +317,7 @@ public class CrowdDirectoryBackend
     public List<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveUsersOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveUsersOfGroup; ID={}", id);
 
         try {
 
@@ -343,7 +343,7 @@ public class CrowdDirectoryBackend
     public List<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveGroupsOfUser; id={}", id);
+        logger.info("Backend call: getTransitiveGroupsOfUser; ID={}", id);
 
         try {
 
@@ -369,7 +369,7 @@ public class CrowdDirectoryBackend
     public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectChildGroupsOfGroup; id={}", id);
+        logger.info("Backend call: getDirectChildGroupsOfGroup; ID={}", id);
 
         try {
 
@@ -395,7 +395,7 @@ public class CrowdDirectoryBackend
     public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectParentGroupsOfGroup; id={}", id);
+        logger.info("Backend call: getDirectParentGroupsOfGroup; ID={}", id);
 
         try {
 
@@ -421,7 +421,7 @@ public class CrowdDirectoryBackend
     public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveChildGroupsOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveChildGroupsOfGroup; ID={}", id);
 
         try {
 
@@ -447,7 +447,7 @@ public class CrowdDirectoryBackend
     public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveParentGroupsOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveParentGroupsOfGroup; ID={}", id);
 
         try {
 
@@ -473,7 +473,7 @@ public class CrowdDirectoryBackend
     public List<String> getDirectUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectUserIdsOfGroup; id={}", id);
+        logger.info("Backend call: getDirectUserIdsOfGroup; ID={}", id);
 
         try {
 
@@ -497,7 +497,7 @@ public class CrowdDirectoryBackend
     public List<String> getDirectGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectGroupIdsOfUser; id={}", id);
+        logger.info("Backend call: getDirectGroupIdsOfUser; ID={}", id);
 
         try {
 
@@ -521,7 +521,7 @@ public class CrowdDirectoryBackend
     public List<String> getTransitiveUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveUserIdsOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveUserIdsOfGroup; ID={}", id);
 
         try {
 
@@ -545,7 +545,7 @@ public class CrowdDirectoryBackend
     public List<String> getTransitiveGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveGroupIdsOfUser; id={}", id);
+        logger.info("Backend call: getTransitiveGroupIdsOfUser; ID={}", id);
 
         try {
 
@@ -569,7 +569,7 @@ public class CrowdDirectoryBackend
     public List<String> getDirectChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectChildGroupIdsOfGroup; id={}", id);
+        logger.info("Backend call: getDirectChildGroupIdsOfGroup; ID={}", id);
 
         try {
 
@@ -593,7 +593,7 @@ public class CrowdDirectoryBackend
     public List<String> getDirectParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectParentGroupIdsOfGroup; id={}", id);
+        logger.info("Backend call: getDirectParentGroupIdsOfGroup; ID={}", id);
 
         try {
 
@@ -617,7 +617,7 @@ public class CrowdDirectoryBackend
     public List<String> getTransitiveChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveChildGroupIdsOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveChildGroupIdsOfGroup; ID={}", id);
 
         try {
 
@@ -641,7 +641,7 @@ public class CrowdDirectoryBackend
     public List<String> getTransitiveParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveParentGroupIdsOfGroup; id={}", id);
+        logger.info("Backend call: getTransitiveParentGroupIdsOfGroup; ID={}", id);
 
         try {
 
@@ -665,6 +665,8 @@ public class CrowdDirectoryBackend
     @Override
     public boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
 
+        logger.info("Backend call: isGroupDirectGroupMember; ID1={} ID2={}", groupId1, groupId2);
+
         try {
 
             return crowdClient.isGroupDirectGroupMember(groupId1, groupId2);
@@ -683,6 +685,8 @@ public class CrowdDirectoryBackend
     @Override
     public boolean isUserDirectGroupMember(String userId, String groupId) {
 
+        logger.info("Backend call: isGroupDirectGroupMember; ID1={} ID2={}", userId, groupId);
+
         try {
 
             return crowdClient.isUserDirectGroupMember(userId, groupId);
@@ -699,6 +703,8 @@ public class CrowdDirectoryBackend
     }
 
     public Iterable<MembershipEntity> getMemberships() {
+
+        logger.info("Backend call: getMemberships");
 
         try {
 
