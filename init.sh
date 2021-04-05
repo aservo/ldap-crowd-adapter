@@ -65,6 +65,10 @@ if [ -n "$SERVER_UNDEFINED_FILTER_EXPRESSION_RESULT" ]; then
   JAVA_OPTS="-Dmode.undefined-filter-expression-result=$SERVER_UNDEFINED_FILTER_EXPRESSION_RESULT $JAVA_OPTS"
 fi
 
+if [ -n "$SERVER_RESPONSE_MAX_SIZE_LIMIT" ]; then
+  JAVA_OPTS="-Dmode.response-max-size-limit=$SERVER_RESPONSE_MAX_SIZE_LIMIT $JAVA_OPTS"
+fi
+
 if [ -n "$SERVER_DIRECTORY_BACKEND" ]; then
   JAVA_OPTS="-Ddirectory-backend=$SERVER_DIRECTORY_BACKEND $JAVA_OPTS"
 fi

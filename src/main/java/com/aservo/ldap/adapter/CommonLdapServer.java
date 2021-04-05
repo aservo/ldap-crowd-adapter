@@ -130,6 +130,7 @@ public class CommonLdapServer {
 
             server.setTransports(transport);
             server.setDirectoryService(directoryService);
+            server.setMaxSizeLimit(serverConfig.getResponseMaxSizeLimit());
             server.start();
 
         } catch (Exception e) {

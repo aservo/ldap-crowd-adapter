@@ -61,6 +61,10 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_UNDEFINED_FILTER_EXPRESSION_RESULT = "mode.undefined-filter-expression-result";
     /**
+     * The constant CONFIG_RESPONSE_MAX_SIZE_LIMIT.
+     */
+    public static final String CONFIG_RESPONSE_MAX_SIZE_LIMIT = "mode.response-max-size-limit";
+    /**
      * The constant CONFIG_DIRECTORY_BACKEND.
      */
     public static final String CONFIG_DIRECTORY_BACKEND = "directory-backend";
@@ -85,11 +89,12 @@ public class ServerConfiguration {
     private final Path keyStoreFile;
     private final String keyStorePassword;
     private final boolean flattening;
+    private final boolean undefFilterExprResult;
+    private final int responseMaxSizeLimit;
     private final DirectoryBackend directoryBackend;
     private final String baseDnDescription;
     private final String baseDnGroupsDescription;
     private final String baseDnUsersDescription;
-    private final boolean undefFilterExprResult;
 
     /**
      * Instantiates a new server configuration.
@@ -140,6 +145,12 @@ public class ServerConfiguration {
 
         undefFilterExprResult =
                 Boolean.parseBoolean(serverProperties.getProperty(CONFIG_UNDEFINED_FILTER_EXPRESSION_RESULT, "false"));
+
+        responseMaxSizeLimit = Integer.parseInt(serverProperties.getProperty(CONFIG_RESPONSE_MAX_SIZE_LIMIT, "100"));
+
+        if (responseMaxSizeLimit <= 0)
+            throw new IllegalArgumentException("Expect value for " +
+                    CONFIG_RESPONSE_MAX_SIZE_LIMIT + " greater than zero.");
 
         String directoryBackendClassesValue = serverProperties.getProperty(CONFIG_DIRECTORY_BACKEND);
 
@@ -274,6 +285,16 @@ public class ServerConfiguration {
     public boolean evaluateUndefinedFilterExprSuccessfully() {
 
         return undefFilterExprResult;
+    }
+
+    /**
+     * Gets the maximum size limit for responses.
+     *
+     * @return the maximum number of entities
+     */
+    public int getResponseMaxSizeLimit() {
+
+        return responseMaxSizeLimit;
     }
 
     /**
