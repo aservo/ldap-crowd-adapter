@@ -21,6 +21,7 @@ import com.aservo.ldap.adapter.adapter.entity.Entity;
 import com.aservo.ldap.adapter.adapter.entity.EntityType;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
+import com.aservo.ldap.adapter.adapter.query.UndefinedNode;
 import com.aservo.ldap.adapter.adapter.query.*;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
@@ -411,9 +412,13 @@ public class LdapUtils {
 
             return new PresenceOperator(((PresenceNode) node).getAttribute());
 
-        } else {
+        } else if (node instanceof ObjectClassNode) {
 
             return new NullNode();
+
+        } else {
+
+            return new UndefinedNode();
         }
     }
 

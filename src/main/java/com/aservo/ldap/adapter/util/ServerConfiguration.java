@@ -57,6 +57,10 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_MODE_FLATTENING = "mode.flattening";
     /**
+     * The constant CONFIG_UNDEFINED_FILTER_EXPRESSION_RESULT.
+     */
+    public static final String CONFIG_UNDEFINED_FILTER_EXPRESSION_RESULT = "mode.undefined-filter-expression-result";
+    /**
      * The constant CONFIG_DIRECTORY_BACKEND.
      */
     public static final String CONFIG_DIRECTORY_BACKEND = "directory-backend";
@@ -85,6 +89,7 @@ public class ServerConfiguration {
     private final String baseDnDescription;
     private final String baseDnGroupsDescription;
     private final String baseDnUsersDescription;
+    private final boolean undefFilterExprResult;
 
     /**
      * Instantiates a new server configuration.
@@ -132,6 +137,9 @@ public class ServerConfiguration {
         }
 
         flattening = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_MODE_FLATTENING, "true"));
+
+        undefFilterExprResult =
+                Boolean.parseBoolean(serverProperties.getProperty(CONFIG_UNDEFINED_FILTER_EXPRESSION_RESULT, "false"));
 
         String directoryBackendClassesValue = serverProperties.getProperty(CONFIG_DIRECTORY_BACKEND);
 
@@ -256,6 +264,16 @@ public class ServerConfiguration {
     public boolean isFlatteningEnabled() {
 
         return flattening;
+    }
+
+    /**
+     * Gets the boolean value for undefined filter expressions.
+     *
+     * @return the boolean
+     */
+    public boolean evaluateUndefinedFilterExprSuccessfully() {
+
+        return undefFilterExprResult;
     }
 
     /**

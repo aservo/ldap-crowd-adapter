@@ -100,6 +100,12 @@ public class CommonPartition
                     }
 
                     @Override
+                    protected boolean evaluateUndefinedFilterExprSuccessfully() {
+
+                        return serverConfig.evaluateUndefinedFilterExprSuccessfully();
+                    }
+
+                    @Override
                     protected DirectoryBackend getDirectoryBackend() {
 
                         return directoryBackend;

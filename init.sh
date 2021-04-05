@@ -61,6 +61,10 @@ if [ -n "$SERVER_MODE_FLATTENING" ]; then
   JAVA_OPTS="-Dmode.flattening=$SERVER_MODE_FLATTENING $JAVA_OPTS"
 fi
 
+if [ -n "$SERVER_UNDEFINED_FILTER_EXPRESSION_RESULT" ]; then
+  JAVA_OPTS="-Dmode.undefined-filter-expression-result=$SERVER_UNDEFINED_FILTER_EXPRESSION_RESULT $JAVA_OPTS"
+fi
+
 if [ -n "$SERVER_DIRECTORY_BACKEND" ]; then
   JAVA_OPTS="-Ddirectory-backend=$SERVER_DIRECTORY_BACKEND $JAVA_OPTS"
 fi

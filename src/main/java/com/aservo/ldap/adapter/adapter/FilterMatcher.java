@@ -42,6 +42,10 @@ public abstract class FilterMatcher {
 
             return true;
 
+        } else if (filterNode instanceof UndefinedNode) {
+
+            return evaluateUndefinedFilterExprSuccessfully();
+
         } else if (filterNode instanceof AndLogicExpression) {
 
             return ((AndLogicExpression) filterNode).getChildren().stream()
@@ -273,6 +277,8 @@ public abstract class FilterMatcher {
     }
 
     protected abstract boolean isFlatteningEnabled();
+
+    protected abstract boolean evaluateUndefinedFilterExprSuccessfully();
 
     protected abstract DirectoryBackend getDirectoryBackend();
 
