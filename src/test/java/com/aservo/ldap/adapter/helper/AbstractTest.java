@@ -342,12 +342,12 @@ public abstract class AbstractTest {
         Assertions.assertEquals(user.getId(), ne3.next());
         Assertions.assertFalse(ne3.hasMore());
 
-        NamingEnumeration ne4 = attributes.get(SchemaConstants.SN_AT).getAll();
+        NamingEnumeration ne4 = attributes.get(SchemaConstants.SURNAME_AT).getAll();
 
         Assertions.assertEquals(user.getLastName(), ne4.next());
         Assertions.assertFalse(ne4.hasMore());
 
-        NamingEnumeration ne5 = attributes.get(SchemaConstants.GN_AT).getAll();
+        NamingEnumeration ne5 = attributes.get(SchemaConstants.GIVENNAME_AT).getAll();
 
         Assertions.assertEquals(user.getFirstName(), ne5.next());
         Assertions.assertFalse(ne5.hasMore());

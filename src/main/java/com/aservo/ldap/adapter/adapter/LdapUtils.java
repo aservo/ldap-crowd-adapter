@@ -549,35 +549,55 @@ public class LdapUtils {
 
         if (attribute.equalsIgnoreCase(SchemaConstants.OBJECT_CLASS_AT))
             return SchemaConstants.OBJECT_CLASS_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.UID_AT))
-            return SchemaConstants.UID_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.OU_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.OU_AT))
             return SchemaConstants.OU_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.CN_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.DC_AT))
+            return SchemaConstants.DC_AT;
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.DOMAIN_COMPONENT_AT))
+            return SchemaConstants.DOMAIN_COMPONENT_AT;
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.UID_AT))
+            return SchemaConstants.UID_AT;
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.CN_AT))
             return SchemaConstants.CN_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.COMMON_NAME_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.COMMON_NAME_AT))
             return SchemaConstants.COMMON_NAME_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.GN_AT))
-            return SchemaConstants.GN_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.GIVENNAME_AT))
-            return SchemaConstants.GIVENNAME_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.SN_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.SN_AT))
             return SchemaConstants.SN_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.SURNAME_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.SURNAME_AT))
             return SchemaConstants.SURNAME_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.DISPLAY_NAME_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.GN_AT))
+            return SchemaConstants.GN_AT;
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.GIVENNAME_AT))
+            return SchemaConstants.GIVENNAME_AT;
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.DISPLAY_NAME_AT))
             return SchemaConstants.DISPLAY_NAME_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.MAIL_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.MAIL_AT))
             return SchemaConstants.MAIL_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.DESCRIPTION_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.DESCRIPTION_AT))
             return SchemaConstants.DESCRIPTION_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.MEMBER_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.MEMBER_AT))
             return SchemaConstants.MEMBER_AT;
-        else if (attribute.equalsIgnoreCase(SchemaConstants.UNIQUE_MEMBER_AT))
+
+        if (attribute.equalsIgnoreCase(SchemaConstants.UNIQUE_MEMBER_AT))
             return SchemaConstants.UNIQUE_MEMBER_AT;
-        else if (attribute.equalsIgnoreCase(MEMBER_OF_AT))
+
+        if (attribute.equalsIgnoreCase(MEMBER_OF_AT))
             return MEMBER_OF_AT;
-        else
-            return attribute;
+
+        return attribute;
     }
 }
