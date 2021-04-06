@@ -155,6 +155,62 @@ public abstract class CachedDirectoryBackend
         return result;
     }
 
+    @Override
+    public boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
+
+        try {
+
+            return getDirectChildGroupsOfGroup(groupId2).stream()
+                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
+
+        } catch (EntityNotFoundException e) {
+
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isUserDirectGroupMember(String userId, String groupId) {
+
+        try {
+
+            return getDirectUsersOfGroup(groupId).stream()
+                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
+
+        } catch (EntityNotFoundException e) {
+
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2) {
+
+        try {
+
+            return getTransitiveChildGroupsOfGroup(groupId2).stream()
+                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
+
+        } catch (EntityNotFoundException e) {
+
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isUserTransitiveGroupMember(String userId, String groupId) {
+
+        try {
+
+            return getTransitiveUsersOfGroup(groupId).stream()
+                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
+
+        } catch (EntityNotFoundException e) {
+
+            return false;
+        }
+    }
+
     private void resolveGroupsDownwards(String id, List<String> acc)
             throws EntityNotFoundException {
 
