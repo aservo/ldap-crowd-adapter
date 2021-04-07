@@ -43,195 +43,241 @@ public abstract class CachedDirectoryBackend
     public List<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        List<UserEntity> users = getDirectUsersOfGroup(id);
+        return withReadAccess(() -> {
 
-        for (GroupEntity y : getTransitiveChildGroupsOfGroup(id))
-            for (UserEntity x : getDirectUsersOfGroup(y.getId()))
-                if (!users.contains(x))
-                    users.add(x);
+            List<UserEntity> users = getDirectUsersOfGroup(id);
 
-        return users;
+            for (GroupEntity y : getTransitiveChildGroupsOfGroup(id))
+                for (UserEntity x : getDirectUsersOfGroup(y.getId()))
+                    if (!users.contains(x))
+                        users.add(x);
+
+            return users;
+        });
     }
 
     @Override
     public List<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        List<GroupEntity> groups = getDirectGroupsOfUser(id);
+        return withReadAccess(() -> {
 
-        for (GroupEntity y : new ArrayList<>(groups))
-            for (GroupEntity x : getTransitiveParentGroupsOfGroup(y.getId()))
-                if (!groups.contains(x))
-                    groups.add(x);
+            List<GroupEntity> groups = getDirectGroupsOfUser(id);
 
-        return groups;
+            for (GroupEntity y : new ArrayList<>(groups))
+                for (GroupEntity x : getTransitiveParentGroupsOfGroup(y.getId()))
+                    if (!groups.contains(x))
+                        groups.add(x);
+
+            return groups;
+        });
     }
 
     @Override
     public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        List<String> groupIds = getTransitiveChildGroupIdsOfGroup(id);
+        return withReadAccess(() -> {
 
-        if (groupIds.isEmpty())
-            return Collections.emptyList();
+            List<String> groupIds = getTransitiveChildGroupIdsOfGroup(id);
 
-        return getGroups(new OrLogicExpression(
-                groupIds.stream()
-                        .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
-                        .collect(Collectors.toList())
-        ), Optional.empty());
+            if (groupIds.isEmpty())
+                return Collections.emptyList();
+
+            return getGroups(new OrLogicExpression(
+                    groupIds.stream()
+                            .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
+                            .collect(Collectors.toList())
+            ), Optional.empty());
+        });
     }
 
     @Override
     public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        List<String> groupIds = getTransitiveParentGroupIdsOfGroup(id);
+        return withReadAccess(() -> {
 
-        if (groupIds.isEmpty())
-            return Collections.emptyList();
+            List<String> groupIds = getTransitiveParentGroupIdsOfGroup(id);
 
-        return getGroups(new OrLogicExpression(
-                groupIds.stream()
-                        .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
-                        .collect(Collectors.toList())
-        ), Optional.empty());
+            if (groupIds.isEmpty())
+                return Collections.emptyList();
+
+            return getGroups(new OrLogicExpression(
+                    groupIds.stream()
+                            .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
+                            .collect(Collectors.toList())
+            ), Optional.empty());
+        });
     }
 
     @Override
     public List<String> getTransitiveUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        List<String> userIds = getDirectUserIdsOfGroup(id);
+        return withReadAccess(() -> {
 
-        for (String y : getTransitiveChildGroupIdsOfGroup(id))
-            for (String x : getDirectUserIdsOfGroup(y))
-                if (!userIds.contains(x))
-                    userIds.add(x);
+            List<String> userIds = getDirectUserIdsOfGroup(id);
 
-        return userIds;
+            for (String y : getTransitiveChildGroupIdsOfGroup(id))
+                for (String x : getDirectUserIdsOfGroup(y))
+                    if (!userIds.contains(x))
+                        userIds.add(x);
+
+            return userIds;
+        });
     }
 
     @Override
     public List<String> getTransitiveGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        List<String> groupIds = getDirectGroupIdsOfUser(id);
+        return withReadAccess(() -> {
 
-        for (String y : new ArrayList<>(groupIds))
-            for (String x : getTransitiveParentGroupIdsOfGroup(y))
-                if (!groupIds.contains(x))
-                    groupIds.add(x);
+            List<String> groupIds = getDirectGroupIdsOfUser(id);
 
-        return groupIds;
+            for (String y : new ArrayList<>(groupIds))
+                for (String x : getTransitiveParentGroupIdsOfGroup(y))
+                    if (!groupIds.contains(x))
+                        groupIds.add(x);
+
+            return groupIds;
+        });
     }
 
     @Override
     public List<String> getTransitiveChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        List<String> result = new ArrayList<>();
-        GroupEntity group = getGroup(id);
+        return withReadAccess(() -> {
 
-        result.add(group.getId());
-        resolveGroupsDownwards(group.getId(), result);
-        result.remove(group.getId());
+            List<String> result = new ArrayList<>();
+            GroupEntity group = getGroup(id);
 
-        return result;
+            result.add(group.getId());
+            resolveGroupsDownwards(group.getId(), result);
+            result.remove(group.getId());
+
+            return result;
+        });
     }
 
     @Override
     public List<String> getTransitiveParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        List<String> result = new ArrayList<>();
-        GroupEntity group = getGroup(id);
+        return withReadAccess(() -> {
 
-        result.add(group.getId());
-        resolveGroupsUpwards(group.getId(), result);
-        result.remove(group.getId());
+            List<String> result = new ArrayList<>();
+            GroupEntity group = getGroup(id);
 
-        return result;
+            result.add(group.getId());
+            resolveGroupsUpwards(group.getId(), result);
+            result.remove(group.getId());
+
+            return result;
+        });
     }
 
     @Override
     public boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
 
-        try {
+        return withReadAccess(() -> {
 
-            return getDirectChildGroupsOfGroup(groupId2).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
+            try {
 
-        } catch (EntityNotFoundException e) {
+                return getDirectChildGroupsOfGroup(groupId2).stream()
+                        .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
 
-            return false;
-        }
+            } catch (EntityNotFoundException e) {
+
+                return false;
+            }
+        });
     }
 
     @Override
     public boolean isUserDirectGroupMember(String userId, String groupId) {
 
-        try {
+        return withReadAccess(() -> {
 
-            return getDirectUsersOfGroup(groupId).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
+            try {
 
-        } catch (EntityNotFoundException e) {
+                return getDirectUsersOfGroup(groupId).stream()
+                        .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
 
-            return false;
-        }
+            } catch (EntityNotFoundException e) {
+
+                return false;
+            }
+        });
     }
 
     @Override
     public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2) {
 
-        try {
+        return withReadAccess(() -> {
 
-            return getTransitiveChildGroupsOfGroup(groupId2).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
+            try {
 
-        } catch (EntityNotFoundException e) {
+                return getTransitiveChildGroupsOfGroup(groupId2).stream()
+                        .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
 
-            return false;
-        }
+            } catch (EntityNotFoundException e) {
+
+                return false;
+            }
+        });
     }
 
     @Override
     public boolean isUserTransitiveGroupMember(String userId, String groupId) {
 
-        try {
+        return withReadAccess(() -> {
 
-            return getTransitiveUsersOfGroup(groupId).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
+            try {
 
-        } catch (EntityNotFoundException e) {
+                return getTransitiveUsersOfGroup(groupId).stream()
+                        .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
 
-            return false;
-        }
+            } catch (EntityNotFoundException e) {
+
+                return false;
+            }
+        });
     }
 
     private void resolveGroupsDownwards(String id, List<String> acc)
             throws EntityNotFoundException {
 
-        List<String> result = getDirectChildGroupIdsOfGroup(id);
+        withReadAccess(() -> {
 
-        result.removeAll(acc);
-        acc.addAll(result);
+            List<String> result = getDirectChildGroupIdsOfGroup(id);
 
-        for (String x : result)
-            resolveGroupsDownwards(x, acc);
+            result.removeAll(acc);
+            acc.addAll(result);
+
+            for (String x : result)
+                resolveGroupsDownwards(x, acc);
+
+            return null;
+        });
     }
 
     private void resolveGroupsUpwards(String id, List<String> acc)
             throws EntityNotFoundException {
 
-        List<String> result = getDirectParentGroupIdsOfGroup(id);
+        withReadAccess(() -> {
 
-        result.removeAll(acc);
-        acc.addAll(result);
+            List<String> result = getDirectParentGroupIdsOfGroup(id);
 
-        for (String x : result)
-            resolveGroupsUpwards(x, acc);
+            result.removeAll(acc);
+            acc.addAll(result);
+
+            for (String x : result)
+                resolveGroupsUpwards(x, acc);
+
+            return null;
+        });
     }
 }

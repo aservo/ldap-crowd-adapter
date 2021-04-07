@@ -185,6 +185,21 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
+    public <T> T withReadAccess(Supplier<T> block) {
+
+        rwLock.readLock().lock();
+
+        try {
+
+            return block.get();
+
+        } finally {
+
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
     public void withWriteAccess(Runnable runnable) {
 
         super.withWriteAccess(() -> {
@@ -461,7 +476,7 @@ public class CachedWithPersistenceDirectoryBackend
     @Override
     public boolean isKnownGroup(String id) {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             boolean found = factory
                     .queryById("find_group")
@@ -478,7 +493,7 @@ public class CachedWithPersistenceDirectoryBackend
     @Override
     public boolean isKnownUser(String id) {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             boolean found = factory
                     .queryById("find_user")
@@ -497,7 +512,7 @@ public class CachedWithPersistenceDirectoryBackend
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() ->
+        return withReadAccess(() ->
                 (dbService.withTransaction(factory -> {
 
                     return factory
@@ -514,7 +529,7 @@ public class CachedWithPersistenceDirectoryBackend
     public UserEntity getUser(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() ->
+        return withReadAccess(() ->
                 (dbService.withTransaction(factory -> {
 
                     return factory
@@ -531,7 +546,7 @@ public class CachedWithPersistenceDirectoryBackend
     @Override
     public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
 
@@ -548,7 +563,7 @@ public class CachedWithPersistenceDirectoryBackend
     @Override
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
 
@@ -567,7 +582,7 @@ public class CachedWithPersistenceDirectoryBackend
     public List<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_users_of_group")
@@ -582,7 +597,7 @@ public class CachedWithPersistenceDirectoryBackend
     public List<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_groups_of_user")
@@ -597,7 +612,7 @@ public class CachedWithPersistenceDirectoryBackend
     public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_child_groups_of_group")
@@ -611,7 +626,7 @@ public class CachedWithPersistenceDirectoryBackend
     public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_parent_groups_of_group")
@@ -625,7 +640,7 @@ public class CachedWithPersistenceDirectoryBackend
     public List<String> getDirectUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_users_of_group")
@@ -640,7 +655,7 @@ public class CachedWithPersistenceDirectoryBackend
     public List<String> getDirectGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_groups_of_user")
@@ -655,7 +670,7 @@ public class CachedWithPersistenceDirectoryBackend
     public List<String> getDirectChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_child_groups_of_group")
@@ -669,7 +684,7 @@ public class CachedWithPersistenceDirectoryBackend
     public List<String> getDirectParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadLock(() -> dbService.withTransaction(factory -> {
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_parent_groups_of_group")
@@ -695,19 +710,5 @@ public class CachedWithPersistenceDirectoryBackend
                 row.apply("display_name", String.class),
                 row.apply("email", String.class),
                 row.apply("active", Boolean.class));
-    }
-
-    private <T> T withReadLock(Supplier<T> block) {
-
-        rwLock.readLock().lock();
-
-        try {
-
-            return block.get();
-
-        } finally {
-
-            rwLock.readLock().unlock();
-        }
     }
 }
