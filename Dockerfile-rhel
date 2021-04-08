@@ -58,6 +58,12 @@ RUN yum makecache && \
 	yum clean all && \
 	rm -rf /tmp/* /var/tmp/*
 
+RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+
+RUN yum-config-manager --enable rhel-7-server-optional-rpms
+
+RUN yum-config-manager --enable rhel-7-server-extras-rpms
+
 RUN yum makecache && \
 	yum -y install \
 	    openssl \
@@ -82,4 +88,5 @@ RUN if [ -n "$JVM_ONLY_HTTP_PROXY_HOST" ]; then export JAVA_OPTS="-Dhttp.proxyHo
     if [ -n "$JVM_ONLY_NO_PROXY" ]; then export JAVA_OPTS="-Dhttp.nonProxyHosts=$JVM_ONLY_NO_PROXY $JAVA_OPTS"; fi && \
     sbt compile
 
+ENTRYPOINT ["/app/init.sh"]
 CMD ["/app/start.sh"]
