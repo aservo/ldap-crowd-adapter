@@ -694,6 +694,122 @@ public class CachedWithPersistenceDirectoryBackend
         }));
     }
 
+    @Override
+    public List<UserEntity> getTransitiveUsersOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_transitive_users_of_group")
+                    .on("group_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapUserEntity);
+        }));
+    }
+
+    @Override
+    public List<GroupEntity> getTransitiveGroupsOfUser(String id)
+            throws EntityNotFoundException {
+
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_transitive_groups_of_user")
+                    .on("user_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapGroupEntity);
+        }));
+    }
+
+    @Override
+    public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_transitive_child_groups_of_group")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapGroupEntity);
+        }));
+    }
+
+    @Override
+    public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_transitive_parent_groups_of_group")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapGroupEntity);
+        }));
+    }
+
+    @Override
+    public List<String> getTransitiveUserIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_transitive_users_of_group")
+                    .on("group_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("id", String.class));
+        }));
+    }
+
+    @Override
+    public List<String> getTransitiveGroupIdsOfUser(String id)
+            throws EntityNotFoundException {
+
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_transitive_groups_of_user")
+                    .on("user_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("id", String.class));
+        }));
+    }
+
+    @Override
+    public List<String> getTransitiveChildGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_transitive_child_groups_of_group")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("id", String.class));
+        }));
+    }
+
+    @Override
+    public List<String> getTransitiveParentGroupIdsOfGroup(String id)
+            throws EntityNotFoundException {
+
+        return withReadAccess(() -> dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_transitive_parent_groups_of_group")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("id", String.class));
+        }));
+    }
+
     private GroupEntity mapGroupEntity(Row row) {
 
         return new GroupEntity(
