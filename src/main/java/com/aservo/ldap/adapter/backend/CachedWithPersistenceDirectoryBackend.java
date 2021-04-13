@@ -114,7 +114,7 @@ public class CachedWithPersistenceDirectoryBackend
         String maxOpenPreparedStatementsValue = properties.getProperty(CONFIG_DB_MAX_OPEN_STMT);
         String isolationLevelValue = properties.getProperty(CONFIG_DB_ISO_LEVEL);
 
-        activeUsersOnly = Boolean.parseBoolean(properties.getProperty(CONFIG_PASS_ACTIVE_USERS_ONLY, "false"));
+        activeUsersOnly = Boolean.parseBoolean(properties.getProperty(CONFIG_PASS_ACTIVE_USERS_ONLY, "true"));
 
         if (driver == null)
             throw new IllegalArgumentException("Missing value for " + CONFIG_DB_DRIVER);
