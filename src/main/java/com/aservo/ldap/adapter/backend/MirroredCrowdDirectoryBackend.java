@@ -21,7 +21,6 @@ import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.google.gson.*;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -29,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -733,9 +733,19 @@ public class MirroredCrowdDirectoryBackend
             if (!expectResult)
                 return Optional.empty();
 
-            InputStreamReader reader = new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8);
+            String result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8.name());
 
-            return Optional.of(gson.fromJson(reader, JsonObject.class));
+            try {
+
+                return Optional.of(gson.fromJson(result, JsonObject.class));
+
+            } catch (JsonSyntaxException e) {
+
+                logger.error("Cannot parse JSON object. Status code: {}; Result:\n {}",
+                        response.getStatusLine().getStatusCode(), result);
+
+                throw e;
+            }
         }
     }
 }
