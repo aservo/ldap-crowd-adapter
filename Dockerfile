@@ -30,14 +30,21 @@ RUN groupadd -r -g 1000 appuser && \
     mkhomedir_helper appuser
 
 RUN yum makecache && \
-    yum -y update
-
-RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
+    yum -y update && \
+    yum clean all && \
+    rm -rf /tmp/* /var/tmp/*
 
 RUN yum makecache && \
 	yum -y install \
         deltarpm \
         yum-utils && \
+    yum clean all && \
+	rm -rf /tmp/* /var/tmp/*
+
+RUN yum makecache && \
+	yum -y install \
+        epel-release && \
+    yum clean all && \
 	rm -rf /tmp/* /var/tmp/*
 
 COPY ca_certs/ /usr/share/pki/ca-trust-source/anchors/
@@ -46,7 +53,10 @@ RUN yum makecache && \
     yum -y install \
         ca-certificates && \
     update-ca-trust && \
+    yum clean all && \
     rm -rf /tmp/* /var/tmp/*
+
+RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
 
 RUN yum makecache && \
 	yum -y install \
@@ -60,13 +70,9 @@ RUN yum makecache && \
 
 RUN yum makecache && \
 	yum -y install \
-        epel-release && \
-	rm -rf /tmp/* /var/tmp/*
-
-RUN yum makecache && \
-	yum -y install \
 	    openssl \
         jq && \
+    yum clean all && \
 	rm -rf /tmp/* /var/tmp/*
 
 ENV JAVA_OPTS "-Dfile.encoding=UTF-8"
