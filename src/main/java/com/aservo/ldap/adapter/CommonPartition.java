@@ -308,14 +308,24 @@ public class CommonPartition
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.SN_AT_OID)) {
 
-                    if (user.getLastName() != null && !user.getLastName().isEmpty())
-                        entry.put(SchemaConstants.SURNAME_AT, user.getLastName());
+                    if (user.getLastName() != null && !user.getLastName().isEmpty()) {
+
+                        if (serverConfig.isAbbreviateSnAttribute())
+                            entry.put(SchemaConstants.SN_AT, user.getLastName());
+                        else
+                            entry.put(SchemaConstants.SURNAME_AT, user.getLastName());
+                    }
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.GN_AT_OID)) {
 
-                    if (user.getFirstName() != null && !user.getFirstName().isEmpty())
-                        entry.put(SchemaConstants.GIVENNAME_AT, user.getFirstName());
+                    if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
+
+                        if (serverConfig.isAbbreviateGnAttribute())
+                            entry.put(SchemaConstants.GN_AT, user.getLastName());
+                        else
+                            entry.put(SchemaConstants.GIVENNAME_AT, user.getFirstName());
+                    }
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.DISPLAY_NAME_AT_OID)) {

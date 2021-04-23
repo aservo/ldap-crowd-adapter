@@ -69,6 +69,14 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_DIRECTORY_BACKEND = "directory-backend";
     /**
+     * The constant CONFIG_ABBREVIATE_SN_ATTRIBUTE.
+     */
+    public static final String CONFIG_ABBREVIATE_SN_ATTRIBUTE = "attribute.sn.abbreviate";
+    /**
+     * The constant CONFIG_ABBREVIATE_GN_ATTRIBUTE.
+     */
+    public static final String CONFIG_ABBREVIATE_GN_ATTRIBUTE = "attribute.gn.abbreviate";
+    /**
      * The constant CONFIG_BASE_DN_DESCRIPTION.
      */
     public static final String CONFIG_BASE_DN_DESCRIPTION = "base-dn.description";
@@ -92,6 +100,8 @@ public class ServerConfiguration {
     private final boolean undefFilterExprResult;
     private final int responseMaxSizeLimit;
     private final DirectoryBackend directoryBackend;
+    private final boolean abbreviateSn;
+    private final boolean abbreviateGn;
     private final String baseDnDescription;
     private final String baseDnGroupsDescription;
     private final String baseDnUsersDescription;
@@ -191,6 +201,9 @@ public class ServerConfiguration {
 
             throw new RuntimeException("Cannot instantiate directory backend.", e);
         }
+
+        abbreviateSn = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_ABBREVIATE_SN_ATTRIBUTE, "false"));
+        abbreviateGn = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_ABBREVIATE_GN_ATTRIBUTE, "false"));
 
         baseDnDescription = serverProperties.getProperty(CONFIG_BASE_DN_DESCRIPTION, "");
         baseDnGroupsDescription = serverProperties.getProperty(CONFIG_BASE_DN_GROUPS_DESCRIPTION, "");
@@ -305,6 +318,26 @@ public class ServerConfiguration {
     public DirectoryBackend getDirectoryBackend() {
 
         return directoryBackend;
+    }
+
+    /**
+     * Gets the boolean flag for abbreviation of SN attribute.
+     *
+     * @return the boolean
+     */
+    public boolean isAbbreviateSnAttribute() {
+
+        return abbreviateSn;
+    }
+
+    /**
+     * Gets the boolean flag for abbreviation of GN attribute.
+     *
+     * @return the boolean
+     */
+    public boolean isAbbreviateGnAttribute() {
+
+        return abbreviateGn;
     }
 
     /**

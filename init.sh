@@ -73,6 +73,14 @@ if [ -n "$SERVER_DIRECTORY_BACKEND" ]; then
   JAVA_OPTS="-Ddirectory-backend=$SERVER_DIRECTORY_BACKEND $JAVA_OPTS"
 fi
 
+if [ -n "$SERVER_ABBREVIATE_SN_ATTRIBUTE" ]; then
+  JAVA_OPTS="-Dattribute.sn.abbreviate=$SERVER_ABBREVIATE_SN_ATTRIBUTE $JAVA_OPTS"
+fi
+
+if [ -n "$SERVER_ABBREVIATE_GN_ATTRIBUTE" ]; then
+  JAVA_OPTS="-Dattribute.gn.abbreviate=$SERVER_ABBREVIATE_GN_ATTRIBUTE $JAVA_OPTS"
+fi
+
 # backend settings for Crowd client
 
 if [ -n "$CROWD_APP_NAME" ]; then
