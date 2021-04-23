@@ -74,7 +74,14 @@ public abstract class FilterMatcher {
 
         switch (LdapUtils.normalizeAttribute(expression.getAttribute())) {
 
-            case SchemaConstants.OBJECT_CLASS_AT:
+            case SchemaConstants.DC_AT:
+
+                if (entity instanceof DomainEntity &&
+                        expression.check(entity.getId()))
+                    return true;
+
+                break;
+
             case SchemaConstants.OBJECT_CLASS_AT_OID:
 
                 if (entity instanceof DomainEntity &&
@@ -102,7 +109,6 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case SchemaConstants.OU_AT:
             case SchemaConstants.OU_AT_OID:
 
                 if (entity instanceof UnitEntity &&
@@ -119,17 +125,6 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case SchemaConstants.DC_AT:
-            case SchemaConstants.DOMAIN_COMPONENT_AT:
-            case SchemaConstants.DOMAIN_COMPONENT_AT_OID:
-
-                if (entity instanceof DomainEntity &&
-                        expression.check(entity.getId()))
-                    return true;
-
-                break;
-
-            case SchemaConstants.UID_AT:
             case SchemaConstants.UID_AT_OID:
 
                 if (entity instanceof UserEntity &&
@@ -138,9 +133,7 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case SchemaConstants.CN_AT:
             case SchemaConstants.CN_AT_OID:
-            case SchemaConstants.COMMON_NAME_AT:
 
                 if ((entity instanceof GroupEntity || entity instanceof UserEntity) &&
                         expression.check(entity.getId()))
@@ -148,9 +141,7 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case SchemaConstants.SN_AT:
             case SchemaConstants.SN_AT_OID:
-            case SchemaConstants.SURNAME_AT:
 
                 if (entity instanceof UserEntity &&
                         expression.check(((UserEntity) entity).getLastName()))
@@ -158,9 +149,7 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case SchemaConstants.GN_AT:
             case SchemaConstants.GN_AT_OID:
-            case SchemaConstants.GIVENNAME_AT:
 
                 if (entity instanceof UserEntity &&
                         expression.check(((UserEntity) entity).getFirstName()))
@@ -168,7 +157,6 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case SchemaConstants.DISPLAY_NAME_AT:
             case SchemaConstants.DISPLAY_NAME_AT_OID:
 
                 if (entity instanceof UserEntity &&
@@ -177,7 +165,6 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case SchemaConstants.MAIL_AT:
             case SchemaConstants.MAIL_AT_OID:
 
                 if (entity instanceof UserEntity &&
@@ -186,26 +173,15 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case SchemaConstants.DESCRIPTION_AT:
             case SchemaConstants.DESCRIPTION_AT_OID:
 
-                if (entity instanceof DomainEntity &&
-                        expression.check(((DescribableEntity) entity).getDescription()))
-                    return true;
-
-                if (entity instanceof UnitEntity &&
-                        expression.check(((DescribableEntity) entity).getDescription()))
-                    return true;
-
-                if (entity instanceof GroupEntity &&
+                if (entity instanceof DescribableEntity &&
                         expression.check(((DescribableEntity) entity).getDescription()))
                     return true;
 
                 break;
 
-            case SchemaConstants.MEMBER_AT:
             case SchemaConstants.MEMBER_AT_OID:
-            case SchemaConstants.UNIQUE_MEMBER_AT:
             case SchemaConstants.UNIQUE_MEMBER_AT_OID:
 
                 if (entity instanceof GroupEntity) {
@@ -228,7 +204,6 @@ public abstract class FilterMatcher {
 
                 break;
 
-            case LdapUtils.MEMBER_OF_AT:
             case LdapUtils.MEMBER_OF_AT_OID:
 
                 if (entity instanceof GroupEntity) {

@@ -792,9 +792,7 @@ public class CrowdDirectoryBackend
 
             switch (LdapUtils.normalizeAttribute(((EqualOperator) filterNode).getAttribute())) {
 
-                case SchemaConstants.CN_AT:
                 case SchemaConstants.CN_AT_OID:
-                case SchemaConstants.COMMON_NAME_AT:
 
                     return new TermRestriction<>(
                             GroupTermKeys.NAME,
@@ -802,7 +800,6 @@ public class CrowdDirectoryBackend
                             ((EqualOperator) filterNode).getValue()
                     );
 
-                case SchemaConstants.DESCRIPTION_AT:
                 case SchemaConstants.DESCRIPTION_AT_OID:
 
                     return new TermRestriction<>(
@@ -843,11 +840,8 @@ public class CrowdDirectoryBackend
 
             switch (LdapUtils.normalizeAttribute(((EqualOperator) filterNode).getAttribute())) {
 
-                case SchemaConstants.UID_AT:
                 case SchemaConstants.UID_AT_OID:
-                case SchemaConstants.CN_AT:
                 case SchemaConstants.CN_AT_OID:
-                case SchemaConstants.COMMON_NAME_AT:
 
                     return new TermRestriction<>(
                             UserTermKeys.USERNAME,
@@ -855,9 +849,7 @@ public class CrowdDirectoryBackend
                             ((EqualOperator) filterNode).getValue()
                     );
 
-                case SchemaConstants.SN_AT:
                 case SchemaConstants.SN_AT_OID:
-                case SchemaConstants.SURNAME_AT:
 
                     return new TermRestriction<>(
                             UserTermKeys.LAST_NAME,
@@ -865,9 +857,7 @@ public class CrowdDirectoryBackend
                             ((EqualOperator) filterNode).getValue()
                     );
 
-                case SchemaConstants.GN_AT:
                 case SchemaConstants.GN_AT_OID:
-                case SchemaConstants.GIVENNAME_AT:
 
                     return new TermRestriction<>(
                             UserTermKeys.FIRST_NAME,
@@ -875,7 +865,6 @@ public class CrowdDirectoryBackend
                             ((EqualOperator) filterNode).getValue()
                     );
 
-                case SchemaConstants.DISPLAY_NAME_AT:
                 case SchemaConstants.DISPLAY_NAME_AT_OID:
 
                     return new TermRestriction<>(
@@ -884,7 +873,6 @@ public class CrowdDirectoryBackend
                             ((EqualOperator) filterNode).getValue()
                     );
 
-                case SchemaConstants.MAIL_AT:
                 case SchemaConstants.MAIL_AT_OID:
 
                     return new TermRestriction<>(

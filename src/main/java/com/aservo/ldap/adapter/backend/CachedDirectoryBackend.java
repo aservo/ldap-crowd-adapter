@@ -86,7 +86,7 @@ public abstract class CachedDirectoryBackend
 
             return getGroups(new OrLogicExpression(
                     groupIds.stream()
-                            .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
+                            .map(x -> new EqualOperator(SchemaConstants.CN_AT_OID, x))
                             .collect(Collectors.toList())
             ), Optional.empty());
         });
@@ -105,7 +105,7 @@ public abstract class CachedDirectoryBackend
 
             return getGroups(new OrLogicExpression(
                     groupIds.stream()
-                            .map(x -> new EqualOperator(SchemaConstants.CN_AT, x))
+                            .map(x -> new EqualOperator(SchemaConstants.CN_AT_OID, x))
                             .collect(Collectors.toList())
             ), Optional.empty());
         });

@@ -131,7 +131,7 @@ public class CommonPartition
         return LdapUtils.createDn(schemaManager, directoryBackend, EntityType.DOMAIN);
     }
 
-    private Entry createEntry(Entity entity, List<String> attributes) {
+    private Entry createEntry(Entity entity, Set<String> attributes) {
 
         Dn queryDn = LdapUtils.createDn(schemaManager, directoryBackend, entity);
         Entry entry;
@@ -147,26 +147,19 @@ public class CommonPartition
             DomainEntity domain = (DomainEntity) entity;
             entry = new DefaultEntry(schemaManager, queryDn);
 
-            if (attributes.isEmpty() ||
-                    attributes.contains(SchemaConstants.OBJECT_CLASS_AT) ||
-                    attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
+            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
 
                 entry.put(SchemaConstants.OBJECT_CLASS_AT,
                         SchemaConstants.TOP_OC,
                         SchemaConstants.DOMAIN_OC);
             }
 
-            if (attributes.isEmpty() ||
-                    attributes.contains(SchemaConstants.DC_AT) ||
-                    attributes.contains(SchemaConstants.DOMAIN_COMPONENT_AT) ||
-                    attributes.contains(SchemaConstants.DOMAIN_COMPONENT_AT_OID)) {
+            if (attributes.isEmpty() || attributes.contains(SchemaConstants.DC_AT)) {
 
                 entry.put(SchemaConstants.DC_AT, domain.getId());
             }
 
-            if (attributes.isEmpty() ||
-                    attributes.contains(SchemaConstants.DESCRIPTION_AT) ||
-                    attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
+            if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
 
                 entry.put(SchemaConstants.DESCRIPTION_AT, domain.getDescription());
             }
@@ -183,25 +176,19 @@ public class CommonPartition
             GroupUnitEntity unit = (GroupUnitEntity) entity;
             entry = new DefaultEntry(schemaManager, queryDn);
 
-            if (attributes.isEmpty() ||
-                    attributes.contains(SchemaConstants.OBJECT_CLASS_AT) ||
-                    attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
+            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
 
                 entry.put(SchemaConstants.OBJECT_CLASS_AT,
                         SchemaConstants.TOP_OC,
                         SchemaConstants.ORGANIZATIONAL_UNIT_OC);
             }
 
-            if (attributes.isEmpty() ||
-                    attributes.contains(SchemaConstants.OU_AT) ||
-                    attributes.contains(SchemaConstants.OU_AT_OID)) {
+            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OU_AT_OID)) {
 
                 entry.put(SchemaConstants.OU_AT, LdapUtils.OU_GROUPS);
             }
 
-            if (attributes.isEmpty() ||
-                    attributes.contains(SchemaConstants.DESCRIPTION_AT) ||
-                    attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
+            if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
 
                 entry.put(SchemaConstants.DESCRIPTION_AT, unit.getDescription());
             }
@@ -218,25 +205,19 @@ public class CommonPartition
             UserUnitEntity unit = (UserUnitEntity) entity;
             entry = new DefaultEntry(schemaManager, queryDn);
 
-            if (attributes.isEmpty() ||
-                    attributes.contains(SchemaConstants.OBJECT_CLASS_AT) ||
-                    attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
+            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
 
                 entry.put(SchemaConstants.OBJECT_CLASS_AT,
                         SchemaConstants.TOP_OC,
                         SchemaConstants.ORGANIZATIONAL_UNIT_OC);
             }
 
-            if (attributes.isEmpty() ||
-                    attributes.contains(SchemaConstants.OU_AT) ||
-                    attributes.contains(SchemaConstants.OU_AT_OID)) {
+            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OU_AT_OID)) {
 
                 entry.put(SchemaConstants.OU_AT, LdapUtils.OU_USERS);
             }
 
-            if (attributes.isEmpty() ||
-                    attributes.contains(SchemaConstants.DESCRIPTION_AT) ||
-                    attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
+            if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
 
                 entry.put(SchemaConstants.DESCRIPTION_AT, unit.getDescription());
             }
@@ -248,9 +229,7 @@ public class CommonPartition
                 GroupEntity group = (GroupEntity) entity;
                 entry = new DefaultEntry(schemaManager, queryDn);
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.OBJECT_CLASS_AT) ||
-                        attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
 
                     entry.put(SchemaConstants.OBJECT_CLASS_AT,
                             SchemaConstants.TOP_OC,
@@ -258,42 +237,29 @@ public class CommonPartition
                             SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC);
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.OU_AT) ||
-                        attributes.contains(SchemaConstants.OU_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.OU_AT_OID)) {
 
                     entry.put(SchemaConstants.OU_AT, LdapUtils.OU_GROUPS);
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.CN_AT) ||
-                        attributes.contains(SchemaConstants.CN_AT_OID) ||
-                        attributes.contains(SchemaConstants.COMMON_NAME_AT)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.CN_AT_OID)) {
 
                     entry.put(SchemaConstants.CN_AT, group.getId());
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.DESCRIPTION_AT) ||
-                        attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
 
                     if (group.getDescription() != null && !group.getDescription().isEmpty())
                         entry.put(SchemaConstants.DESCRIPTION_AT, group.getDescription());
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.MEMBER_AT) ||
-                        attributes.contains(SchemaConstants.MEMBER_AT_OID) ||
-                        attributes.contains(SchemaConstants.UNIQUE_MEMBER_AT) ||
-                        attributes.contains(SchemaConstants.UNIQUE_MEMBER_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.MEMBER_AT_OID)) {
 
                     for (String memberDn : collectMemberDn(group.getId()))
                         entry.add(SchemaConstants.MEMBER_AT, memberDn);
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(LdapUtils.MEMBER_OF_AT) ||
-                        attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
 
                     for (String memberOfDn : collectMemberOfDnForGroup(group.getId()))
                         entry.add(LdapUtils.MEMBER_OF_AT, memberOfDn);
@@ -316,9 +282,7 @@ public class CommonPartition
                 UserEntity user = (UserEntity) entity;
                 entry = new DefaultEntry(schemaManager, queryDn);
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.OBJECT_CLASS_AT) ||
-                        attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
 
                     entry.put(SchemaConstants.OBJECT_CLASS_AT,
                             SchemaConstants.TOP_OC,
@@ -327,64 +291,45 @@ public class CommonPartition
                             SchemaConstants.INET_ORG_PERSON_OC);
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.OU_AT) ||
-                        attributes.contains(SchemaConstants.OU_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.OU_AT_OID)) {
 
                     entry.put(SchemaConstants.OU_AT, LdapUtils.OU_USERS);
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.UID_AT) ||
-                        attributes.contains(SchemaConstants.UID_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.UID_AT_OID)) {
 
                     entry.put(SchemaConstants.UID_AT, user.getId());
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.CN_AT) ||
-                        attributes.contains(SchemaConstants.CN_AT_OID) ||
-                        attributes.contains(SchemaConstants.COMMON_NAME_AT)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.CN_AT_OID)) {
 
                     entry.put(SchemaConstants.CN_AT, user.getId());
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.SN_AT) ||
-                        attributes.contains(SchemaConstants.SN_AT_OID) ||
-                        attributes.contains(SchemaConstants.SURNAME_AT)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.SN_AT_OID)) {
 
                     if (user.getLastName() != null && !user.getLastName().isEmpty())
                         entry.put(SchemaConstants.SURNAME_AT, user.getLastName());
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.GN_AT) ||
-                        attributes.contains(SchemaConstants.GN_AT_OID) ||
-                        attributes.contains(SchemaConstants.GIVENNAME_AT)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.GN_AT_OID)) {
 
                     if (user.getFirstName() != null && !user.getFirstName().isEmpty())
                         entry.put(SchemaConstants.GIVENNAME_AT, user.getFirstName());
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.DISPLAY_NAME_AT) ||
-                        attributes.contains(SchemaConstants.DISPLAY_NAME_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.DISPLAY_NAME_AT_OID)) {
 
                     if (user.getDisplayName() != null && !user.getDisplayName().isEmpty())
                         entry.put(SchemaConstants.DISPLAY_NAME_AT, user.getDisplayName());
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(SchemaConstants.MAIL_AT) ||
-                        attributes.contains(SchemaConstants.MAIL_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.MAIL_AT_OID)) {
 
                     entry.put(SchemaConstants.MAIL_AT, user.getEmail());
                 }
 
-                if (attributes.isEmpty() ||
-                        attributes.contains(LdapUtils.MEMBER_OF_AT) ||
-                        attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
+                if (attributes.isEmpty() || attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
 
                     for (String memberOfDn : collectMemberOfDnForUser(user.getId()))
                         entry.add(LdapUtils.MEMBER_OF_AT, memberOfDn);
@@ -452,7 +397,7 @@ public class CommonPartition
 
         if (context.getDn().equals(groupsDn)) {
 
-            entry = createEntry(groupUnitEntity, Collections.emptyList());
+            entry = createEntry(groupUnitEntity, Collections.emptySet());
 
         } else if (context.getDn().getParent().equals(groupsDn)) {
 
@@ -462,7 +407,7 @@ public class CommonPartition
 
                 try {
 
-                    entry = createEntry(directoryBackend.getGroup(groupId), Collections.emptyList());
+                    entry = createEntry(directoryBackend.getGroup(groupId), Collections.emptySet());
 
                 } catch (EntityNotFoundException e) {
                 }
@@ -470,7 +415,7 @@ public class CommonPartition
 
         } else if (context.getDn().equals(usersDn)) {
 
-            entry = createEntry(userUnitEntity, Collections.emptyList());
+            entry = createEntry(userUnitEntity, Collections.emptySet());
 
         } else if (context.getDn().getParent().equals(usersDn)) {
 
@@ -480,7 +425,7 @@ public class CommonPartition
 
                 try {
 
-                    entry = createEntry(directoryBackend.getUser(userId), Collections.emptyList());
+                    entry = createEntry(directoryBackend.getUser(userId), Collections.emptySet());
 
                 } catch (EntityNotFoundException e) {
                 }
@@ -488,7 +433,7 @@ public class CommonPartition
 
         } else if (context.getDn().equals(rootDn)) {
 
-            entry = createEntry(domainEntity, Collections.emptyList());
+            entry = createEntry(domainEntity, Collections.emptySet());
         }
 
         if (entry == null) {
@@ -563,10 +508,10 @@ public class CommonPartition
         FilterNode filterNode = LdapUtils.createInternalFilterNode(context.getFilter());
         List<Entity> mergedEntities = new ArrayList<>();
 
-        List<String> attributes =
+        Set<String> attributes =
                 Arrays.stream(context.getReturningAttributesString())
                         .map(LdapUtils::normalizeAttribute)
-                        .collect(Collectors.toList());
+                        .collect(Collectors.toSet());
 
         if (context.getDn().equals(groupsDn)) {
 

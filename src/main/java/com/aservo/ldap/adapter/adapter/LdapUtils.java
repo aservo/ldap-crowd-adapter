@@ -164,10 +164,8 @@ public class LdapUtils {
             String attribute = normalizeAttribute(queryDn.getRdn().getType());
 
             if ((queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.GROUP_UNIT)) ||
-                    queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.DOMAIN))) && (
-                    attribute.equals(SchemaConstants.CN_AT) ||
-                            attribute.equals(SchemaConstants.CN_AT_OID) ||
-                            attribute.equals(SchemaConstants.COMMON_NAME_AT))) {
+                    queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.DOMAIN))) &&
+                    attribute.equals(SchemaConstants.CN_AT_OID)) {
 
                 return queryDn.getRdn().getNormValue();
             }
@@ -196,11 +194,8 @@ public class LdapUtils {
 
             if ((queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.USER_UNIT)) ||
                     queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.DOMAIN))) && (
-                    attribute.equals(SchemaConstants.UID_AT) ||
-                            attribute.equals(SchemaConstants.UID_AT_OID) ||
-                            attribute.equals(SchemaConstants.CN_AT) ||
-                            attribute.equals(SchemaConstants.CN_AT_OID) ||
-                            attribute.equals(SchemaConstants.COMMON_NAME_AT))) {
+                    attribute.equals(SchemaConstants.UID_AT_OID) ||
+                            attribute.equals(SchemaConstants.CN_AT_OID))) {
 
                 return queryDn.getRdn().getNormValue();
             }
@@ -547,56 +542,63 @@ public class LdapUtils {
      */
     public static String normalizeAttribute(String attribute) {
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.OBJECT_CLASS_AT))
-            return SchemaConstants.OBJECT_CLASS_AT;
-
-        if (attribute.equalsIgnoreCase(SchemaConstants.OU_AT))
-            return SchemaConstants.OU_AT;
-
-        if (attribute.equalsIgnoreCase(SchemaConstants.DC_AT))
+        if (attribute.equalsIgnoreCase(SchemaConstants.DC_AT) ||
+                attribute.equalsIgnoreCase(SchemaConstants.DOMAIN_COMPONENT_AT) ||
+                attribute.equals(SchemaConstants.DOMAIN_COMPONENT_AT_OID))
             return SchemaConstants.DC_AT;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.DOMAIN_COMPONENT_AT))
-            return SchemaConstants.DOMAIN_COMPONENT_AT;
+        if (attribute.equals(SchemaConstants.OBJECT_CLASS_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.OBJECT_CLASS_AT))
+            return SchemaConstants.OBJECT_CLASS_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.UID_AT))
-            return SchemaConstants.UID_AT;
+        if (attribute.equals(SchemaConstants.OU_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.OU_AT) ||
+                attribute.equalsIgnoreCase(SchemaConstants.ORGANIZATIONAL_UNIT_NAME_AT))
+            return SchemaConstants.OU_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.CN_AT))
-            return SchemaConstants.CN_AT;
+        if (attribute.equals(SchemaConstants.UID_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.UID_AT) ||
+                attribute.equalsIgnoreCase(SchemaConstants.USER_ID_AT))
+            return SchemaConstants.UID_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.COMMON_NAME_AT))
-            return SchemaConstants.COMMON_NAME_AT;
+        if (attribute.equals(SchemaConstants.CN_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.CN_AT) ||
+                attribute.equalsIgnoreCase(SchemaConstants.COMMON_NAME_AT))
+            return SchemaConstants.CN_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.SN_AT))
-            return SchemaConstants.SN_AT;
+        if (attribute.equals(SchemaConstants.SN_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.SN_AT) ||
+                attribute.equalsIgnoreCase(SchemaConstants.SURNAME_AT))
+            return SchemaConstants.SN_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.SURNAME_AT))
-            return SchemaConstants.SURNAME_AT;
+        if (attribute.equals(SchemaConstants.GN_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.GN_AT) ||
+                attribute.equalsIgnoreCase(SchemaConstants.GIVENNAME_AT))
+            return SchemaConstants.GN_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.GN_AT))
-            return SchemaConstants.GN_AT;
+        if (attribute.equals(SchemaConstants.DISPLAY_NAME_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.DISPLAY_NAME_AT))
+            return SchemaConstants.DISPLAY_NAME_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.GIVENNAME_AT))
-            return SchemaConstants.GIVENNAME_AT;
+        if (attribute.equals(SchemaConstants.MAIL_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.MAIL_AT))
+            return SchemaConstants.MAIL_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.DISPLAY_NAME_AT))
-            return SchemaConstants.DISPLAY_NAME_AT;
+        if (attribute.equals(SchemaConstants.DESCRIPTION_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.DESCRIPTION_AT))
+            return SchemaConstants.DESCRIPTION_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.MAIL_AT))
-            return SchemaConstants.MAIL_AT;
+        if (attribute.equals(SchemaConstants.MEMBER_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.MEMBER_AT))
+            return SchemaConstants.MEMBER_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.DESCRIPTION_AT))
-            return SchemaConstants.DESCRIPTION_AT;
+        if (attribute.equals(SchemaConstants.UNIQUE_MEMBER_AT_OID) ||
+                attribute.equalsIgnoreCase(SchemaConstants.UNIQUE_MEMBER_AT))
+            return SchemaConstants.UNIQUE_MEMBER_AT_OID;
 
-        if (attribute.equalsIgnoreCase(SchemaConstants.MEMBER_AT))
-            return SchemaConstants.MEMBER_AT;
-
-        if (attribute.equalsIgnoreCase(SchemaConstants.UNIQUE_MEMBER_AT))
-            return SchemaConstants.UNIQUE_MEMBER_AT;
-
-        if (attribute.equalsIgnoreCase(MEMBER_OF_AT))
-            return MEMBER_OF_AT;
+        if (attribute.equals(MEMBER_OF_AT_OID) ||
+                attribute.equalsIgnoreCase(MEMBER_OF_AT))
+            return MEMBER_OF_AT_OID;
 
         return attribute;
     }
