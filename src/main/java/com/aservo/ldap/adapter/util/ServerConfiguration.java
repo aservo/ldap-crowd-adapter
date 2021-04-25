@@ -64,9 +64,13 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_RESPONSE_MAX_SIZE_LIMIT = "mode.response-max-size-limit";
     /**
-     * The constant CONFIG_DIRECTORY_BACKEND.
+     * The constant CONFIG_DIRECTORY_BACKEND_PERMANENT.
      */
-    public static final String CONFIG_DIRECTORY_BACKEND = "directory-backend";
+    public static final String CONFIG_DIRECTORY_BACKEND_PERMANENT = "directory-backend.permanent";
+    /**
+     * The constant CONFIG_DIRECTORY_BACKEND_SESSION.
+     */
+    public static final String CONFIG_DIRECTORY_BACKEND_SESSION = "directory-backend.session";
     /**
      * The constant CONFIG_ABBREVIATE_SN_ATTRIBUTE.
      */
@@ -98,7 +102,8 @@ public class ServerConfiguration {
     private final boolean flattening;
     private final boolean undefFilterExprResult;
     private final int responseMaxSizeLimit;
-    private final List<String> directoryBackendClasses;
+    private final List<String> permanentDirectoryBackendClasses;
+    private final List<String> sessionDirectoryBackendClasses;
     private final boolean abbreviateSn;
     private final boolean abbreviateGn;
     private final String baseDnDescription;
@@ -161,13 +166,23 @@ public class ServerConfiguration {
             throw new IllegalArgumentException("Expect value for " +
                     CONFIG_RESPONSE_MAX_SIZE_LIMIT + " greater than zero.");
 
-        String directoryBackendClassesValue = serverProperties.getProperty(CONFIG_DIRECTORY_BACKEND);
+        String permanentDirectoryBackendClassesValue = serverProperties.getProperty(CONFIG_DIRECTORY_BACKEND_PERMANENT);
+        String sessionDirectoryBackendClassesValue = serverProperties.getProperty(CONFIG_DIRECTORY_BACKEND_SESSION);
 
-        if (directoryBackendClassesValue == null || directoryBackendClassesValue.isEmpty())
-            throw new IllegalArgumentException("Missing value for " + CONFIG_DIRECTORY_BACKEND);
+        if (permanentDirectoryBackendClassesValue == null || permanentDirectoryBackendClassesValue.isEmpty())
+            throw new IllegalArgumentException("Missing value for " + CONFIG_DIRECTORY_BACKEND_PERMANENT);
 
-        directoryBackendClasses =
-                Arrays.stream(directoryBackendClassesValue.split(","))
+        if (sessionDirectoryBackendClassesValue == null)
+            throw new IllegalArgumentException("Missing value for " + CONFIG_DIRECTORY_BACKEND_SESSION);
+
+        permanentDirectoryBackendClasses =
+                Arrays.stream(permanentDirectoryBackendClassesValue.split(","))
+                        .map(x -> x.trim())
+                        .filter(x -> !x.isEmpty())
+                        .collect(Collectors.toList());
+
+        sessionDirectoryBackendClasses =
+                Arrays.stream(sessionDirectoryBackendClassesValue.split(","))
                         .map(x -> x.trim())
                         .filter(x -> !x.isEmpty())
                         .collect(Collectors.toList());
@@ -281,13 +296,23 @@ public class ServerConfiguration {
     }
 
     /**
-     * Gets the defined directory backend classes.
+     * Gets the defined directory backend classes used as permanent instances.
      *
      * @return the list of directory backend classes
      */
-    public List<String> getDirectoryBackendClasses() {
+    public List<String> getPermanentDirectoryBackendClasses() {
 
-        return new ArrayList<>(directoryBackendClasses);
+        return new ArrayList<>(permanentDirectoryBackendClasses);
+    }
+
+    /**
+     * Gets the defined directory backend classes used additional sessions.
+     *
+     * @return the list of directory backend classes
+     */
+    public List<String> getSessionDirectoryBackendClasses() {
+
+        return new ArrayList<>(sessionDirectoryBackendClasses);
     }
 
     /**

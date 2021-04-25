@@ -33,13 +33,13 @@ public class DirectoryBackendFactory {
     private final Logger logger = LoggerFactory.getLogger(DirectoryBackendFactory.class);
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final ServerConfiguration config;
-    private final DirectoryBackend directoryBackend;
+    private final NestedDirectoryBackend directoryBackend;
 
     public DirectoryBackendFactory(ServerConfiguration config) {
 
         this.config = config;
 
-        List<String> directoryBackendClasses = config.getDirectoryBackendClasses();
+        List<String> directoryBackendClasses = config.getPermanentDirectoryBackendClasses();
         NestedDirectoryBackend innerDirectoryBackend;
 
         if (directoryBackendClasses.isEmpty())
@@ -64,11 +64,11 @@ public class DirectoryBackendFactory {
 
         } catch (ClassNotFoundException e) {
 
-            throw new IllegalArgumentException("Missing class in directory backend definition", e);
+            throw new IllegalArgumentException("Missing class in permanent directory backend definition", e);
 
         } catch (Exception e) {
 
-            throw new RuntimeException("Cannot instantiate directory backend.", e);
+            throw new RuntimeException("Cannot instantiate permanent directory backend.", e);
         }
     }
 
@@ -86,7 +86,7 @@ public class DirectoryBackendFactory {
 
         try {
 
-            result = block.apply(directoryBackend);
+            result = block.apply(createSessionSpecificDirectory());
 
         } finally {
 
@@ -117,6 +117,33 @@ public class DirectoryBackendFactory {
     public void shutdown() {
 
         directoryBackend.shutdown();
+    }
+
+    private DirectoryBackend createSessionSpecificDirectory() {
+
+        List<String> directoryBackendClasses = config.getSessionDirectoryBackendClasses();
+        NestedDirectoryBackend innerDirectoryBackend = directoryBackend;
+
+        try {
+
+            for (int i = 0; i < directoryBackendClasses.size(); i++) {
+
+                innerDirectoryBackend =
+                        (NestedDirectoryBackend) Class.forName(directoryBackendClasses.get(i))
+                                .getConstructor(ServerConfiguration.class, Locking.class, NestedDirectoryBackend.class)
+                                .newInstance(config, new Locking(), innerDirectoryBackend);
+            }
+
+        } catch (ClassNotFoundException e) {
+
+            throw new IllegalArgumentException("Missing class in session specific directory backend definition", e);
+
+        } catch (Exception e) {
+
+            throw new RuntimeException("Cannot instantiate session specific directory backend.", e);
+        }
+
+        return innerDirectoryBackend;
     }
 
     public class Locking {

@@ -3,6 +3,7 @@ package com.aservo.ldap.adapter.helper;
 import com.aservo.ldap.adapter.CommonLdapServer;
 import com.aservo.ldap.adapter.Main;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -94,7 +95,7 @@ public abstract class AbstractIntegrationTest {
     private static void boot(int port, boolean flattening)
             throws Exception {
 
-        System.setProperty("directory-backend",
+        System.setProperty("directory-backend.permanent",
                 "com.aservo.ldap.adapter.backend.CrowdDirectoryBackend," +
                         "com.aservo.ldap.adapter.backend.CachedInMemoryDirectoryBackend");
         System.setProperty("ds-cache-directory", "./tmp/" + port + "/cache");
@@ -129,7 +130,8 @@ public abstract class AbstractIntegrationTest {
         Properties serverProperties = new Properties();
         Properties backendProperties = new Properties();
 
-        serverProperties.setProperty("directory-backend", "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
+        serverProperties.setProperty("directory-backend.permanent",
+                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
 
         try {
 
@@ -140,7 +142,10 @@ public abstract class AbstractIntegrationTest {
             throw new UncheckedIOException(e);
         }
 
-        directoryBackend = Main.createConfiguration(serverProperties, backendProperties).getDirectoryBackend();
+        directoryBackend =
+                new DirectoryBackendFactory(Main.createConfiguration(serverProperties, backendProperties))
+                        .getPermanentDirectory();
+
         directoryBackend.startup();
     }
 

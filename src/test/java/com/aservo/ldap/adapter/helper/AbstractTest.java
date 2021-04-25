@@ -6,6 +6,7 @@ import com.aservo.ldap.adapter.adapter.LdapUtils;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -95,7 +96,7 @@ public abstract class AbstractTest {
     private static void boot(int port, String dbUri, boolean flattening)
             throws Exception {
 
-        System.setProperty("directory-backend",
+        System.setProperty("directory-backend.permanent",
                 "com.aservo.ldap.adapter.backend.JsonDirectoryBackend," +
                         "com.aservo.ldap.adapter.backend.CachedInMemoryDirectoryBackend");
         System.setProperty("ds-cache-directory", "./tmp/" + port + "/cache");
@@ -124,16 +125,19 @@ public abstract class AbstractTest {
             throws Exception {
 
         Properties serverProperties = new Properties();
-        Properties backendProperties= new Properties();
+        Properties backendProperties = new Properties();
 
-        serverProperties.setProperty("directory-backend", "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
+        serverProperties.setProperty("directory-backend.permanent",
+                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
 
         if (config == BackendConfig.NORMAL)
             backendProperties.setProperty("db-uri", dbUri1);
         else if (config == BackendConfig.CYCLIC_GROUPS)
             backendProperties.setProperty("db-uri", dbUri2);
 
-        directoryBackend = Main.createConfiguration(serverProperties, backendProperties).getDirectoryBackend();
+        directoryBackend =
+                new DirectoryBackendFactory(Main.createConfiguration(serverProperties, backendProperties))
+                        .getPermanentDirectory();
 
         directoryBackend.startup();
     }
