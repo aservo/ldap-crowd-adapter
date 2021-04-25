@@ -29,6 +29,7 @@ import com.aservo.ldap.adapter.adapter.query.AndLogicExpression;
 import com.aservo.ldap.adapter.adapter.query.EqualOperator;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.*;
@@ -42,7 +43,6 @@ import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.name.Dn;
-import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.server.core.api.entry.ClonedServerEntry;
 import org.apache.directory.server.core.api.filtering.EntryFilteringCursor;
 import org.apache.directory.server.core.api.filtering.EntryFilteringCursorImpl;
@@ -62,9 +62,8 @@ public class CommonPartition
 
     private final Logger logger = LoggerFactory.getLogger(CommonPartition.class);
 
-    private final DirectoryBackend directoryBackend;
+    private final DirectoryBackendFactory directoryFactory;
     private final ServerConfiguration serverConfig;
-    private FilterMatcher filterMatcher;
     private DomainEntity domainEntity;
     private GroupUnitEntity groupUnitEntity;
     private UserUnitEntity userUnitEntity;
@@ -72,50 +71,25 @@ public class CommonPartition
     /**
      * Instantiates a new partition based on directory backend implementation.
      *
-     * @param directoryBackend the directory backend
+     * @param directoryFactory the directory backend factory
      * @param serverConfig     the server config
      */
-    public CommonPartition(DirectoryBackend directoryBackend, ServerConfiguration serverConfig) {
+    public CommonPartition(ServerConfiguration serverConfig, DirectoryBackendFactory directoryFactory) {
 
-        super(directoryBackend.getId());
+        super(directoryFactory.getPermanentDirectory().getId());
 
-        this.directoryBackend = directoryBackend;
         this.serverConfig = serverConfig;
+        this.directoryFactory = directoryFactory;
     }
 
     @Override
     protected void doInit()
             throws LdapException {
 
-        filterMatcher =
-                new FilterMatcher() {
+        domainEntity =
+                new DomainEntity(directoryFactory.getPermanentDirectory().getId(),
+                        serverConfig.getBaseDnDescription());
 
-                    @Override
-                    protected boolean isFlatteningEnabled() {
-
-                        return serverConfig.isFlatteningEnabled();
-                    }
-
-                    @Override
-                    protected boolean evaluateUndefinedFilterExprSuccessfully() {
-
-                        return serverConfig.evaluateUndefinedFilterExprSuccessfully();
-                    }
-
-                    @Override
-                    protected DirectoryBackend getDirectoryBackend() {
-
-                        return directoryBackend;
-                    }
-
-                    @Override
-                    protected SchemaManager getSchemaManager() {
-
-                        return schemaManager;
-                    }
-                };
-
-        domainEntity = new DomainEntity(directoryBackend, serverConfig.getBaseDnDescription());
         groupUnitEntity = new GroupUnitEntity(serverConfig.getBaseDnGroupsDescription());
         userUnitEntity = new UserUnitEntity(serverConfig.getBaseDnUsersDescription());
     }
@@ -128,12 +102,41 @@ public class CommonPartition
     @Override
     public Dn getSuffixDn() {
 
-        return LdapUtils.createDn(schemaManager, directoryBackend, EntityType.DOMAIN);
+        return LdapUtils.createDn(schemaManager, directoryFactory.getPermanentDirectory(), EntityType.DOMAIN);
     }
 
-    private Entry createEntry(Entity entity, Set<String> attributes) {
+    private FilterMatcher newFilterMatcher(DirectoryBackend directory) {
 
-        Dn queryDn = LdapUtils.createDn(schemaManager, directoryBackend, entity);
+        return new FilterMatcher() {
+
+            protected boolean evaluateUndefinedFilterExprSuccessfully() {
+
+                return serverConfig.evaluateUndefinedFilterExprSuccessfully();
+            }
+
+            protected boolean isGroupMember(GroupEntity entity, String dn, boolean negated) {
+
+                return LdapUtils.isGroupMember(schemaManager, directory, entity, dn,
+                        serverConfig.isFlatteningEnabled(), negated);
+            }
+
+            protected boolean isMemberOfGroup(GroupEntity entity, String dn, boolean negated) {
+
+                return LdapUtils.isMemberOfGroup(schemaManager, directory, entity, dn,
+                        serverConfig.isFlatteningEnabled(), negated);
+            }
+
+            protected boolean isMemberOfGroup(UserEntity entity, String dn, boolean negated) {
+
+                return LdapUtils.isMemberOfGroup(schemaManager, directory, entity, dn,
+                        serverConfig.isFlatteningEnabled(), negated);
+            }
+        };
+    }
+
+    private Entry createEntry(DirectoryBackend directory, Entity entity, Set<String> attributes) {
+
+        Dn queryDn = LdapUtils.createDn(schemaManager, directory, entity);
         Entry entry;
 
         if (entity instanceof DomainEntity) {
@@ -255,13 +258,13 @@ public class CommonPartition
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.MEMBER_AT_OID)) {
 
-                    for (String memberDn : collectMemberDn(group.getId()))
+                    for (String memberDn : collectMemberDn(directory, group.getId()))
                         entry.add(SchemaConstants.MEMBER_AT, memberDn);
                 }
 
                 if (attributes.isEmpty() || attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
 
-                    for (String memberOfDn : collectMemberOfDnForGroup(group.getId()))
+                    for (String memberOfDn : collectMemberOfDnForGroup(directory, group.getId()))
                         entry.add(LdapUtils.MEMBER_OF_AT, memberOfDn);
                 }
 
@@ -341,7 +344,7 @@ public class CommonPartition
 
                 if (attributes.isEmpty() || attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
 
-                    for (String memberOfDn : collectMemberOfDnForUser(user.getId()))
+                    for (String memberOfDn : collectMemberOfDnForUser(directory, user.getId()))
                         entry.add(LdapUtils.MEMBER_OF_AT, memberOfDn);
                 }
 
@@ -361,33 +364,33 @@ public class CommonPartition
         return entry;
     }
 
-    private List<String> collectMemberDn(String groupId)
+    private List<String> collectMemberDn(DirectoryBackend directory, String groupId)
             throws EntityNotFoundException {
 
         return Stream.concat(
-                LdapUtils.findGroupMembers(directoryBackend, groupId, serverConfig.isFlatteningEnabled()).stream()
-                        .map(x -> LdapUtils.createDn(schemaManager, directoryBackend, EntityType.GROUP, x)),
-                LdapUtils.findUserMembers(directoryBackend, groupId, serverConfig.isFlatteningEnabled()).stream()
-                        .map(x -> LdapUtils.createDn(schemaManager, directoryBackend, EntityType.USER, x))
+                LdapUtils.findGroupMembers(directory, groupId, serverConfig.isFlatteningEnabled()).stream()
+                        .map(x -> LdapUtils.createDn(schemaManager, directory, EntityType.GROUP, x)),
+                LdapUtils.findUserMembers(directory, groupId, serverConfig.isFlatteningEnabled()).stream()
+                        .map(x -> LdapUtils.createDn(schemaManager, directory, EntityType.USER, x))
         )
                 .map(Dn::getName)
                 .collect(Collectors.toList());
     }
 
-    private List<String> collectMemberOfDnForGroup(String groupId)
+    private List<String> collectMemberOfDnForGroup(DirectoryBackend directory, String groupId)
             throws EntityNotFoundException {
 
-        return LdapUtils.findGroupMembersReverse(directoryBackend, groupId, serverConfig.isFlatteningEnabled()).stream()
-                .map(x -> LdapUtils.createDn(schemaManager, directoryBackend, EntityType.GROUP, x))
+        return LdapUtils.findGroupMembersReverse(directory, groupId, serverConfig.isFlatteningEnabled()).stream()
+                .map(x -> LdapUtils.createDn(schemaManager, directory, EntityType.GROUP, x))
                 .map(Dn::getName)
                 .collect(Collectors.toList());
     }
 
-    private List<String> collectMemberOfDnForUser(String userId)
+    private List<String> collectMemberOfDnForUser(DirectoryBackend directory, String userId)
             throws EntityNotFoundException {
 
-        return LdapUtils.findUserMembersReverse(directoryBackend, userId, serverConfig.isFlatteningEnabled()).stream()
-                .map(x -> LdapUtils.createDn(schemaManager, directoryBackend, EntityType.GROUP, x))
+        return LdapUtils.findUserMembersReverse(directory, userId, serverConfig.isFlatteningEnabled()).stream()
+                .map(x -> LdapUtils.createDn(schemaManager, directory, EntityType.GROUP, x))
                 .map(Dn::getName)
                 .collect(Collectors.toList());
     }
@@ -400,62 +403,66 @@ public class CommonPartition
         logger.debug("Lookup cache for entry with DN={}",
                 context.getDn().getName());
 
-        Dn rootDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.DOMAIN);
-        Dn groupsDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.GROUP_UNIT);
-        Dn usersDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.USER_UNIT);
-        Entry entry = null;
+        return directoryFactory.withSession(directory -> {
 
-        if (context.getDn().equals(groupsDn)) {
+            Dn rootDn = LdapUtils.createDn(schemaManager, directory, EntityType.DOMAIN);
+            Dn groupsDn = LdapUtils.createDn(schemaManager, directory, EntityType.GROUP_UNIT);
+            Dn usersDn = LdapUtils.createDn(schemaManager, directory, EntityType.USER_UNIT);
 
-            entry = createEntry(groupUnitEntity, Collections.emptySet());
+            Entry entry = null;
 
-        } else if (context.getDn().getParent().equals(groupsDn)) {
+            if (context.getDn().equals(groupsDn)) {
 
-            String groupId = LdapUtils.getGroupIdFromDn(schemaManager, directoryBackend, context.getDn().getName());
+                entry = createEntry(directory, groupUnitEntity, Collections.emptySet());
 
-            if (groupId != null && directoryBackend.isKnownGroup(groupId)) {
+            } else if (context.getDn().getParent().equals(groupsDn)) {
 
-                try {
+                String groupId = LdapUtils.getGroupIdFromDn(schemaManager, directory, context.getDn().getName());
 
-                    entry = createEntry(directoryBackend.getGroup(groupId), Collections.emptySet());
+                if (groupId != null && directory.isKnownGroup(groupId)) {
 
-                } catch (EntityNotFoundException e) {
+                    try {
+
+                        entry = createEntry(directory, directory.getGroup(groupId), Collections.emptySet());
+
+                    } catch (EntityNotFoundException e) {
+                    }
                 }
+
+            } else if (context.getDn().equals(usersDn)) {
+
+                entry = createEntry(directory, userUnitEntity, Collections.emptySet());
+
+            } else if (context.getDn().getParent().equals(usersDn)) {
+
+                String userId = LdapUtils.getUserIdFromDn(schemaManager, directory, context.getDn().getName());
+
+                if (userId != null && directory.isKnownUser(userId)) {
+
+                    try {
+
+                        entry = createEntry(directory, directory.getUser(userId), Collections.emptySet());
+
+                    } catch (EntityNotFoundException e) {
+                    }
+                }
+
+            } else if (context.getDn().equals(rootDn)) {
+
+                entry = createEntry(directory, domainEntity, Collections.emptySet());
             }
 
-        } else if (context.getDn().equals(usersDn)) {
+            if (entry == null) {
 
-            entry = createEntry(userUnitEntity, Collections.emptySet());
+                logger.debug("Could not find cached entry with DN={}", context.getDn().getName());
+                return null;
 
-        } else if (context.getDn().getParent().equals(usersDn)) {
+            } else {
 
-            String userId = LdapUtils.getUserIdFromDn(schemaManager, directoryBackend, context.getDn().getName());
-
-            if (userId != null && directoryBackend.isKnownUser(userId)) {
-
-                try {
-
-                    entry = createEntry(directoryBackend.getUser(userId), Collections.emptySet());
-
-                } catch (EntityNotFoundException e) {
-                }
+                logger.debug("Could find cached entry with DN={}", context.getDn().getName());
+                return new ClonedServerEntry(entry);
             }
-
-        } else if (context.getDn().equals(rootDn)) {
-
-            entry = createEntry(domainEntity, Collections.emptySet());
-        }
-
-        if (entry == null) {
-
-            logger.debug("Could not find cached entry with DN={}", context.getDn().getName());
-            return null;
-
-        } else {
-
-            logger.debug("Could find cached entry with DN={}", context.getDn().getName());
-            return new ClonedServerEntry(entry);
-        }
+        });
     }
 
     @Override
@@ -465,131 +472,140 @@ public class CommonPartition
         logger.debug("Check for existence of entry with DN={}",
                 context.getDn().getName());
 
-        Dn rootDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.DOMAIN);
-        Dn groupsDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.GROUP_UNIT);
-        Dn usersDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.USER_UNIT);
+        return directoryFactory.withSession(directory -> {
 
-        if (context.getDn().equals(groupsDn)) {
+            Dn rootDn = LdapUtils.createDn(schemaManager, directory, EntityType.DOMAIN);
+            Dn groupsDn = LdapUtils.createDn(schemaManager, directory, EntityType.GROUP_UNIT);
+            Dn usersDn = LdapUtils.createDn(schemaManager, directory, EntityType.USER_UNIT);
+            FilterMatcher filterMatcher = newFilterMatcher(directory);
 
-            return true;
+            if (context.getDn().equals(groupsDn)) {
 
-        } else if (context.getDn().getParent().equals(groupsDn)) {
+                return true;
 
-            String attribute = context.getDn().getRdn().getType();
-            String value = context.getDn().getRdn().getNormValue();
-            FilterNode filterNode = new EqualOperator(attribute, value);
+            } else if (context.getDn().getParent().equals(groupsDn)) {
 
-            return directoryBackend.getGroups(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
+                String attribute = context.getDn().getRdn().getType();
+                String value = context.getDn().getRdn().getNormValue();
+                FilterNode filterNode = new EqualOperator(attribute, value);
 
-        } else if (context.getDn().equals(usersDn)) {
+                return directory.getGroups(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
 
-            return true;
+            } else if (context.getDn().equals(usersDn)) {
 
-        } else if (context.getDn().getParent().equals(usersDn)) {
+                return true;
 
-            String attribute = context.getDn().getRdn().getType();
-            String value = context.getDn().getRdn().getNormValue();
-            FilterNode filterNode = new EqualOperator(attribute, value);
+            } else if (context.getDn().getParent().equals(usersDn)) {
 
-            return directoryBackend.getUsers(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
+                String attribute = context.getDn().getRdn().getType();
+                String value = context.getDn().getRdn().getNormValue();
+                FilterNode filterNode = new EqualOperator(attribute, value);
 
-        } else if (context.getDn().equals(rootDn)) {
+                return directory.getUsers(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
 
-            return true;
+            } else if (context.getDn().equals(rootDn)) {
 
-        } else if (context.getDn().getParent().equals(rootDn)) {
+                return true;
 
-            String attribute = context.getDn().getRdn().getType();
-            String value = context.getDn().getRdn().getNormValue();
-            FilterNode filterNode = new EqualOperator(attribute, value);
+            } else if (context.getDn().getParent().equals(rootDn)) {
 
-            return directoryBackend.getGroups(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent() ||
-                    directoryBackend.getUsers(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
-        }
+                String attribute = context.getDn().getRdn().getType();
+                String value = context.getDn().getRdn().getNormValue();
+                FilterNode filterNode = new EqualOperator(attribute, value);
 
-        return false;
+                return directory.getGroups(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent() ||
+                        directory.getUsers(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
+            }
+
+            return false;
+        });
     }
 
     private List<Entry> findEntries(SearchOperationContext context, boolean ouOnly) {
 
-        Dn rootDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.DOMAIN);
-        Dn groupsDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.GROUP_UNIT);
-        Dn usersDn = LdapUtils.createDn(schemaManager, directoryBackend, EntityType.USER_UNIT);
-        FilterNode filterNode = LdapUtils.createInternalFilterNode(context.getFilter());
-        List<Entity> mergedEntities = new ArrayList<>();
+        return directoryFactory.withSession(directory -> {
 
-        Set<String> attributes =
-                Arrays.stream(context.getReturningAttributesString())
-                        .map(LdapUtils::normalizeAttribute)
-                        .collect(Collectors.toSet());
+            Dn rootDn = LdapUtils.createDn(schemaManager, directory, EntityType.DOMAIN);
+            Dn groupsDn = LdapUtils.createDn(schemaManager, directory, EntityType.GROUP_UNIT);
+            Dn usersDn = LdapUtils.createDn(schemaManager, directory, EntityType.USER_UNIT);
+            FilterMatcher filterMatcher = newFilterMatcher(directory);
 
-        if (context.getDn().equals(groupsDn)) {
+            Set<String> attributes =
+                    Arrays.stream(context.getReturningAttributesString())
+                            .map(LdapUtils::normalizeAttribute)
+                            .collect(Collectors.toSet());
 
-            if (filterMatcher.matchEntity(groupUnitEntity, filterNode))
-                mergedEntities.add(groupUnitEntity);
+            FilterNode filterNode = LdapUtils.createInternalFilterNode(context.getFilter());
+            List<Entity> mergedEntities = new ArrayList<>();
 
-            if (!ouOnly) {
-
-                mergedEntities.addAll(directoryBackend.getGroups(filterNode, Optional.of(filterMatcher)));
-            }
-
-        } else if (context.getDn().getParent().equals(groupsDn)) {
-
-            String attribute = context.getDn().getRdn().getType();
-            String value = context.getDn().getRdn().getNormValue();
-
-            filterNode = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), filterNode));
-
-            mergedEntities.addAll(directoryBackend.getGroups(filterNode, Optional.of(filterMatcher)));
-
-        } else if (context.getDn().equals(usersDn)) {
-
-            if (filterMatcher.matchEntity(userUnitEntity, filterNode))
-                mergedEntities.add(userUnitEntity);
-
-            if (!ouOnly) {
-
-                mergedEntities.addAll(directoryBackend.getUsers(filterNode, Optional.of(filterMatcher)));
-            }
-
-        } else if (context.getDn().getParent().equals(usersDn)) {
-
-            String attribute = context.getDn().getRdn().getType();
-            String value = context.getDn().getRdn().getNormValue();
-
-            filterNode = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), filterNode));
-
-            mergedEntities.addAll(directoryBackend.getUsers(filterNode, Optional.of(filterMatcher)));
-
-        } else if (context.getDn().equals(rootDn)) {
-
-            if (filterMatcher.matchEntity(domainEntity, filterNode))
-                mergedEntities.add(domainEntity);
-
-            if (!ouOnly) {
+            if (context.getDn().equals(groupsDn)) {
 
                 if (filterMatcher.matchEntity(groupUnitEntity, filterNode))
                     mergedEntities.add(groupUnitEntity);
 
+                if (!ouOnly) {
+
+                    mergedEntities.addAll(directory.getGroups(filterNode, Optional.of(filterMatcher)));
+                }
+
+            } else if (context.getDn().getParent().equals(groupsDn)) {
+
+                String attribute = context.getDn().getRdn().getType();
+                String value = context.getDn().getRdn().getNormValue();
+
+                filterNode = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), filterNode));
+
+                mergedEntities.addAll(directory.getGroups(filterNode, Optional.of(filterMatcher)));
+
+            } else if (context.getDn().equals(usersDn)) {
+
                 if (filterMatcher.matchEntity(userUnitEntity, filterNode))
                     mergedEntities.add(userUnitEntity);
 
-                mergedEntities.addAll(directoryBackend.getGroups(filterNode, Optional.of(filterMatcher)));
-                mergedEntities.addAll(directoryBackend.getUsers(filterNode, Optional.of(filterMatcher)));
+                if (!ouOnly) {
+
+                    mergedEntities.addAll(directory.getUsers(filterNode, Optional.of(filterMatcher)));
+                }
+
+            } else if (context.getDn().getParent().equals(usersDn)) {
+
+                String attribute = context.getDn().getRdn().getType();
+                String value = context.getDn().getRdn().getNormValue();
+
+                filterNode = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), filterNode));
+
+                mergedEntities.addAll(directory.getUsers(filterNode, Optional.of(filterMatcher)));
+
+            } else if (context.getDn().equals(rootDn)) {
+
+                if (filterMatcher.matchEntity(domainEntity, filterNode))
+                    mergedEntities.add(domainEntity);
+
+                if (!ouOnly) {
+
+                    if (filterMatcher.matchEntity(groupUnitEntity, filterNode))
+                        mergedEntities.add(groupUnitEntity);
+
+                    if (filterMatcher.matchEntity(userUnitEntity, filterNode))
+                        mergedEntities.add(userUnitEntity);
+
+                    mergedEntities.addAll(directory.getGroups(filterNode, Optional.of(filterMatcher)));
+                    mergedEntities.addAll(directory.getUsers(filterNode, Optional.of(filterMatcher)));
+                }
+
+            } else if (context.getDn().getParent().equals(rootDn)) {
+
+                String attribute = context.getDn().getRdn().getType();
+                String value = context.getDn().getRdn().getNormValue();
+
+                filterNode = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), filterNode));
+
+                mergedEntities.addAll(directory.getGroups(filterNode, Optional.of(filterMatcher)));
+                mergedEntities.addAll(directory.getUsers(filterNode, Optional.of(filterMatcher)));
             }
 
-        } else if (context.getDn().getParent().equals(rootDn)) {
-
-            String attribute = context.getDn().getRdn().getType();
-            String value = context.getDn().getRdn().getNormValue();
-
-            filterNode = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), filterNode));
-
-            mergedEntities.addAll(directoryBackend.getGroups(filterNode, Optional.of(filterMatcher)));
-            mergedEntities.addAll(directoryBackend.getUsers(filterNode, Optional.of(filterMatcher)));
-        }
-
-        return mergedEntities.stream().map(x -> createEntry(x, attributes)).collect(Collectors.toList());
+            return mergedEntities.stream().map(x -> createEntry(directory, x, attributes)).collect(Collectors.toList());
+        });
     }
 
     @Override

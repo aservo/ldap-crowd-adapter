@@ -18,27 +18,10 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
-import java.util.function.Supplier;
 
 
 public interface NestedDirectoryBackend
         extends DirectoryBackend {
-
-    /**
-     * Perform a regular read access through nested backends.
-     */
-    default <T> T withReadAccess(Supplier<T> block) {
-
-        return block.get();
-    }
-
-    /**
-     * Perform a synchronization through nested backends.
-     */
-    default void withWriteAccess(Runnable runnable) {
-
-        runnable.run();
-    }
 
     /**
      * To keep the cache up-to-date a group entity is updated or inserted.

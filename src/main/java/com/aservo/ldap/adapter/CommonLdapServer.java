@@ -22,7 +22,7 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.backend.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
 import java.nio.file.Files;
@@ -66,7 +66,7 @@ public class CommonLdapServer {
     private final Logger logger = LoggerFactory.getLogger(CommonLdapServer.class);
 
     private final ServerConfiguration serverConfig;
-    private final DirectoryBackend directoryBackend;
+    private final DirectoryBackendFactory directoryBackendFactory;
     private final DirectoryService directoryService;
 
     /**
@@ -77,7 +77,7 @@ public class CommonLdapServer {
     public CommonLdapServer(ServerConfiguration serverConfig) {
 
         this.serverConfig = serverConfig;
-        this.directoryBackend = serverConfig.getDirectoryBackend();
+        this.directoryBackendFactory = new DirectoryBackendFactory(serverConfig);
 
         try {
 
@@ -112,7 +112,7 @@ public class CommonLdapServer {
 
         try {
 
-            directoryBackend.startup();
+            directoryBackendFactory.startup();
             directoryService.startup();
 
             LdapServer server = new LdapServer();
@@ -147,7 +147,7 @@ public class CommonLdapServer {
         try {
 
             directoryService.shutdown();
-            directoryBackend.shutdown();
+            directoryBackendFactory.shutdown();
 
         } catch (Exception e) {
 
@@ -310,7 +310,7 @@ public class CommonLdapServer {
 
                     AuthenticationInterceptor ai = (AuthenticationInterceptor) interceptor;
                     Set<Authenticator> auths = new HashSet<>();
-                    auths.add(new CommonAuthenticator(directoryBackend, service.getSchemaManager()));
+                    auths.add(new CommonAuthenticator(directoryBackendFactory, service.getSchemaManager()));
                     ai.setAuthenticators(auths);
                 }
             }
@@ -330,7 +330,7 @@ public class CommonLdapServer {
 
         try {
 
-            CommonPartition partition = new CommonPartition(directoryBackend, serverConfig);
+            CommonPartition partition = new CommonPartition(serverConfig, directoryBackendFactory);
 
             partition.setSchemaManager(directoryService.getSchemaManager());
             partition.initialize();

@@ -69,14 +69,18 @@ public class CachedInMemoryDirectoryBackend
     private final Map<String, Set<String>> directParentGroupsOfGroupCache;
 
     /**
-     * Instantiates a new Crowd directory backend.
+     * Instantiates a new directory backend.
      *
      * @param config           config the config instance of the server
+     * @param locking          controller for write access
      * @param directoryBackend the directory backend
      */
-    public CachedInMemoryDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
+    public CachedInMemoryDirectoryBackend(
+            ServerConfiguration config,
+            DirectoryBackendFactory.Locking locking,
+            NestedDirectoryBackend directoryBackend) {
 
-        super(config, directoryBackend);
+        super(config, locking, directoryBackend);
 
         Properties properties = config.getBackendProperties();
 

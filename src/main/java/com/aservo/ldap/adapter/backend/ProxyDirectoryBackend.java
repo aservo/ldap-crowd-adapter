@@ -32,11 +32,16 @@ public abstract class ProxyDirectoryBackend
         implements NestedDirectoryBackend {
 
     protected final ServerConfiguration config;
+    protected final DirectoryBackendFactory.Locking locking;
     protected final NestedDirectoryBackend directoryBackend;
 
-    protected ProxyDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
+    protected ProxyDirectoryBackend(
+            ServerConfiguration config,
+            DirectoryBackendFactory.Locking locking,
+            NestedDirectoryBackend directoryBackend) {
 
         this.config = config;
+        this.locking = locking;
         this.directoryBackend = directoryBackend;
     }
 
@@ -56,12 +61,6 @@ public abstract class ProxyDirectoryBackend
     public void shutdown() {
 
         directoryBackend.shutdown();
-    }
-
-    @Override
-    public void withWriteAccess(Runnable runnable) {
-
-        directoryBackend.withWriteAccess(runnable);
     }
 
     @Override

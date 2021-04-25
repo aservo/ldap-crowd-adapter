@@ -17,10 +17,9 @@
 
 package com.aservo.ldap.adapter.util;
 
-import com.aservo.ldap.adapter.backend.DirectoryBackend;
-import com.aservo.ldap.adapter.backend.NestedDirectoryBackend;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -99,7 +98,7 @@ public class ServerConfiguration {
     private final boolean flattening;
     private final boolean undefFilterExprResult;
     private final int responseMaxSizeLimit;
-    private final DirectoryBackend directoryBackend;
+    private final List<String> directoryBackendClasses;
     private final boolean abbreviateSn;
     private final boolean abbreviateGn;
     private final String baseDnDescription;
@@ -167,40 +166,11 @@ public class ServerConfiguration {
         if (directoryBackendClassesValue == null || directoryBackendClassesValue.isEmpty())
             throw new IllegalArgumentException("Missing value for " + CONFIG_DIRECTORY_BACKEND);
 
-        List<String> directoryBackendClasses =
+        directoryBackendClasses =
                 Arrays.stream(directoryBackendClassesValue.split(","))
                         .map(x -> x.trim())
                         .filter(x -> !x.isEmpty())
                         .collect(Collectors.toList());
-
-        NestedDirectoryBackend innerDirectoryBackend;
-
-        try {
-
-            innerDirectoryBackend =
-                    (NestedDirectoryBackend) Class.forName(directoryBackendClasses.get(0))
-                            .getConstructor(ServerConfiguration.class)
-                            .newInstance(this);
-
-            for (int i = 1; i < directoryBackendClasses.size(); i++) {
-
-                innerDirectoryBackend =
-                        (NestedDirectoryBackend) Class.forName(directoryBackendClasses.get(i))
-                                .getConstructor(ServerConfiguration.class, NestedDirectoryBackend.class)
-                                .newInstance(this, innerDirectoryBackend);
-            }
-
-            directoryBackend = innerDirectoryBackend;
-
-        } catch (ClassNotFoundException e) {
-
-            throw new IllegalArgumentException("Cannot find classes for directory backend definition: " +
-                    directoryBackendClassesValue, e);
-
-        } catch (Exception e) {
-
-            throw new RuntimeException("Cannot instantiate directory backend.", e);
-        }
 
         abbreviateSn = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_ABBREVIATE_SN_ATTRIBUTE, "false"));
         abbreviateGn = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_ABBREVIATE_GN_ATTRIBUTE, "false"));
@@ -311,13 +281,13 @@ public class ServerConfiguration {
     }
 
     /**
-     * Gets directory backend.
+     * Gets the defined directory backend classes.
      *
-     * @return the directory backend
+     * @return the list of directory backend classes
      */
-    public DirectoryBackend getDirectoryBackend() {
+    public List<String> getDirectoryBackendClasses() {
 
-        return directoryBackend;
+        return new ArrayList<>(directoryBackendClasses);
     }
 
     /**

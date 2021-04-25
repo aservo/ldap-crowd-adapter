@@ -17,9 +17,6 @@
 
 package com.aservo.ldap.adapter.adapter.entity;
 
-import com.aservo.ldap.adapter.backend.DirectoryBackend;
-
-
 /**
  * The domain entity.
  */
@@ -32,12 +29,12 @@ public class DomainEntity
     /**
      * Instantiates a new Domain.
      *
-     * @param directoryBackend the related directory backend
-     * @param description      the description
+     * @param id          the related ID to the used directory backend implementation
+     * @param description the description
      */
-    public DomainEntity(DirectoryBackend directoryBackend, String description) {
+    public DomainEntity(String id, String description) {
 
-        super(directoryBackend.getId());
+        super(id);
         this.description = description;
     }
 

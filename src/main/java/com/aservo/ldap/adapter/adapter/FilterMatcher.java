@@ -19,9 +19,7 @@ package com.aservo.ldap.adapter.adapter;
 
 import com.aservo.ldap.adapter.adapter.entity.*;
 import com.aservo.ldap.adapter.adapter.query.*;
-import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
-import org.apache.directory.api.ldap.model.schema.SchemaManager;
 
 
 /**
@@ -190,15 +188,13 @@ public abstract class FilterMatcher {
 
                         EqualOperator expr = (EqualOperator) expression;
 
-                        return LdapUtils.isGroupMember(getSchemaManager(), getDirectoryBackend(),
-                                (GroupEntity) entity, expr.getValue(), isFlatteningEnabled(), false);
+                        return isGroupMember((GroupEntity) entity, expr.getValue(), false);
 
                     } else if (expression instanceof NotEqualOperator) {
 
                         NotEqualOperator expr = (NotEqualOperator) expression;
 
-                        return LdapUtils.isGroupMember(getSchemaManager(), getDirectoryBackend(),
-                                (GroupEntity) entity, expr.getValue(), isFlatteningEnabled(), true);
+                        return isGroupMember((GroupEntity) entity, expr.getValue(), true);
                     }
                 }
 
@@ -212,15 +208,13 @@ public abstract class FilterMatcher {
 
                         EqualOperator expr = (EqualOperator) expression;
 
-                        return LdapUtils.isMemberOfGroup(getSchemaManager(), getDirectoryBackend(),
-                                (GroupEntity) entity, expr.getValue(), isFlatteningEnabled(), false);
+                        return isMemberOfGroup((GroupEntity) entity, expr.getValue(), false);
 
                     } else if (expression instanceof NotEqualOperator) {
 
                         NotEqualOperator expr = (NotEqualOperator) expression;
 
-                        return LdapUtils.isMemberOfGroup(getSchemaManager(), getDirectoryBackend(),
-                                (GroupEntity) entity, expr.getValue(), isFlatteningEnabled(), true);
+                        return isMemberOfGroup((GroupEntity) entity, expr.getValue(), true);
                     }
                 }
 
@@ -230,15 +224,13 @@ public abstract class FilterMatcher {
 
                         EqualOperator expr = (EqualOperator) expression;
 
-                        return LdapUtils.isMemberOfGroup(getSchemaManager(), getDirectoryBackend(),
-                                (UserEntity) entity, expr.getValue(), isFlatteningEnabled(), false);
+                        return isMemberOfGroup((UserEntity) entity, expr.getValue(), false);
 
                     } else if (expression instanceof NotEqualOperator) {
 
                         NotEqualOperator expr = (NotEqualOperator) expression;
 
-                        return LdapUtils.isMemberOfGroup(getSchemaManager(), getDirectoryBackend(),
-                                (UserEntity) entity, expr.getValue(), isFlatteningEnabled(), true);
+                        return isMemberOfGroup((UserEntity) entity, expr.getValue(), true);
                     }
                 }
 
@@ -251,11 +243,11 @@ public abstract class FilterMatcher {
         return false;
     }
 
-    protected abstract boolean isFlatteningEnabled();
-
     protected abstract boolean evaluateUndefinedFilterExprSuccessfully();
 
-    protected abstract DirectoryBackend getDirectoryBackend();
+    protected abstract boolean isGroupMember(GroupEntity entity, String dn, boolean negated);
 
-    protected abstract SchemaManager getSchemaManager();
+    protected abstract boolean isMemberOfGroup(GroupEntity entity, String dn, boolean negated);
+
+    protected abstract boolean isMemberOfGroup(UserEntity entity, String dn, boolean negated);
 }

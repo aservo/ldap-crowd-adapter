@@ -65,20 +65,20 @@ public class CrowdDirectoryBackend
     public static final String CONFIG_READINESS_CHECK = "readiness-check";
 
     private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
-    private final ServerConfiguration config;
     private final CrowdClient crowdClient;
     private final boolean useReadinessCheck;
 
     /**
      * Instantiates a new Crowd directory backend.
      *
-     * @param config the config instance of the server
+     * @param config  the config instance of the server
+     * @param locking controller for write access
      */
-    public CrowdDirectoryBackend(ServerConfiguration config) {
+    public CrowdDirectoryBackend(
+            ServerConfiguration config,
+            DirectoryBackendFactory.Locking locking) {
 
         Properties properties = config.getBackendProperties();
-
-        this.config = config;
 
         useReadinessCheck = Boolean.parseBoolean(properties.getProperty(CONFIG_READINESS_CHECK, "true"));
 

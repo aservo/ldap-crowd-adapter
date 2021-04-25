@@ -81,9 +81,19 @@ public class MirroredCrowdDirectoryBackend
     private final MirrorStrategy mirrorStrategy;
     private final AuditLogProcessor auditLogProcessor;
 
-    public MirroredCrowdDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
+    /**
+     * Instantiates a new directory backend.
+     *
+     * @param config           config the config instance of the server
+     * @param locking          controller for write access
+     * @param directoryBackend the directory backend
+     */
+    public MirroredCrowdDirectoryBackend(
+            ServerConfiguration config,
+            DirectoryBackendFactory.Locking locking,
+            NestedDirectoryBackend directoryBackend) {
 
-        super(config, directoryBackend);
+        super(config, locking, directoryBackend);
 
         Properties properties = config.getBackendProperties();
 
@@ -228,7 +238,7 @@ public class MirroredCrowdDirectoryBackend
 
             auditLogProcessor.updateConcurrent(() -> {
 
-                directoryBackend.withWriteAccess(() -> {
+                locking.withWriteAccess(() -> {
 
                     directoryBackend.dropAllGroups();
                     directoryBackend.dropAllUsers();
@@ -377,7 +387,7 @@ public class MirroredCrowdDirectoryBackend
 
         private void downloadEntities(List<Pair<UpdateType, Object>> deltaUpdateList) {
 
-            directoryBackend.withWriteAccess(() -> {
+            locking.withWriteAccess(() -> {
 
                 for (Pair<UpdateType, Object> x : deltaUpdateList) {
 

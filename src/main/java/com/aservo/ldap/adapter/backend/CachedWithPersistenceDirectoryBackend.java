@@ -33,8 +33,6 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,19 +86,22 @@ public class CachedWithPersistenceDirectoryBackend
     public static final String CONFIG_PASS_ACTIVE_USERS_ONLY = "pass-active-users-only";
 
     private final Logger logger = LoggerFactory.getLogger(CachedWithPersistenceDirectoryBackend.class);
-    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final DatabaseService dbService;
     private final boolean activeUsersOnly;
 
     /**
-     * Instantiates a new Crowd directory backend.
+     * Instantiates a new directory backend.
      *
      * @param config           config the config instance of the server
+     * @param locking          controller for write access
      * @param directoryBackend the directory backend
      */
-    public CachedWithPersistenceDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
+    public CachedWithPersistenceDirectoryBackend(
+            ServerConfiguration config,
+            DirectoryBackendFactory.Locking locking,
+            NestedDirectoryBackend directoryBackend) {
 
-        super(config, directoryBackend);
+        super(config, locking, directoryBackend);
 
         Properties properties = config.getBackendProperties();
 
@@ -182,39 +183,6 @@ public class CachedWithPersistenceDirectoryBackend
 
         dbService.shutdown();
         super.shutdown();
-    }
-
-    @Override
-    public <T> T withReadAccess(Supplier<T> block) {
-
-        rwLock.readLock().lock();
-
-        try {
-
-            return block.get();
-
-        } finally {
-
-            rwLock.readLock().unlock();
-        }
-    }
-
-    @Override
-    public void withWriteAccess(Runnable runnable) {
-
-        super.withWriteAccess(() -> {
-
-            rwLock.writeLock().lock();
-
-            try {
-
-                runnable.run();
-
-            } finally {
-
-                rwLock.writeLock().unlock();
-            }
-        });
     }
 
     @Override
@@ -476,7 +444,7 @@ public class CachedWithPersistenceDirectoryBackend
     @Override
     public boolean isKnownGroup(String id) {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             boolean found = factory
                     .queryById("find_group")
@@ -487,13 +455,13 @@ public class CachedWithPersistenceDirectoryBackend
 
             return found || directoryBackend.isKnownGroup(id);
 
-        }));
+        });
     }
 
     @Override
     public boolean isKnownUser(String id) {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             boolean found = factory
                     .queryById("find_user")
@@ -505,48 +473,44 @@ public class CachedWithPersistenceDirectoryBackend
 
             return found || directoryBackend.isKnownUser(id);
 
-        }));
+        });
     }
 
     @Override
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() ->
-                (dbService.withTransaction(factory -> {
+        return (dbService.withTransaction(factory -> {
 
-                    return factory
-                            .queryById("find_group")
-                            .on("id", id)
-                            .execute(SingleOptResult.class)
-                            .transform(this::mapGroupEntity);
-                }))
-                        .orElseThrow(() -> new EntityNotFoundException("Cannot find group in persistent cache."))
-        );
+            return factory
+                    .queryById("find_group")
+                    .on("id", id)
+                    .execute(SingleOptResult.class)
+                    .transform(this::mapGroupEntity);
+        }))
+                .orElseThrow(() -> new EntityNotFoundException("Cannot find group in persistent cache."));
     }
 
     @Override
     public UserEntity getUser(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() ->
-                (dbService.withTransaction(factory -> {
+        return (dbService.withTransaction(factory -> {
 
-                    return factory
-                            .queryById("find_user")
-                            .on("id", id)
-                            .on("active_only", activeUsersOnly)
-                            .execute(SingleOptResult.class)
-                            .transform(this::mapUserEntity);
-                }))
-                        .orElseThrow(() -> new EntityNotFoundException("Cannot find user in persistent cache."))
-        );
+            return factory
+                    .queryById("find_user")
+                    .on("id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(SingleOptResult.class)
+                    .transform(this::mapUserEntity);
+        }))
+                .orElseThrow(() -> new EntityNotFoundException("Cannot find user in persistent cache."));
     }
 
     @Override
     public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
 
@@ -557,13 +521,13 @@ public class CachedWithPersistenceDirectoryBackend
                     .stream()
                     .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
                     .collect(Collectors.toList());
-        }));
+        });
     }
 
     @Override
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
 
@@ -575,14 +539,14 @@ public class CachedWithPersistenceDirectoryBackend
                     .stream()
                     .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
                     .collect(Collectors.toList());
-        }));
+        });
     }
 
     @Override
     public List<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_users_of_group")
@@ -590,14 +554,14 @@ public class CachedWithPersistenceDirectoryBackend
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
                     .transform(this::mapUserEntity);
-        }));
+        });
     }
 
     @Override
     public List<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_groups_of_user")
@@ -605,42 +569,42 @@ public class CachedWithPersistenceDirectoryBackend
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
                     .transform(this::mapGroupEntity);
-        }));
+        });
     }
 
     @Override
     public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_child_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
                     .transform(this::mapGroupEntity);
-        }));
+        });
     }
 
     @Override
     public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_parent_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
                     .transform(this::mapGroupEntity);
-        }));
+        });
     }
 
     @Override
     public List<String> getDirectUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_users_of_group")
@@ -648,14 +612,14 @@ public class CachedWithPersistenceDirectoryBackend
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
                     .transform(row -> row.apply("id", String.class));
-        }));
+        });
     }
 
     @Override
     public List<String> getDirectGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_groups_of_user")
@@ -663,42 +627,42 @@ public class CachedWithPersistenceDirectoryBackend
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
                     .transform(row -> row.apply("id", String.class));
-        }));
+        });
     }
 
     @Override
     public List<String> getDirectChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_child_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
                     .transform(row -> row.apply("id", String.class));
-        }));
+        });
     }
 
     @Override
     public List<String> getDirectParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_direct_parent_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
                     .transform(row -> row.apply("id", String.class));
-        }));
+        });
     }
 
     @Override
     public List<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_transitive_users_of_group")
@@ -706,14 +670,14 @@ public class CachedWithPersistenceDirectoryBackend
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
                     .transform(this::mapUserEntity);
-        }));
+        });
     }
 
     @Override
     public List<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_transitive_groups_of_user")
@@ -721,42 +685,42 @@ public class CachedWithPersistenceDirectoryBackend
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
                     .transform(this::mapGroupEntity);
-        }));
+        });
     }
 
     @Override
     public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_transitive_child_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
                     .transform(this::mapGroupEntity);
-        }));
+        });
     }
 
     @Override
     public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_transitive_parent_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
                     .transform(this::mapGroupEntity);
-        }));
+        });
     }
 
     @Override
     public List<String> getTransitiveUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_transitive_users_of_group")
@@ -764,14 +728,14 @@ public class CachedWithPersistenceDirectoryBackend
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
                     .transform(row -> row.apply("id", String.class));
-        }));
+        });
     }
 
     @Override
     public List<String> getTransitiveGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_transitive_groups_of_user")
@@ -779,35 +743,35 @@ public class CachedWithPersistenceDirectoryBackend
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
                     .transform(row -> row.apply("id", String.class));
-        }));
+        });
     }
 
     @Override
     public List<String> getTransitiveChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_transitive_child_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
                     .transform(row -> row.apply("id", String.class));
-        }));
+        });
     }
 
     @Override
     public List<String> getTransitiveParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return withReadAccess(() -> dbService.withTransaction(factory -> {
+        return dbService.withTransaction(factory -> {
 
             return factory
                     .queryById("find_transitive_parent_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
                     .transform(row -> row.apply("id", String.class));
-        }));
+        });
     }
 
     private GroupEntity mapGroupEntity(Row row) {

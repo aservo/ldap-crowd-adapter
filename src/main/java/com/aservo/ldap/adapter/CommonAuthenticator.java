@@ -25,6 +25,7 @@ package com.aservo.ldap.adapter;
 import com.aservo.ldap.adapter.adapter.LdapUtils;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
+import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
@@ -48,36 +49,37 @@ public class CommonAuthenticator
         extends AbstractAuthenticator {
 
     private final Logger logger = LoggerFactory.getLogger(CommonAuthenticator.class);
-
-    private final DirectoryBackend directoryBackend;
+    private final DirectoryBackendFactory directoryBackendFactory;
     private final SchemaManager schemaManager;
 
     /**
      * Instantiates a new authenticator.
      *
-     * @param directoryBackend the directory backend
-     * @param schemaManager    the schema manager
+     * @param directoryBackendFactory the directory backend factory
+     * @param schemaManager           the schema manager
      */
-    public CommonAuthenticator(DirectoryBackend directoryBackend, SchemaManager schemaManager) {
+    public CommonAuthenticator(DirectoryBackendFactory directoryBackendFactory, SchemaManager schemaManager) {
 
         super(AuthenticationLevel.SIMPLE);
-        this.directoryBackend = directoryBackend;
+        this.directoryBackendFactory = directoryBackendFactory;
         this.schemaManager = schemaManager;
     }
 
     public LdapPrincipal authenticate(BindOperationContext context)
             throws Exception {
 
+        DirectoryBackend directory = directoryBackendFactory.getPermanentDirectory();
+
         try {
 
-            String userId = LdapUtils.getUserIdFromDn(schemaManager, directoryBackend, context.getDn().getName());
+            String userId = LdapUtils.getUserIdFromDn(schemaManager, directory, context.getDn().getName());
 
             if (userId == null)
                 throw new LdapInvalidDnException("Cannot handle unexpected DN=" + context.getDn());
 
             String password = new String(context.getCredentials(), StandardCharsets.UTF_8);
 
-            UserEntity user = directoryBackend.getAuthenticatedUser(userId, password);
+            UserEntity user = directory.getAuthenticatedUser(userId, password);
 
             logger.info("[{}] - The user {} with DN={} has been successfully authenticated.",
                     context.getIoSession().getRemoteAddress(),
