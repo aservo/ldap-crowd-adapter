@@ -18,6 +18,9 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
+import java.util.List;
+import javax.naming.OperationNotSupportedException;
+import org.apache.commons.lang3.tuple.Pair;
 
 
 public interface NestedDirectoryBackend
@@ -128,9 +131,57 @@ public interface NestedDirectoryBackend
     }
 
     /**
+     * Gets all direct group relationships.
+     *
+     * @return the transitive group relationships
+     */
+    default List<Pair<String, String>> getAllDirectGroupRelationships() {
+
+        throw new RuntimeException(new OperationNotSupportedException(
+                "The method getAllDirectGroupRelationships is not supported."));
+    }
+
+    /**
+     * Gets all direct user relationships.
+     *
+     * @return the transitive user relationships
+     */
+    default List<Pair<String, String>> getAllDirectUserRelationships() {
+
+        throw new RuntimeException(new OperationNotSupportedException(
+                "The method getAllDirectUserRelationships is not supported."));
+    }
+
+    /**
+     * Gets all transitive group relationships.
+     *
+     * @return the transitive group relationships
+     */
+    default List<Pair<String, String>> getAllTransitiveGroupRelationships() {
+
+        throw new RuntimeException(new OperationNotSupportedException(
+                "The method getAllTransitiveGroupRelationships is not supported."));
+    }
+
+    /**
+     * Gets all transitive user relationships.
+     *
+     * @return the transitive user relationships
+     */
+    default List<Pair<String, String>> getAllTransitiveUserRelationships() {
+
+        throw new RuntimeException(new OperationNotSupportedException(
+                "The method getAllTransitiveUserRelationships is not supported."));
+    }
+
+    /**
      * Returns an iterable sequence of membership entities.
      *
      * @return the iterable object with membership elements
      */
-    Iterable<MembershipEntity> getMemberships();
+    default Iterable<MembershipEntity> getMemberships() {
+
+        throw new RuntimeException(new OperationNotSupportedException(
+                "The method getMemberships is not supported."));
+    }
 }

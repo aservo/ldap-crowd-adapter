@@ -99,6 +99,9 @@ public abstract class AbstractTest {
         System.setProperty("directory-backend.permanent",
                 "com.aservo.ldap.adapter.backend.JsonDirectoryBackend," +
                         "com.aservo.ldap.adapter.backend.CachedInMemoryDirectoryBackend");
+
+        System.setProperty("directory-backend.session", "");
+
         System.setProperty("ds-cache-directory", "./tmp/" + port + "/cache");
         System.setProperty("bind.address", host + ":" + port);
         System.setProperty("mode.flattening", Boolean.toString(flattening));
@@ -129,6 +132,8 @@ public abstract class AbstractTest {
 
         serverProperties.setProperty("directory-backend.permanent",
                 "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
+
+        serverProperties.setProperty("directory-backend.session", "");
 
         if (config == BackendConfig.NORMAL)
             backendProperties.setProperty("db-uri", dbUri1);

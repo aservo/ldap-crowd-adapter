@@ -30,10 +30,9 @@ import com.aservo.ldap.adapter.sql.api.result.SingleOptResult;
 import com.aservo.ldap.adapter.sql.impl.DatabaseService;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.sql.Connection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -438,6 +437,70 @@ public class CachedWithPersistenceDirectoryBackend
                         .on("member_user_id", id)
                         .execute(IgnoredResult.class);
             });
+        });
+    }
+
+    @Override
+    public List<Pair<String, String>> getAllDirectGroupRelationships() {
+
+        return dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_all_direct_group_memberships")
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> Pair.of(
+                            row.apply("parent_group_id", String.class),
+                            row.apply("member_group_id", String.class)
+                    ));
+        });
+    }
+
+    @Override
+    public List<Pair<String, String>> getAllDirectUserRelationships() {
+
+        return dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_all_direct_user_memberships")
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> Pair.of(
+                            row.apply("parent_group_id", String.class),
+                            row.apply("member_user_id", String.class)
+                    ));
+        });
+    }
+
+    @Override
+    public List<Pair<String, String>> getAllTransitiveGroupRelationships() {
+
+        return dbService.withTransaction(factory -> {
+
+            Map<String, Set<String>> relationships = new HashMap<>();
+
+            return factory
+                    .queryById("find_all_transitive_group_memberships")
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> Pair.of(
+                            row.apply("parent_group_id", String.class),
+                            row.apply("member_group_id", String.class)
+                    ));
+        });
+    }
+
+    @Override
+    public List<Pair<String, String>> getAllTransitiveUserRelationships() {
+
+        return dbService.withTransaction(factory -> {
+
+            return factory
+                    .queryById("find_all_transitive_user_memberships")
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> Pair.of(
+                            row.apply("parent_group_id", String.class),
+                            row.apply("member_user_id", String.class)
+                    ));
         });
     }
 

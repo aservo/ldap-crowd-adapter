@@ -26,6 +26,7 @@ import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
 
 
 public abstract class ProxyDirectoryBackend
@@ -133,6 +134,30 @@ public abstract class ProxyDirectoryBackend
     public void dropMembership(MembershipEntity membership) {
 
         directoryBackend.dropMembership(membership);
+    }
+
+    @Override
+    public List<Pair<String, String>> getAllDirectGroupRelationships() {
+
+        return directoryBackend.getAllDirectGroupRelationships();
+    }
+
+    @Override
+    public List<Pair<String, String>> getAllDirectUserRelationships() {
+
+        return directoryBackend.getAllDirectUserRelationships();
+    }
+
+    @Override
+    public List<Pair<String, String>> getAllTransitiveGroupRelationships() {
+
+        return directoryBackend.getAllTransitiveGroupRelationships();
+    }
+
+    @Override
+    public List<Pair<String, String>> getAllTransitiveUserRelationships() {
+
+        return directoryBackend.getAllTransitiveUserRelationships();
     }
 
     @Override

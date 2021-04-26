@@ -98,6 +98,9 @@ public abstract class AbstractIntegrationTest {
         System.setProperty("directory-backend.permanent",
                 "com.aservo.ldap.adapter.backend.CrowdDirectoryBackend," +
                         "com.aservo.ldap.adapter.backend.CachedInMemoryDirectoryBackend");
+
+        System.setProperty("directory-backend.session", "");
+
         System.setProperty("ds-cache-directory", "./tmp/" + port + "/cache");
         System.setProperty("bind.address", host + ":" + port);
         System.setProperty("ssl.enabled", "true");
@@ -132,6 +135,8 @@ public abstract class AbstractIntegrationTest {
 
         serverProperties.setProperty("directory-backend.permanent",
                 "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
+
+        serverProperties.setProperty("directory-backend.session", "");
 
         try {
 
