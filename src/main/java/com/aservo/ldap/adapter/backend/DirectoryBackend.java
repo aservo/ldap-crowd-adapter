@@ -424,11 +424,4 @@ public interface DirectoryBackend {
             return false;
         }
     }
-
-    /**
-     * Returns an iterable sequence of membership entities.
-     *
-     * @return the iterable object with membership elements
-     */
-    Iterable<MembershipEntity> getMemberships();
 }
