@@ -175,6 +175,10 @@ if [ -n "$BACKEND_JDBC_USER" ]; then
   JAVA_OPTS="-Ddatabase.jdbc.connection.user=$BACKEND_JDBC_USER $JAVA_OPTS"
 fi
 
+if [ -n "$VAULT_HEADER" ] && [ -n "$VAULT_TOKEN" ] && [ -n "$VAULT_URI_BACKEND_JDBC_PASSWORD" ]; then
+  BACKEND_JDBC_PASSWORD="$(curl -sSL -H "$VAULT_HEADER: $VAULT_TOKEN" -XGET "$VAULT_URI_BACKEND_JDBC_PASSWORD" | jq -r '.data.value')"
+fi
+
 if [ -n "$BACKEND_JDBC_PASSWORD" ]; then
   JAVA_OPTS="-Ddatabase.jdbc.connection.password=$BACKEND_JDBC_PASSWORD $JAVA_OPTS"
 fi
