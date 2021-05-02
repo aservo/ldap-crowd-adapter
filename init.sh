@@ -207,6 +207,15 @@ if [ -n "$BACKEND_PASS_ACTIVE_USERS_ONLY" ]; then
   JAVA_OPTS="-Dpass-active-users-only=$BACKEND_PASS_ACTIVE_USERS_ONLY $JAVA_OPTS"
 fi
 
+# wait for database
+
+if [ "$WAIT_DATABASE" = "true" ] && [ -n "$BACKEND_JDBC_URL" ]; then
+  while ! nc -z $(echo "$BACKEND_JDBC_URL" | cut -d "/" -f 3 | tr ':' ' '); do
+  echo "Waiting another 5 seconds for the database to come up."
+  sleep 5
+  done
+fi
+
 # start from here
 
 export JAVA_OPTS
