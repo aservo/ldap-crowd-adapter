@@ -57,17 +57,19 @@ RUN yum makecache && \
     yum clean all && \
     rm -rf /tmp/* /var/tmp/*
 
-RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
-
 RUN yum makecache && \
 	yum -y install \
 	    java-1.8.0-openjdk \
         java-1.8.0-openjdk-headless \
         java-1.8.0-openjdk-devel && \
-    yum -y install \
-        sbt && \
 	yum clean all && \
 	rm -rf /tmp/* /var/tmp/*
+
+RUN curl https://www.scala-sbt.org/sbt-rpm.repo | tee > /etc/yum.repos.d/sbt-rpm.repo && \
+    yum -y install sbt && \
+    rm /etc/yum.repos.d/sbt-rpm.repo && \
+    yum clean all && \
+    rm -rf /tmp/* /var/tmp/*
 
 RUN yum makecache && \
 	yum -y install \
