@@ -51,6 +51,7 @@ public class DatabaseService
 
     private final Logger logger;
     private final BasicDataSource dataSource;
+    private boolean updatedSchema = false;
     private static final String QUERIES_CLAUSES = "com/aservo/ldap/adapter/db/queries.sql";
     private static final String VERSIONING_SCHEMA_CLAUSES = "com/aservo/ldap/adapter/db/versioning-schema.sql";
     private static final String CREATE_SCHEMA_CLAUSES = "com/aservo/ldap/adapter/db/create-schema.sql";
@@ -126,6 +127,16 @@ public class DatabaseService
         }
     }
 
+    /**
+     * Check if the schema was updated.
+     *
+     * @return the boolean
+     */
+    public boolean hasUpdatedSchema() {
+
+        return updatedSchema;
+    }
+
     @Override
     public <T> T withTransaction(Function<QueryDefFactory, T> block) {
 
@@ -199,8 +210,11 @@ public class DatabaseService
                 .queryById("create_schema_version_table")
                 .execute(IgnoredResult.class);
 
-        if (!isSchemaUpToDate(factory))
+        if (!isSchemaUpToDate(factory)) {
+
             renewSchema(factory);
+            updatedSchema = true;
+        }
     }
 
     private boolean isSchemaUpToDate(QueryDefFactory factory) {

@@ -192,6 +192,7 @@ public class MirroredCrowdDirectoryBackend
 
         private final int pageSize;
         private boolean forceFullSync;
+        private boolean resetToggle = false;
 
         public MirrorStrategy(int pageSize, boolean forceFullSync) {
 
@@ -202,6 +203,12 @@ public class MirroredCrowdDirectoryBackend
         public void run() {
 
             try {
+
+                if (directoryBackend.requireReset() && !resetToggle) {
+
+                    forceFullSync = true;
+                    resetToggle = true;
+                }
 
                 if (forceFullSync) {
 

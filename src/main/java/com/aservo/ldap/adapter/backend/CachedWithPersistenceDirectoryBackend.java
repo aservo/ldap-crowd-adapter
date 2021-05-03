@@ -185,6 +185,12 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
+    public boolean requireReset() {
+
+        return dbService.hasUpdatedSchema();
+    }
+
+    @Override
     public void upsertGroup(String id) {
 
         super.upsertGroup(id);

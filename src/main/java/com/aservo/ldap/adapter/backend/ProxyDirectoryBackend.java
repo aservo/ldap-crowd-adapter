@@ -65,6 +65,12 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
+    public boolean requireReset() {
+
+        return directoryBackend.requireReset();
+    }
+
+    @Override
     public void upsertGroup(String id) {
 
         directoryBackend.upsertGroup(id);

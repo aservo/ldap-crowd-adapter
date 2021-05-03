@@ -27,6 +27,16 @@ public interface NestedDirectoryBackend
         extends DirectoryBackend {
 
     /**
+     * Check if the caches need a reset.
+     *
+     * @return the boolean
+     */
+    default boolean requireReset() {
+
+        return false;
+    }
+
+    /**
      * To keep the cache up-to-date a group entity is updated or inserted.
      *
      * @param id the group ID
