@@ -36,9 +36,6 @@ public abstract class Entity {
         if (that == null)
             return false;
 
-        if (!(that instanceof Entity))
-            return false;
-
         if (this.getClass() != that.getClass())
             return false;
 

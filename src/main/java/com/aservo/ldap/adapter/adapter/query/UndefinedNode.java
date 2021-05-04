@@ -32,7 +32,7 @@ public class UndefinedNode
         if (that == null)
             return false;
 
-        if (!(that instanceof UndefinedNode))
+        if (this.getClass() != that.getClass())
             return false;
 
         return true;

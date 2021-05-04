@@ -118,7 +118,7 @@ public class ServerConfiguration {
      */
     public ServerConfiguration(Properties serverProperties, Properties backendProperties) {
 
-        this.backendProperties = backendProperties;
+        this.backendProperties = copyProperties(backendProperties);
 
         cacheDir = Paths.get(serverProperties.getProperty(CONFIG_DS_CACHE_DIR, "./cache")).toAbsolutePath().normalize();
 
@@ -202,7 +202,7 @@ public class ServerConfiguration {
      */
     public Properties getBackendProperties() {
 
-        return backendProperties;
+        return copyProperties(backendProperties);
     }
 
     /**
@@ -363,5 +363,15 @@ public class ServerConfiguration {
     public String getBaseDnUsersDescription() {
 
         return baseDnUsersDescription;
+    }
+
+    private Properties copyProperties(Properties properties) {
+
+        Properties result = new Properties();
+
+        if (properties != null)
+            result.putAll(properties);
+
+        return result;
     }
 }

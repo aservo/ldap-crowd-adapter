@@ -46,9 +46,6 @@ public abstract class LogicExpression
         if (that == null)
             return false;
 
-        if (!(that instanceof LogicExpression))
-            return false;
-
         if (this.getClass() != that.getClass())
             return false;
 

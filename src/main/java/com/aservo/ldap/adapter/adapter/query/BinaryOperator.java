@@ -45,9 +45,6 @@ public abstract class BinaryOperator
         if (that == null)
             return false;
 
-        if (!(that instanceof BinaryOperator))
-            return false;
-
         if (this.getClass() != that.getClass())
             return false;
 

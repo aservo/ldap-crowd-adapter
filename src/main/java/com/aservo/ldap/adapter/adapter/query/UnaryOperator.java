@@ -37,9 +37,6 @@ public abstract class UnaryOperator
         if (that == null)
             return false;
 
-        if (!(that instanceof UnaryOperator))
-            return false;
-
         if (this.getClass() != that.getClass())
             return false;
 

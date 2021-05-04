@@ -426,6 +426,8 @@ public class CommonPartition
                         entry = createEntry(directory, directory.getGroup(groupId), Collections.emptySet());
 
                     } catch (EntityNotFoundException e) {
+
+                        logger.debug("Could not find group entry.", e);
                     }
                 }
 
@@ -444,6 +446,8 @@ public class CommonPartition
                         entry = createEntry(directory, directory.getUser(userId), Collections.emptySet());
 
                     } catch (EntityNotFoundException e) {
+
+                        logger.debug("Could not find user entry.", e);
                     }
                 }
 

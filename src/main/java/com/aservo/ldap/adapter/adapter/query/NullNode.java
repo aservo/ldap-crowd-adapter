@@ -32,7 +32,7 @@ public class NullNode
         if (that == null)
             return false;
 
-        if (!(that instanceof NullNode))
+        if (this.getClass() != that.getClass())
             return false;
 
         return true;
