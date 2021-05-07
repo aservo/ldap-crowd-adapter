@@ -187,6 +187,11 @@ public class MirroredCrowdDirectoryBackend
         FULL_UPDATE_REQUIRED, DELTA_UPDATE_REQUIRED, UP_TO_DATE, CON_ISSUE, UNDEFINED,
     }
 
+    private enum SyncState {
+
+        NO_SYNC, FOREIGN_SYNC, SYNC_START, SYNC_STOP,
+    }
+
     private class MirrorStrategy
             implements Runnable {
 
@@ -313,16 +318,19 @@ public class MirroredCrowdDirectoryBackend
 
                     lastPageDone = result.getAsJsonObject().get("isLastPage").getAsBoolean();
 
-                    for (JsonElement value : result.getAsJsonArray("values")) {
+                    for (JsonElement valueElement : result.getAsJsonArray("values")) {
 
-                        String eventType = value.getAsJsonObject().get("eventType").getAsString();
+                        String eventType = valueElement.getAsJsonObject().get("eventType").getAsString();
+                        SyncState syncState = auditLogProcessor.getSynchronizationState(valueElement);
 
-                        if (eventType.matches("SYNCHRONIZATION_(STARTED|FINISHED)")) {
+                        if (syncState == SyncState.SYNC_STOP) {
 
+                            lastPageDone = true;
+                            break;
 
                         } else if (eventType.matches("(GROUP|USER)_(CREATED|UPDATED|DELETED)")) {
 
-                            for (JsonElement entity : value.getAsJsonObject().getAsJsonArray("entities")) {
+                            for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
 
                                 String type = entity.getAsJsonObject().get("type").getAsString();
                                 String name = entity.getAsJsonObject().get("name").getAsString();
@@ -349,7 +357,7 @@ public class MirroredCrowdDirectoryBackend
                             Set<String> childGroupIds = new HashSet<>();
                             Set<String> userIds = new HashSet<>();
 
-                            for (JsonElement entity : value.getAsJsonObject().getAsJsonArray("entities")) {
+                            for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
 
                                 String type = entity.getAsJsonObject().get("type").getAsString();
                                 String name = entity.getAsJsonObject().get("name").getAsString();
@@ -519,43 +527,25 @@ public class MirroredCrowdDirectoryBackend
 
                     lastPageDone = result.getAsJsonObject().get("isLastPage").getAsBoolean();
 
-                    for (JsonElement element : result.getAsJsonArray("values")) {
+                    for (JsonElement valueElement : result.getAsJsonArray("values")) {
 
-                        String eventType = element.getAsJsonObject().get("eventType").getAsString();
+                        SyncState syncState = getSynchronizationState(valueElement);
 
-                        if (!eventType.matches("SYNCHRONIZATION_(STARTED|FINISHED)")) {
+                        if (syncState == SyncState.NO_SYNC) {
 
                             changesFound = true;
                             startedMarkerFound = false;
                             finishedMarkerFound = false;
                             continue;
-                        }
 
-                        JsonArray entities = element.getAsJsonObject().getAsJsonArray("entities");
-
-                        if (entities.size() != 1)
+                        } else if (syncState == SyncState.FOREIGN_SYNC)
                             continue;
 
-                        JsonObject author = element.getAsJsonObject().getAsJsonObject("author");
-                        JsonObject entity = entities.get(0).getAsJsonObject();
-
-                        if (!author.get("name").getAsString().equals(appName))
-                            continue;
-
-                        if (!author.get("type").getAsString().equals("APPLICATION"))
-                            continue;
-
-                        if (!entity.get("name").getAsString().equals("synchronization"))
-                            continue;
-
-                        if (!entity.get("type").getAsString().equals("APPLICATION"))
-                            continue;
-
-                        if (eventType.equals("SYNCHRONIZATION_STARTED")) {
+                        if (syncState == SyncState.SYNC_START) {
 
                             startedMarkerFound = true;
 
-                        } else if (eventType.equals("SYNCHRONIZATION_FINISHED")) {
+                        } else if (syncState == SyncState.SYNC_STOP) {
 
                             startedMarkerFound = false;
                             finishedMarkerFound = true;
@@ -573,6 +563,42 @@ public class MirroredCrowdDirectoryBackend
 
                 return AuditLogState.UNDEFINED;
             });
+        }
+
+        public SyncState getSynchronizationState(JsonElement valueElement) {
+
+            String eventType = valueElement.getAsJsonObject().get("eventType").getAsString();
+
+            if (eventType.matches("SYNCHRONIZATION_(STARTED|FINISHED)")) {
+
+                JsonArray entities = valueElement.getAsJsonObject().getAsJsonArray("entities");
+
+                if (entities.size() != 1)
+                    return SyncState.FOREIGN_SYNC;
+
+                JsonObject author = valueElement.getAsJsonObject().getAsJsonObject("author");
+                JsonObject entity = entities.get(0).getAsJsonObject();
+
+                if (!author.get("name").getAsString().equals(appName))
+                    return SyncState.FOREIGN_SYNC;
+
+                if (!author.get("type").getAsString().equals("APPLICATION"))
+                    return SyncState.FOREIGN_SYNC;
+
+                if (!entity.get("name").getAsString().equals("synchronization"))
+                    return SyncState.FOREIGN_SYNC;
+
+                if (!entity.get("type").getAsString().equals("APPLICATION"))
+                    return SyncState.FOREIGN_SYNC;
+
+                if (eventType.equals("SYNCHRONIZATION_STARTED"))
+                    return SyncState.SYNC_START;
+
+                if (eventType.equals("SYNCHRONIZATION_FINISHED"))
+                    return SyncState.SYNC_STOP;
+            }
+
+            return SyncState.NO_SYNC;
         }
 
         private AuditLogState repeatableRead(Supplier<AuditLogState> supplier) {
