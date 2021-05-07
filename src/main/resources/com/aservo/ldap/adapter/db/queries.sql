@@ -32,58 +32,45 @@ where m.parent_group_id = :parent_group_id and m.member_user_id = :member_user_i
 --[ID: create_or_update_group]--
 insert into _Group (id, description)
   values (:id, :description)
-
--- [ID: create_or_update_group]--
---merge into _Group
---using (select * from _Group)
---  on id = :id
---when not matched then
---insert (id, description)
---  values (:id, :description)
---when matched then
---update set
---  description = :description
+  on conflict (id) do
+    update set
+      description = :description
 
 --[ID: create_or_update_user]--
 insert into _User (id, last_name, first_name, display_name, email, active)
   values (:id, :last_name, :first_name, :display_name, :email, :active)
+  on conflict (id) do
+    update set
+      last_name = :last_name,
+      first_name = :first_name,
+      display_name = :display_name,
+      email = :email,
+      active = :active
 
--- [ID: create_or_update_user]--
+-- -- [ID: create_or_update_user]--
 --merge into _User
---using (select * from _User)
+--using (select 1 from _User)
 --  on id = :id
---when not matched then
---insert (id, last_name, first_name, display_name, email, active)
---  values (:id, :last_name, :first_name, :display_name, :email, :active)
 --when matched then
---update set
---  last_name = :last_name,
---  first_name = :first_name,
---  display_name = :display_name,
---  email = :email,
---  active = :active
+--  update set
+--    last_name = :last_name,
+--    first_name = :first_name,
+--    display_name = :display_name,
+--    email = :email,
+--    active = :active
+--when not matched then
+--  insert (id, last_name, first_name, display_name, email, active)
+--    values (:id, :last_name, :first_name, :display_name, :email, :active)
 
 --[ID: create_group_membership_if_not_exists]--
 insert into _Group_Membership (parent_group_id, member_group_id)
   values (:parent_group_id, :member_group_id)
-
--- [ID: create_group_membership_if_not_exists]--
---merge _Group_Membership with (holdlock) as a
---using (:parent_group_id, :member_group_id) as b (parent_group_id, member_group_id)
---  on a.id = b.id
---when not matched
---insert values (:parent_group_id, :member_group_id)
+  on conflict (parent_group_id, member_group_id) do nothing
 
 --[ID: create_user_membership_if_not_exists]--
 insert into _User_Membership (parent_group_id, member_user_id)
   values (:parent_group_id, :member_user_id)
-
--- [ID: create_user_membership_if_not_exists]--
---merge _User_Membership with (holdlock) as a
---using (:parent_group_id, :member_user_id) as b (parent_group_id, member_user_id)
---  on a.id = b.id
---when not matched
---insert values (:parent_group_id, :member_user_id)
+  on conflict (parent_group_id, member_user_id) do nothing
 
 --[ID: remove_all_groups]--
 delete from _Group
@@ -98,20 +85,20 @@ delete from _Group_Membership
 delete from _User_Membership
 
 --[ID: remove_group_if_exists]--
-delete from _Group g
-where g.id = :id
+delete from _Group
+where id = :id
 
 --[ID: remove_user_if_exists]--
-delete from _User u
-where u.id = :id
+delete from _User
+where id = :id
 
 --[ID: remove_group_membership_if_exists]--
-delete from _Group_Membership m
-where m.parent_group_id = :parent_group_id and m.member_group_id = :member_group_id
+delete from _Group_Membership
+where parent_group_id = :parent_group_id and member_group_id = :member_group_id
 
 --[ID: remove_user_membership_if_exists]--
-delete from _User_Membership m
-where m.parent_group_id = :parent_group_id and m.member_user_id = :member_user_id
+delete from _User_Membership
+where parent_group_id = :parent_group_id and member_user_id = :member_user_id
 
 --[ID: find_direct_users_of_group]--
 select distinct u.*
