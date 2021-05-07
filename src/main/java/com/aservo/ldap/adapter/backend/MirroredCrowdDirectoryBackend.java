@@ -248,9 +248,9 @@ public class MirroredCrowdDirectoryBackend
 
         private void performFullUpdate() {
 
-            auditLogProcessor.updateConcurrent(() -> {
+            locking.withWriteAccess(() -> {
 
-                locking.withWriteAccess(() -> {
+                auditLogProcessor.updateConcurrent(() -> {
 
                     directoryBackend.dropAllGroups();
                     directoryBackend.dropAllUsers();
@@ -283,161 +283,161 @@ public class MirroredCrowdDirectoryBackend
                             directoryBackend.upsertMembership(membership);
                         }
                     }
-                });
 
-                return false;
+                    return false;
+                });
             });
         }
 
         private void performDeltaUpdate() {
 
-            List<Pair<UpdateType, Object>> deltaUpdateList = new LinkedList<>();
+            locking.withWriteAccess(() -> {
 
-            AuditLogState state = auditLogProcessor.updateConcurrent(() -> {
+                List<Pair<UpdateType, Object>> deltaUpdateList = new LinkedList<>();
 
-                boolean lastPageDone = false;
-                int page = 0;
+                AuditLogState state = auditLogProcessor.updateConcurrent(() -> {
 
-                deltaUpdateList.clear();
+                    boolean lastPageDone = false;
+                    int page = 0;
 
-                while (!lastPageDone) {
+                    deltaUpdateList.clear();
 
-                    JsonObject result;
+                    while (!lastPageDone) {
 
-                    try {
+                        JsonObject result;
 
-                        result = auditLogProcessor.queryAuditLog(page, pageSize);
-                        page++;
+                        try {
 
-                    } catch (IOException e) {
+                            result = auditLogProcessor.queryAuditLog(page, pageSize);
+                            page++;
 
-                        logger.error("Cannot call REST endpoint to query audit log for delta update.", e);
+                        } catch (IOException e) {
 
-                        return true;
-                    }
+                            logger.error("Cannot call REST endpoint to query audit log for delta update.", e);
 
-                    lastPageDone = result.getAsJsonObject().get("isLastPage").getAsBoolean();
+                            return true;
+                        }
 
-                    for (JsonElement valueElement : result.getAsJsonArray("values")) {
+                        lastPageDone = result.getAsJsonObject().get("isLastPage").getAsBoolean();
 
-                        String eventType = valueElement.getAsJsonObject().get("eventType").getAsString();
-                        SyncState syncState = auditLogProcessor.getSynchronizationState(valueElement);
+                        for (JsonElement valueElement : result.getAsJsonArray("values")) {
 
-                        if (syncState == SyncState.SYNC_STOP) {
+                            String eventType = valueElement.getAsJsonObject().get("eventType").getAsString();
+                            SyncState syncState = auditLogProcessor.getSynchronizationState(valueElement);
 
-                            lastPageDone = true;
-                            break;
+                            if (syncState == SyncState.SYNC_STOP) {
 
-                        } else if (eventType.matches("(GROUP|USER)_(CREATED|UPDATED|DELETED)")) {
+                                lastPageDone = true;
+                                break;
 
-                            for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
+                            } else if (eventType.matches("(GROUP|USER)_(CREATED|UPDATED|DELETED)")) {
 
-                                String type = entity.getAsJsonObject().get("type").getAsString();
-                                String name = entity.getAsJsonObject().get("name").getAsString();
+                                for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
 
-                                if (type.equals("GROUP")) {
+                                    String type = entity.getAsJsonObject().get("type").getAsString();
+                                    String name = entity.getAsJsonObject().get("name").getAsString();
 
-                                    if (eventType.equals("GROUP_CREATED") || eventType.equals("GROUP_UPDATED"))
-                                        deltaUpdateList.add(Pair.of(UpdateType.GROUP_VALIDATE, name));
-                                    else if (eventType.equals("GROUP_DELETED"))
-                                        deltaUpdateList.add(Pair.of(UpdateType.GROUP_INVALIDATE, name));
+                                    if (type.equals("GROUP")) {
 
-                                } else if (type.equals("USER")) {
+                                        if (eventType.equals("GROUP_CREATED") || eventType.equals("GROUP_UPDATED"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.GROUP_VALIDATE, name));
+                                        else if (eventType.equals("GROUP_DELETED"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.GROUP_INVALIDATE, name));
 
-                                    if (eventType.equals("USER_CREATED") || eventType.equals("USER_UPDATED"))
-                                        deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, name));
-                                    else if (eventType.equals("USER_DELETED"))
-                                        deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, name));
+                                    } else if (type.equals("USER")) {
+
+                                        if (eventType.equals("USER_CREATED") || eventType.equals("USER_UPDATED"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, name));
+                                        else if (eventType.equals("USER_DELETED"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, name));
+                                    }
                                 }
-                            }
 
-                        } else if (eventType.matches("(ADDED_TO|REMOVED_FROM)_GROUP")) {
+                            } else if (eventType.matches("(ADDED_TO|REMOVED_FROM)_GROUP")) {
 
-                            String parentGroupId = null;
-                            Set<String> childGroupIds = new HashSet<>();
-                            Set<String> userIds = new HashSet<>();
+                                String parentGroupId = null;
+                                Set<String> childGroupIds = new HashSet<>();
+                                Set<String> userIds = new HashSet<>();
 
-                            for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
+                                for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
 
-                                String type = entity.getAsJsonObject().get("type").getAsString();
-                                String name = entity.getAsJsonObject().get("name").getAsString();
+                                    String type = entity.getAsJsonObject().get("type").getAsString();
+                                    String name = entity.getAsJsonObject().get("name").getAsString();
 
-                                if (type.equals("GROUP")) {
+                                    if (type.equals("GROUP")) {
 
-                                    if (parentGroupId == null)
-                                        parentGroupId = name;
-                                    else
-                                        childGroupIds.add(name);
+                                        if (parentGroupId == null)
+                                            parentGroupId = name;
+                                        else
+                                            childGroupIds.add(name);
 
-                                } else if (type.equals("USER")) {
+                                    } else if (type.equals("USER")) {
 
-                                    userIds.add(name);
+                                        userIds.add(name);
+                                    }
                                 }
-                            }
 
-                            if (parentGroupId == null)
-                                logger.warn("Cannot find parent group to create membership object.");
-                            else {
+                                if (parentGroupId == null)
+                                    logger.warn("Cannot find parent group to create membership object.");
+                                else {
 
-                                MembershipEntity membership =
-                                        new MembershipEntity(parentGroupId, childGroupIds, userIds);
+                                    MembershipEntity membership =
+                                            new MembershipEntity(parentGroupId, childGroupIds, userIds);
 
-                                if (eventType.equals("ADDED_TO_GROUP"))
-                                    deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_VALIDATE, membership));
-                                else if (eventType.equals("REMOVED_FROM_GROUP"))
-                                    deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_INVALIDATE, membership));
+                                    if (eventType.equals("ADDED_TO_GROUP"))
+                                        deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_VALIDATE, membership));
+                                    else if (eventType.equals("REMOVED_FROM_GROUP"))
+                                        deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_INVALIDATE, membership));
+                                }
                             }
                         }
                     }
-                }
 
-                return false;
+                    return false;
+                });
+
+                if (state.equals(AuditLogState.CON_ISSUE))
+                    return;
+
+                downloadEntities(deltaUpdateList);
             });
-
-            if (state.equals(AuditLogState.CON_ISSUE))
-                return;
-
-            downloadEntities(deltaUpdateList);
         }
 
         private void downloadEntities(List<Pair<UpdateType, Object>> deltaUpdateList) {
 
-            locking.withWriteAccess(() -> {
+            for (Pair<UpdateType, Object> x : deltaUpdateList) {
 
-                for (Pair<UpdateType, Object> x : deltaUpdateList) {
+                if (x.getLeft().equals(UpdateType.GROUP_VALIDATE) &&
+                        x.getRight() instanceof String) {
 
-                    if (x.getLeft().equals(UpdateType.GROUP_VALIDATE) &&
-                            x.getRight() instanceof String) {
+                    directoryBackend.upsertGroup((String) x.getRight());
 
-                        directoryBackend.upsertGroup((String) x.getRight());
+                } else if (x.getLeft().equals(UpdateType.GROUP_INVALIDATE) &&
+                        x.getRight() instanceof String) {
 
-                    } else if (x.getLeft().equals(UpdateType.GROUP_INVALIDATE) &&
-                            x.getRight() instanceof String) {
+                    directoryBackend.dropGroup((String) x.getRight());
 
-                        directoryBackend.dropGroup((String) x.getRight());
+                } else if (x.getLeft().equals(UpdateType.USER_VALIDATE) &&
+                        x.getRight() instanceof String) {
 
-                    } else if (x.getLeft().equals(UpdateType.USER_VALIDATE) &&
-                            x.getRight() instanceof String) {
+                    directoryBackend.upsertUser((String) x.getRight());
 
-                        directoryBackend.upsertUser((String) x.getRight());
+                } else if (x.getLeft().equals(UpdateType.USER_INVALIDATE) &&
+                        x.getRight() instanceof String) {
 
-                    } else if (x.getLeft().equals(UpdateType.USER_INVALIDATE) &&
-                            x.getRight() instanceof String) {
+                    directoryBackend.dropUser((String) x.getRight());
 
-                        directoryBackend.dropUser((String) x.getRight());
+                } else if (x.getLeft().equals(UpdateType.MEMBERSHIP_VALIDATE) &&
+                        x.getRight() instanceof MembershipEntity) {
 
-                    } else if (x.getLeft().equals(UpdateType.MEMBERSHIP_VALIDATE) &&
-                            x.getRight() instanceof MembershipEntity) {
+                    directoryBackend.upsertMembership((MembershipEntity) x.getRight());
 
-                        directoryBackend.upsertMembership((MembershipEntity) x.getRight());
+                } else if (x.getLeft().equals(UpdateType.MEMBERSHIP_INVALIDATE) &&
+                        x.getRight() instanceof MembershipEntity) {
 
-                    } else if (x.getLeft().equals(UpdateType.MEMBERSHIP_INVALIDATE) &&
-                            x.getRight() instanceof MembershipEntity) {
-
-                        directoryBackend.dropMembership((MembershipEntity) x.getRight());
-                    }
+                    directoryBackend.dropMembership((MembershipEntity) x.getRight());
                 }
-            });
+            }
         }
     }
 
