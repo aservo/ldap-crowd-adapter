@@ -23,6 +23,7 @@ import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
+import com.aservo.ldap.adapter.sql.api.QueryDefFactory;
 import com.aservo.ldap.adapter.sql.api.Row;
 import com.aservo.ldap.adapter.sql.api.result.IgnoredResult;
 import com.aservo.ldap.adapter.sql.api.result.IndexedSeqResult;
@@ -31,6 +32,7 @@ import com.aservo.ldap.adapter.sql.impl.DatabaseService;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.sql.Connection;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -85,6 +87,7 @@ public class CachedWithPersistenceDirectoryBackend
     public static final String CONFIG_PASS_ACTIVE_USERS_ONLY = "pass-active-users-only";
 
     private final Logger logger = LoggerFactory.getLogger(CachedWithPersistenceDirectoryBackend.class);
+    private final Map<Long, QueryDefFactory> queryDefFactories = Collections.synchronizedMap(new HashMap<>());
     private final DatabaseService dbService;
     private final boolean activeUsersOnly;
 
@@ -181,6 +184,38 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
+    public <T> T withReadAccess(Supplier<T> block) {
+
+        return processTransaction(block);
+    }
+
+    @Override
+    public void withReadAccess(Runnable block) {
+
+        processTransaction(() -> {
+
+            block.run();
+            return null;
+        });
+    }
+
+    @Override
+    public <T> T withWriteAccess(Supplier<T> block) {
+
+        return processTransaction(block);
+    }
+
+    @Override
+    public void withWriteAccess(Runnable block) {
+
+        processTransaction(() -> {
+
+            block.run();
+            return null;
+        });
+    }
+
+    @Override
     public boolean requireReset() {
 
         return dbService.hasUpdatedSchema();
@@ -195,14 +230,13 @@ public class CachedWithPersistenceDirectoryBackend
 
             GroupEntity entity = directoryBackend.getGroup(id);
 
-            dbService.withTransaction(factory -> {
+            QueryDefFactory factory = getCurrentQueryDefFactory();
 
-                factory
-                        .queryById("create_or_update_group")
-                        .on("id", entity.getId())
-                        .on("description", Optional.ofNullable(entity.getDescription()))
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("create_or_update_group")
+                    .on("id", entity.getId())
+                    .on("description", Optional.ofNullable(entity.getDescription()))
+                    .execute(IgnoredResult.class);
 
         } catch (EntityNotFoundException e) {
 
@@ -219,14 +253,13 @@ public class CachedWithPersistenceDirectoryBackend
 
         entities.forEach(entity -> {
 
-            dbService.withTransaction(factory -> {
+            QueryDefFactory factory = getCurrentQueryDefFactory();
 
-                factory
-                        .queryById("create_or_update_group")
-                        .on("id", entity.getId())
-                        .on("description", Optional.ofNullable(entity.getDescription()))
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("create_or_update_group")
+                    .on("id", entity.getId())
+                    .on("description", Optional.ofNullable(entity.getDescription()))
+                    .execute(IgnoredResult.class);
         });
 
         return entities.size();
@@ -241,14 +274,13 @@ public class CachedWithPersistenceDirectoryBackend
 
         entities.forEach(entity -> {
 
-            dbService.withTransaction(factory -> {
+            QueryDefFactory factory = getCurrentQueryDefFactory();
 
-                factory
-                        .queryById("create_or_update_group")
-                        .on("id", entity.getId())
-                        .on("description", Optional.ofNullable(entity.getDescription()))
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("create_or_update_group")
+                    .on("id", entity.getId())
+                    .on("description", Optional.ofNullable(entity.getDescription()))
+                    .execute(IgnoredResult.class);
         });
 
         return entities.size();
@@ -263,18 +295,17 @@ public class CachedWithPersistenceDirectoryBackend
 
             UserEntity entity = directoryBackend.getUser(id);
 
-            dbService.withTransaction(factory -> {
+            QueryDefFactory factory = getCurrentQueryDefFactory();
 
-                factory
-                        .queryById("create_or_update_user")
-                        .on("id", entity.getId())
-                        .on("last_name", Optional.ofNullable(entity.getLastName()))
-                        .on("first_name", Optional.ofNullable(entity.getFirstName()))
-                        .on("display_name", Optional.ofNullable(entity.getDisplayName()))
-                        .on("email", Optional.ofNullable(entity.getEmail()))
-                        .on("active", entity.isActive())
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("create_or_update_user")
+                    .on("id", entity.getId())
+                    .on("last_name", Optional.ofNullable(entity.getLastName()))
+                    .on("first_name", Optional.ofNullable(entity.getFirstName()))
+                    .on("display_name", Optional.ofNullable(entity.getDisplayName()))
+                    .on("email", Optional.ofNullable(entity.getEmail()))
+                    .on("active", entity.isActive())
+                    .execute(IgnoredResult.class);
 
         } catch (EntityNotFoundException e) {
 
@@ -291,18 +322,17 @@ public class CachedWithPersistenceDirectoryBackend
 
         entities.forEach(entity -> {
 
-            dbService.withTransaction(factory -> {
+            QueryDefFactory factory = getCurrentQueryDefFactory();
 
-                factory
-                        .queryById("create_or_update_user")
-                        .on("id", entity.getId())
-                        .on("last_name", Optional.ofNullable(entity.getLastName()))
-                        .on("first_name", Optional.ofNullable(entity.getFirstName()))
-                        .on("display_name", Optional.ofNullable(entity.getDisplayName()))
-                        .on("email", Optional.ofNullable(entity.getEmail()))
-                        .on("active", entity.isActive())
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("create_or_update_user")
+                    .on("id", entity.getId())
+                    .on("last_name", Optional.ofNullable(entity.getLastName()))
+                    .on("first_name", Optional.ofNullable(entity.getFirstName()))
+                    .on("display_name", Optional.ofNullable(entity.getDisplayName()))
+                    .on("email", Optional.ofNullable(entity.getEmail()))
+                    .on("active", entity.isActive())
+                    .execute(IgnoredResult.class);
         });
 
         return entities.size();
@@ -317,18 +347,17 @@ public class CachedWithPersistenceDirectoryBackend
 
         entities.forEach(entity -> {
 
-            dbService.withTransaction(factory -> {
+            QueryDefFactory factory = getCurrentQueryDefFactory();
 
-                factory
-                        .queryById("create_or_update_user")
-                        .on("id", entity.getId())
-                        .on("last_name", Optional.ofNullable(entity.getLastName()))
-                        .on("first_name", Optional.ofNullable(entity.getFirstName()))
-                        .on("display_name", Optional.ofNullable(entity.getDisplayName()))
-                        .on("email", Optional.ofNullable(entity.getEmail()))
-                        .on("active", entity.isActive())
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("create_or_update_user")
+                    .on("id", entity.getId())
+                    .on("last_name", Optional.ofNullable(entity.getLastName()))
+                    .on("first_name", Optional.ofNullable(entity.getFirstName()))
+                    .on("display_name", Optional.ofNullable(entity.getDisplayName()))
+                    .on("email", Optional.ofNullable(entity.getEmail()))
+                    .on("active", entity.isActive())
+                    .execute(IgnoredResult.class);
         });
 
         return entities.size();
@@ -339,25 +368,24 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.upsertMembership(membership);
 
-        dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            membership.getMemberGroupIds().forEach(id -> {
+        membership.getMemberGroupIds().forEach(id -> {
 
-                factory
-                        .queryById("create_group_membership_if_not_exists")
-                        .on("parent_group_id", membership.getParentGroupId())
-                        .on("member_group_id", id)
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("create_group_membership_if_not_exists")
+                    .on("parent_group_id", membership.getParentGroupId())
+                    .on("member_group_id", id)
+                    .execute(IgnoredResult.class);
+        });
 
-            membership.getMemberUserIds().forEach(id -> {
+        membership.getMemberUserIds().forEach(id -> {
 
-                factory
-                        .queryById("create_user_membership_if_not_exists")
-                        .on("parent_group_id", membership.getParentGroupId())
-                        .on("member_user_id", id)
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("create_user_membership_if_not_exists")
+                    .on("parent_group_id", membership.getParentGroupId())
+                    .on("member_user_id", id)
+                    .execute(IgnoredResult.class);
         });
     }
 
@@ -366,13 +394,12 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.dropGroup(id);
 
-        dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            factory
-                    .queryById("remove_group_if_exists")
-                    .on("id", id)
-                    .execute(IgnoredResult.class);
-        });
+        factory
+                .queryById("remove_group_if_exists")
+                .on("id", id)
+                .execute(IgnoredResult.class);
     }
 
     @Override
@@ -380,12 +407,11 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.dropAllGroups();
 
-        dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            factory
-                    .queryById("remove_all_groups")
-                    .execute(IgnoredResult.class);
-        });
+        factory
+                .queryById("remove_all_groups")
+                .execute(IgnoredResult.class);
     }
 
     @Override
@@ -393,13 +419,12 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.dropUser(id);
 
-        dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            factory
-                    .queryById("remove_user_if_exists")
-                    .on("id", id)
-                    .execute(IgnoredResult.class);
-        });
+        factory
+                .queryById("remove_user_if_exists")
+                .on("id", id)
+                .execute(IgnoredResult.class);
     }
 
     @Override
@@ -407,12 +432,11 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.dropAllUsers();
 
-        dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            factory
-                    .queryById("remove_all_users")
-                    .execute(IgnoredResult.class);
-        });
+        factory
+                .queryById("remove_all_users")
+                .execute(IgnoredResult.class);
     }
 
     @Override
@@ -420,139 +444,129 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.dropMembership(membership);
 
-        dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            membership.getMemberGroupIds().forEach(id -> {
+        membership.getMemberGroupIds().forEach(id -> {
 
-                factory
-                        .queryById("remove_group_membership_if_exists")
-                        .on("parent_group_id", membership.getParentGroupId())
-                        .on("member_group_id", id)
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("remove_group_membership_if_exists")
+                    .on("parent_group_id", membership.getParentGroupId())
+                    .on("member_group_id", id)
+                    .execute(IgnoredResult.class);
+        });
 
-            membership.getMemberUserIds().forEach(id -> {
+        membership.getMemberUserIds().forEach(id -> {
 
-                factory
-                        .queryById("remove_user_membership_if_exists")
-                        .on("parent_group_id", membership.getParentGroupId())
-                        .on("member_user_id", id)
-                        .execute(IgnoredResult.class);
-            });
+            factory
+                    .queryById("remove_user_membership_if_exists")
+                    .on("parent_group_id", membership.getParentGroupId())
+                    .on("member_user_id", id)
+                    .execute(IgnoredResult.class);
         });
     }
 
     @Override
     public List<Pair<String, String>> getAllDirectGroupRelationships() {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_all_direct_group_memberships")
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> Pair.of(
-                            row.apply("parent_group_id", String.class),
-                            row.apply("member_group_id", String.class)
-                    ));
-        });
+        return factory
+                .queryById("find_all_direct_group_memberships")
+                .execute(IndexedSeqResult.class)
+                .transform(row -> Pair.of(
+                        row.apply("parent_group_id", String.class),
+                        row.apply("member_group_id", String.class)
+                ));
     }
 
     @Override
     public List<Pair<String, String>> getAllDirectUserRelationships() {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_all_direct_user_memberships")
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> Pair.of(
-                            row.apply("parent_group_id", String.class),
-                            row.apply("member_user_id", String.class)
-                    ));
-        });
+        return factory
+                .queryById("find_all_direct_user_memberships")
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> Pair.of(
+                        row.apply("parent_group_id", String.class),
+                        row.apply("member_user_id", String.class)
+                ));
     }
 
     @Override
     public List<Pair<String, String>> getAllTransitiveGroupRelationships() {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            Map<String, Set<String>> relationships = new HashMap<>();
+        Map<String, Set<String>> relationships = new HashMap<>();
 
-            return factory
-                    .queryById("find_all_transitive_group_memberships")
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> Pair.of(
-                            row.apply("parent_group_id", String.class),
-                            row.apply("member_group_id", String.class)
-                    ));
-        });
+        return factory
+                .queryById("find_all_transitive_group_memberships")
+                .execute(IndexedSeqResult.class)
+                .transform(row -> Pair.of(
+                        row.apply("parent_group_id", String.class),
+                        row.apply("member_group_id", String.class)
+                ));
     }
 
     @Override
     public List<Pair<String, String>> getAllTransitiveUserRelationships() {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_all_transitive_user_memberships")
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> Pair.of(
-                            row.apply("parent_group_id", String.class),
-                            row.apply("member_user_id", String.class)
-                    ));
-        });
+        return factory
+                .queryById("find_all_transitive_user_memberships")
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> Pair.of(
+                        row.apply("parent_group_id", String.class),
+                        row.apply("member_user_id", String.class)
+                ));
     }
 
     @Override
     public boolean isKnownGroup(String id) {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            boolean found = factory
-                    .queryById("find_group")
-                    .on("id", id)
-                    .execute(SingleOptResult.class)
-                    .transform(this::mapGroupEntity)
-                    .isPresent();
+        boolean found = factory
+                .queryById("find_group")
+                .on("id", id)
+                .execute(SingleOptResult.class)
+                .transform(this::mapGroupEntity)
+                .isPresent();
 
-            return found || directoryBackend.isKnownGroup(id);
-
-        });
+        return found || directoryBackend.isKnownGroup(id);
     }
 
     @Override
     public boolean isKnownUser(String id) {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            boolean found = factory
-                    .queryById("find_user")
-                    .on("id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(SingleOptResult.class)
-                    .transform(this::mapUserEntity)
-                    .isPresent();
+        boolean found = factory
+                .queryById("find_user")
+                .on("id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(SingleOptResult.class)
+                .transform(this::mapUserEntity)
+                .isPresent();
 
-            return found || directoryBackend.isKnownUser(id);
-
-        });
+        return found || directoryBackend.isKnownUser(id);
     }
 
     @Override
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 
-        return (dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_group")
-                    .on("id", id)
-                    .execute(SingleOptResult.class)
-                    .transform(this::mapGroupEntity);
-        }))
+        return factory
+                .queryById("find_group")
+                .on("id", id)
+                .execute(SingleOptResult.class)
+                .transform(this::mapGroupEntity)
                 .orElseThrow(() -> new EntityNotFoundException("Cannot find group in persistent cache."));
     }
 
@@ -560,283 +574,293 @@ public class CachedWithPersistenceDirectoryBackend
     public UserEntity getUser(String id)
             throws EntityNotFoundException {
 
-        return (dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_user")
-                    .on("id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(SingleOptResult.class)
-                    .transform(this::mapUserEntity);
-        }))
+        return factory
+                .queryById("find_user")
+                .on("id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(SingleOptResult.class)
+                .transform(this::mapUserEntity)
                 .orElseThrow(() -> new EntityNotFoundException("Cannot find user in persistent cache."));
     }
 
     @Override
     public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
+        // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
 
-            return factory
-                    .queryById("find_all_groups")
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity)
-                    .stream()
-                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
-                    .collect(Collectors.toList());
-        });
+        return factory
+                .queryById("find_all_groups")
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapGroupEntity)
+                .stream()
+                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
+        // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
 
-            return factory
-                    .queryById("find_all_users")
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapUserEntity)
-                    .stream()
-                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
-                    .collect(Collectors.toList());
-        });
+        return factory
+                .queryById("find_all_users")
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapUserEntity)
+                .stream()
+                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_direct_users_of_group")
-                    .on("group_id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapUserEntity);
-        });
+        return factory
+                .queryById("find_direct_users_of_group")
+                .on("group_id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapUserEntity);
     }
 
     @Override
     public List<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_direct_groups_of_user")
-                    .on("user_id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
-        });
+        return factory
+                .queryById("find_direct_groups_of_user")
+                .on("user_id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapGroupEntity);
     }
 
     @Override
     public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_direct_child_groups_of_group")
-                    .on("group_id", id)
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
-        });
+        return factory
+                .queryById("find_direct_child_groups_of_group")
+                .on("group_id", id)
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapGroupEntity);
     }
 
     @Override
     public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_direct_parent_groups_of_group")
-                    .on("group_id", id)
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
-        });
+        return factory
+                .queryById("find_direct_parent_groups_of_group")
+                .on("group_id", id)
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapGroupEntity);
     }
 
     @Override
     public List<String> getDirectUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_direct_users_of_group")
-                    .on("group_id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> row.apply("id", String.class));
-        });
+        return factory
+                .queryById("find_direct_users_of_group")
+                .on("group_id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> row.apply("id", String.class));
     }
 
     @Override
     public List<String> getDirectGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_direct_groups_of_user")
-                    .on("user_id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> row.apply("id", String.class));
-        });
+        return factory
+                .queryById("find_direct_groups_of_user")
+                .on("user_id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> row.apply("id", String.class));
     }
 
     @Override
     public List<String> getDirectChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_direct_child_groups_of_group")
-                    .on("group_id", id)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> row.apply("id", String.class));
-        });
+        return factory
+                .queryById("find_direct_child_groups_of_group")
+                .on("group_id", id)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> row.apply("id", String.class));
     }
 
     @Override
     public List<String> getDirectParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_direct_parent_groups_of_group")
-                    .on("group_id", id)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> row.apply("id", String.class));
-        });
+        return factory
+                .queryById("find_direct_parent_groups_of_group")
+                .on("group_id", id)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> row.apply("id", String.class));
     }
 
     @Override
     public List<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_transitive_users_of_group")
-                    .on("group_id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapUserEntity);
-        });
+        return factory
+                .queryById("find_transitive_users_of_group")
+                .on("group_id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapUserEntity);
     }
 
     @Override
     public List<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_transitive_groups_of_user")
-                    .on("user_id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
-        });
+        return factory
+                .queryById("find_transitive_groups_of_user")
+                .on("user_id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapGroupEntity);
     }
 
     @Override
     public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_transitive_child_groups_of_group")
-                    .on("group_id", id)
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
-        });
+        return factory
+                .queryById("find_transitive_child_groups_of_group")
+                .on("group_id", id)
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapGroupEntity);
     }
 
     @Override
     public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_transitive_parent_groups_of_group")
-                    .on("group_id", id)
-                    .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
-        });
+        return factory
+                .queryById("find_transitive_parent_groups_of_group")
+                .on("group_id", id)
+                .execute(IndexedSeqResult.class)
+                .transform(this::mapGroupEntity);
     }
 
     @Override
     public List<String> getTransitiveUserIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_transitive_users_of_group")
-                    .on("group_id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> row.apply("id", String.class));
-        });
+        return factory
+                .queryById("find_transitive_users_of_group")
+                .on("group_id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> row.apply("id", String.class));
     }
 
     @Override
     public List<String> getTransitiveGroupIdsOfUser(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_transitive_groups_of_user")
-                    .on("user_id", id)
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> row.apply("id", String.class));
-        });
+        return factory
+                .queryById("find_transitive_groups_of_user")
+                .on("user_id", id)
+                .on("active_only", activeUsersOnly)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> row.apply("id", String.class));
     }
 
     @Override
     public List<String> getTransitiveChildGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
-        return dbService.withTransaction(factory -> {
+        QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            return factory
-                    .queryById("find_transitive_child_groups_of_group")
-                    .on("group_id", id)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> row.apply("id", String.class));
-        });
+        return factory
+                .queryById("find_transitive_child_groups_of_group")
+                .on("group_id", id)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> row.apply("id", String.class));
     }
 
     @Override
     public List<String> getTransitiveParentGroupIdsOfGroup(String id)
             throws EntityNotFoundException {
 
+        QueryDefFactory factory = getCurrentQueryDefFactory();
+
+        return factory
+                .queryById("find_transitive_parent_groups_of_group")
+                .on("group_id", id)
+                .execute(IndexedSeqResult.class)
+                .transform(row -> row.apply("id", String.class));
+    }
+
+    private <T> T processTransaction(Supplier<T> block) {
+
         return dbService.withTransaction(factory -> {
 
-            return factory
-                    .queryById("find_transitive_parent_groups_of_group")
-                    .on("group_id", id)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> row.apply("id", String.class));
+            long id = Thread.currentThread().getId();
+            T result;
+
+            logger.debug("Bind query definition factory to thread {}.", id);
+
+            queryDefFactories.put(id, factory);
+
+            try {
+
+                result = super.withReadAccess(block);
+
+            } finally {
+
+                queryDefFactories.remove(id);
+            }
+
+            return result;
         });
+    }
+
+    private QueryDefFactory getCurrentQueryDefFactory() {
+
+        return queryDefFactories.get(Thread.currentThread().getId());
     }
 
     private GroupEntity mapGroupEntity(Row row) {
