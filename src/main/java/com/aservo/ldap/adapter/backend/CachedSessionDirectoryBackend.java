@@ -44,15 +44,11 @@ public class CachedSessionDirectoryBackend
      * Instantiates a new directory backend.
      *
      * @param config           config the config instance of the server
-     * @param locking          controller for write access
      * @param directoryBackend the directory backend
      */
-    public CachedSessionDirectoryBackend(
-            ServerConfiguration config,
-            DirectoryBackendFactory.Locking locking,
-            NestedDirectoryBackend directoryBackend) {
+    public CachedSessionDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
-        super(config, locking, directoryBackend);
+        super(config, directoryBackend);
     }
 
     @Override

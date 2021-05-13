@@ -56,12 +56,9 @@ public class JsonDirectoryBackend
     /**
      * Instantiates a new JSON directory backend.
      *
-     * @param config  the config instance of the server
-     * @param locking controller for write access
+     * @param config the config instance of the server
      */
-    public JsonDirectoryBackend(
-            ServerConfiguration config,
-            DirectoryBackendFactory.Locking locking) {
+    public JsonDirectoryBackend(ServerConfiguration config) {
 
         try {
 

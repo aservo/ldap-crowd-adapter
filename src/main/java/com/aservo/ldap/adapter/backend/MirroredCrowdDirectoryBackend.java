@@ -85,15 +85,11 @@ public class MirroredCrowdDirectoryBackend
      * Instantiates a new directory backend.
      *
      * @param config           config the config instance of the server
-     * @param locking          controller for write access
      * @param directoryBackend the directory backend
      */
-    public MirroredCrowdDirectoryBackend(
-            ServerConfiguration config,
-            DirectoryBackendFactory.Locking locking,
-            NestedDirectoryBackend directoryBackend) {
+    public MirroredCrowdDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
-        super(config, locking, directoryBackend);
+        super(config, directoryBackend);
 
         Properties properties = config.getBackendProperties();
 
@@ -248,7 +244,7 @@ public class MirroredCrowdDirectoryBackend
 
         private void performFullUpdate() {
 
-            locking.withWriteAccess(() -> {
+            directoryBackend.withWriteAccess(() -> {
 
                 auditLogProcessor.updateConcurrent(() -> {
 
@@ -291,7 +287,7 @@ public class MirroredCrowdDirectoryBackend
 
         private void performDeltaUpdate() {
 
-            locking.withWriteAccess(() -> {
+            directoryBackend.withWriteAccess(() -> {
 
                 List<Pair<UpdateType, Object>> deltaUpdateList = new LinkedList<>();
 

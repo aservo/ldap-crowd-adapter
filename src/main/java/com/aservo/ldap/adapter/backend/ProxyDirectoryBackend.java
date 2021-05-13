@@ -26,6 +26,7 @@ import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.tuple.Pair;
 
 
@@ -33,17 +34,36 @@ public abstract class ProxyDirectoryBackend
         implements NestedDirectoryBackend {
 
     protected final ServerConfiguration config;
-    protected final DirectoryBackendFactory.Locking locking;
     protected final NestedDirectoryBackend directoryBackend;
 
-    protected ProxyDirectoryBackend(
-            ServerConfiguration config,
-            DirectoryBackendFactory.Locking locking,
-            NestedDirectoryBackend directoryBackend) {
+    protected ProxyDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
         this.config = config;
-        this.locking = locking;
         this.directoryBackend = directoryBackend;
+    }
+
+    @Override
+    public <T> T withReadAccess(Supplier<T> block) {
+
+        return directoryBackend.withReadAccess(block);
+    }
+
+    @Override
+    public void withReadAccess(Runnable block) {
+
+        directoryBackend.withReadAccess(block);
+    }
+
+    @Override
+    public <T> T withWriteAccess(Supplier<T> block) {
+
+        return directoryBackend.withWriteAccess(block);
+    }
+
+    @Override
+    public void withWriteAccess(Runnable block) {
+
+        directoryBackend.withWriteAccess(block);
     }
 
     @Override

@@ -92,15 +92,11 @@ public class CachedWithPersistenceDirectoryBackend
      * Instantiates a new directory backend.
      *
      * @param config           config the config instance of the server
-     * @param locking          controller for write access
      * @param directoryBackend the directory backend
      */
-    public CachedWithPersistenceDirectoryBackend(
-            ServerConfiguration config,
-            DirectoryBackendFactory.Locking locking,
-            NestedDirectoryBackend directoryBackend) {
+    public CachedWithPersistenceDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
-        super(config, locking, directoryBackend);
+        super(config, directoryBackend);
 
         Properties properties = config.getBackendProperties();
 

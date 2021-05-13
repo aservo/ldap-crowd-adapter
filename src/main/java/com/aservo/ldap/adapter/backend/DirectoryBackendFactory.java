@@ -18,20 +18,13 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.util.ServerConfiguration;
-import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 public class DirectoryBackendFactory {
 
-    private final Logger logger = LoggerFactory.getLogger(DirectoryBackendFactory.class);
-    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final ServerConfiguration config;
     private final NestedDirectoryBackend directoryBackend;
 
@@ -49,15 +42,15 @@ public class DirectoryBackendFactory {
 
             innerDirectoryBackend =
                     (NestedDirectoryBackend) Class.forName(directoryBackendClasses.get(0))
-                            .getConstructor(ServerConfiguration.class, Locking.class)
-                            .newInstance(config, new Locking());
+                            .getConstructor(ServerConfiguration.class)
+                            .newInstance(config);
 
             for (int i = 1; i < directoryBackendClasses.size(); i++) {
 
                 innerDirectoryBackend =
                         (NestedDirectoryBackend) Class.forName(directoryBackendClasses.get(i))
-                                .getConstructor(ServerConfiguration.class, Locking.class, NestedDirectoryBackend.class)
-                                .newInstance(config, new Locking(), innerDirectoryBackend);
+                                .getConstructor(ServerConfiguration.class, NestedDirectoryBackend.class)
+                                .newInstance(config, innerDirectoryBackend);
             }
 
             directoryBackend = innerDirectoryBackend;
@@ -79,25 +72,9 @@ public class DirectoryBackendFactory {
 
     public <T> T withSession(Function<DirectoryBackend, T> block) {
 
-        long start = Instant.now().toEpochMilli();
-        T result;
+        NestedDirectoryBackend directory = createSessionSpecificDirectory();
 
-        rwLock.readLock().lock();
-
-        try {
-
-            result = block.apply(createSessionSpecificDirectory());
-
-        } finally {
-
-            rwLock.readLock().unlock();
-        }
-
-        long end = Instant.now().toEpochMilli();
-
-        logger.debug("A read only session was performed in {} ms.", end - start);
-
-        return result;
+        return directory.withReadAccess(() -> block.apply(directory));
     }
 
     public void withSession(Consumer<DirectoryBackend> block) {
@@ -119,7 +96,7 @@ public class DirectoryBackendFactory {
         directoryBackend.shutdown();
     }
 
-    private DirectoryBackend createSessionSpecificDirectory() {
+    private NestedDirectoryBackend createSessionSpecificDirectory() {
 
         List<String> directoryBackendClasses = config.getSessionDirectoryBackendClasses();
         NestedDirectoryBackend innerDirectoryBackend = directoryBackend;
@@ -130,8 +107,8 @@ public class DirectoryBackendFactory {
 
                 innerDirectoryBackend =
                         (NestedDirectoryBackend) Class.forName(directoryBackendClasses.get(i))
-                                .getConstructor(ServerConfiguration.class, Locking.class, NestedDirectoryBackend.class)
-                                .newInstance(config, new Locking(), innerDirectoryBackend);
+                                .getConstructor(ServerConfiguration.class, NestedDirectoryBackend.class)
+                                .newInstance(config, innerDirectoryBackend);
             }
 
         } catch (ClassNotFoundException e) {
@@ -144,40 +121,5 @@ public class DirectoryBackendFactory {
         }
 
         return innerDirectoryBackend;
-    }
-
-    public class Locking {
-
-        public <T> T withWriteAccess(Supplier<T> block) {
-
-            long start = Instant.now().toEpochMilli();
-            T result;
-
-            rwLock.writeLock().lock();
-
-            try {
-
-                result = block.get();
-
-            } finally {
-
-                rwLock.writeLock().unlock();
-            }
-
-            long end = Instant.now().toEpochMilli();
-
-            logger.debug("A writing session was performed in {} ms.", end - start);
-
-            return result;
-        }
-
-        public void withWriteAccess(Runnable block) {
-
-            withWriteAccess(() -> {
-
-                block.run();
-                return null;
-            });
-        }
     }
 }

@@ -23,11 +23,8 @@ import com.aservo.ldap.adapter.util.ServerConfiguration;
 public abstract class CachedDirectoryBackend
         extends ProxyDirectoryBackend {
 
-    protected CachedDirectoryBackend(
-            ServerConfiguration config,
-            DirectoryBackendFactory.Locking locking,
-            NestedDirectoryBackend directoryBackend) {
+    protected CachedDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
-        super(config, locking, directoryBackend);
+        super(config, directoryBackend);
     }
 }

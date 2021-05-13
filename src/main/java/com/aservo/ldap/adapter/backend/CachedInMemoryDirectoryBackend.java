@@ -75,15 +75,11 @@ public class CachedInMemoryDirectoryBackend
      * Instantiates a new directory backend.
      *
      * @param config           config the config instance of the server
-     * @param locking          controller for write access
      * @param directoryBackend the directory backend
      */
-    public CachedInMemoryDirectoryBackend(
-            ServerConfiguration config,
-            DirectoryBackendFactory.Locking locking,
-            NestedDirectoryBackend directoryBackend) {
+    public CachedInMemoryDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
-        super(config, locking, directoryBackend);
+        super(config, directoryBackend);
 
         Properties properties = config.getBackendProperties();
 

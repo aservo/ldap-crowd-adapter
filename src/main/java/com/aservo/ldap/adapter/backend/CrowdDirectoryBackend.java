@@ -71,12 +71,9 @@ public class CrowdDirectoryBackend
     /**
      * Instantiates a new Crowd directory backend.
      *
-     * @param config  the config instance of the server
-     * @param locking controller for write access
+     * @param config the config instance of the server
      */
-    public CrowdDirectoryBackend(
-            ServerConfiguration config,
-            DirectoryBackendFactory.Locking locking) {
+    public CrowdDirectoryBackend(ServerConfiguration config) {
 
         Properties properties = config.getBackendProperties();
 

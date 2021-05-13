@@ -19,12 +19,63 @@ package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import java.util.List;
+import java.util.function.Supplier;
 import javax.naming.OperationNotSupportedException;
 import org.apache.commons.lang3.tuple.Pair;
 
 
 public interface NestedDirectoryBackend
         extends DirectoryBackend {
+
+    /**
+     * Check if the caches need a reset.
+     *
+     * @param block the supplier object executed within the session
+     * @return the result of the supplier code block
+     */
+    default <T> T withReadAccess(Supplier<T> block) {
+
+        return block.get();
+    }
+
+    /**
+     * Check if the caches need a reset.
+     *
+     * @param block the runnable object executed within the session
+     */
+    default void withReadAccess(Runnable block) {
+
+        withReadAccess(() -> {
+
+            block.run();
+            return null;
+        });
+    }
+
+    /**
+     * Check if the caches need a reset.
+     *
+     * @param block the supplier object executed within the session
+     * @return the result of the supplier code block
+     */
+    default <T> T withWriteAccess(Supplier<T> block) {
+
+        return block.get();
+    }
+
+    /**
+     * Check if the caches need a reset.
+     *
+     * @param block the runnable object executed within the session
+     */
+    default void withWriteAccess(Runnable block) {
+
+        withWriteAccess(() -> {
+
+            block.run();
+            return null;
+        });
+    }
 
     /**
      * Check if the caches need a reset.

@@ -19,7 +19,6 @@ package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.adapter.FilterMatcher;
 import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
-import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import com.aservo.ldap.adapter.adapter.entity.UserEntity;
 import com.aservo.ldap.adapter.adapter.query.FilterNode;
 import com.aservo.ldap.adapter.adapter.query.NullNode;
