@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -78,6 +79,7 @@ public class MirroredCrowdDirectoryBackend
 
     private final Logger logger = LoggerFactory.getLogger(MirroredCrowdDirectoryBackend.class);
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final CountDownLatch latch = new CountDownLatch(1);
     private final MirrorStrategy mirrorStrategy;
     private final AuditLogProcessor auditLogProcessor;
 
@@ -188,6 +190,56 @@ public class MirroredCrowdDirectoryBackend
         NO_SYNC, FOREIGN_SYNC, SYNC_START, SYNC_STOP,
     }
 
+    @Override
+    public <T> T withReadAccess(Supplier<T> block) {
+
+        try {
+
+            latch.await();
+
+        } catch (InterruptedException e) {
+
+            throw new RuntimeException(e);
+        }
+
+        return super.withReadAccess(block);
+    }
+
+    @Override
+    public void withReadAccess(Runnable block) {
+
+        withReadAccess(() -> {
+
+            block.run();
+            return null;
+        });
+    }
+
+    @Override
+    public <T> T withWriteAccess(Supplier<T> block) {
+
+        try {
+
+            latch.await();
+
+        } catch (InterruptedException e) {
+
+            throw new RuntimeException(e);
+        }
+
+        return super.withWriteAccess(block);
+    }
+
+    @Override
+    public void withWriteAccess(Runnable block) {
+
+        withWriteAccess(() -> {
+
+            block.run();
+            return null;
+        });
+    }
+
     private class MirrorStrategy
             implements Runnable {
 
@@ -218,6 +270,8 @@ public class MirroredCrowdDirectoryBackend
                     logger.info("End forced synchronization of a full copy.");
 
                     forceFullSync = false;
+                    latch.countDown();
+
                     return;
                 }
 
@@ -235,6 +289,8 @@ public class MirroredCrowdDirectoryBackend
                     performDeltaUpdate();
                     logger.info("End incremental synchronization.");
                 }
+
+                latch.countDown();
 
             } catch (Exception e) {
 

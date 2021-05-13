@@ -476,53 +476,65 @@ public class CommonPartition
         logger.debug("Check for existence of entry with DN={}",
                 context.getDn().getName());
 
-        return directoryFactory.withSession(directory -> {
+        DirectoryBackend permanentDirectory = directoryFactory.getPermanentDirectory();
+        Dn rootDn = LdapUtils.createDn(schemaManager, permanentDirectory, EntityType.DOMAIN);
+        Dn groupsDn = LdapUtils.createDn(schemaManager, permanentDirectory, EntityType.GROUP_UNIT);
+        Dn usersDn = LdapUtils.createDn(schemaManager, permanentDirectory, EntityType.USER_UNIT);
 
-            Dn rootDn = LdapUtils.createDn(schemaManager, directory, EntityType.DOMAIN);
-            Dn groupsDn = LdapUtils.createDn(schemaManager, directory, EntityType.GROUP_UNIT);
-            Dn usersDn = LdapUtils.createDn(schemaManager, directory, EntityType.USER_UNIT);
-            FilterMatcher filterMatcher = newFilterMatcher(directory);
+        if (context.getDn().equals(groupsDn)) {
 
-            if (context.getDn().equals(groupsDn)) {
+            return true;
 
-                return true;
+        } else if (context.getDn().getParent().equals(groupsDn)) {
 
-            } else if (context.getDn().getParent().equals(groupsDn)) {
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+            FilterNode filterNode = new EqualOperator(attribute, value);
 
-                String attribute = context.getDn().getRdn().getType();
-                String value = context.getDn().getRdn().getNormValue();
-                FilterNode filterNode = new EqualOperator(attribute, value);
+            return directoryFactory.withSession(directory -> {
+
+                FilterMatcher filterMatcher = newFilterMatcher(directory);
 
                 return directory.getGroups(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
+            });
 
-            } else if (context.getDn().equals(usersDn)) {
+        } else if (context.getDn().equals(usersDn)) {
 
-                return true;
+            return true;
 
-            } else if (context.getDn().getParent().equals(usersDn)) {
+        } else if (context.getDn().getParent().equals(usersDn)) {
 
-                String attribute = context.getDn().getRdn().getType();
-                String value = context.getDn().getRdn().getNormValue();
-                FilterNode filterNode = new EqualOperator(attribute, value);
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+            FilterNode filterNode = new EqualOperator(attribute, value);
+
+            return directoryFactory.withSession(directory -> {
+
+                FilterMatcher filterMatcher = newFilterMatcher(directory);
 
                 return directory.getUsers(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
+            });
 
-            } else if (context.getDn().equals(rootDn)) {
+        } else if (context.getDn().equals(rootDn)) {
 
-                return true;
+            return true;
 
-            } else if (context.getDn().getParent().equals(rootDn)) {
+        } else if (context.getDn().getParent().equals(rootDn)) {
 
-                String attribute = context.getDn().getRdn().getType();
-                String value = context.getDn().getRdn().getNormValue();
-                FilterNode filterNode = new EqualOperator(attribute, value);
+            String attribute = context.getDn().getRdn().getType();
+            String value = context.getDn().getRdn().getNormValue();
+            FilterNode filterNode = new EqualOperator(attribute, value);
+
+            return directoryFactory.withSession(directory -> {
+
+                FilterMatcher filterMatcher = newFilterMatcher(directory);
 
                 return directory.getGroups(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent() ||
                         directory.getUsers(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
-            }
+            });
+        }
 
-            return false;
-        });
+        return false;
     }
 
     private List<Entry> findEntries(SearchOperationContext context, boolean ouOnly) {
