@@ -101,14 +101,14 @@ delete from _User_Membership
 where parent_group_id = :parent_group_id and member_user_id = :member_user_id
 
 --[ID: find_direct_users_of_group]--
-select distinct u.*
+select u.*
 from _User_Membership m
 inner join _User u
   on u.id = m.member_user_id
 where m.parent_group_id = :group_id and (u.active or :active_only = false)
 
 --[ID: find_direct_groups_of_user]--
-select distinct g.*
+select g.*
 from _User_Membership m
 inner join _Group g
   on g.id = m.parent_group_id
@@ -117,14 +117,14 @@ inner join _User u
 where m.member_user_id = :user_id and (u.active or :active_only = false)
 
 --[ID: find_transitive_users_of_group]--
-select distinct u.*
+select u.*
 from _User_Membership_Transitive m
 inner join _User u
   on u.id = m.member_user_id
 where m.parent_group_id = :group_id and (u.active or :active_only = false)
 
 --[ID: find_transitive_groups_of_user]--
-select distinct g.*
+select g.*
 from _User_Membership_Transitive m
 inner join _Group g
   on g.id = m.parent_group_id
@@ -133,50 +133,50 @@ inner join _User u
 where m.member_user_id = :user_id and (u.active or :active_only = false)
 
 --[ID: find_direct_child_groups_of_group]--
-select distinct g.*
+select g.*
 from _Group_Membership m
 inner join _Group g
   on g.id = m.member_group_id
 where m.parent_group_id = :group_id
 
 --[ID: find_direct_parent_groups_of_group]--
-select distinct g.*
+select g.*
 from _Group_Membership m
 inner join _Group g
   on g.id = m.parent_group_id
 where m.member_group_id = :group_id
 
 --[ID: find_transitive_child_groups_of_group]--
-select distinct g.*
+select g.*
 from _Group_Membership_Transitive m
 inner join _Group g
   on g.id = m.member_group_id
 where m.parent_group_id = :group_id
 
 --[ID: find_transitive_parent_groups_of_group]--
-select distinct g.*
+select g.*
 from _Group_Membership_Transitive m
 inner join _Group g
   on g.id = m.parent_group_id
 where m.member_group_id = :group_id
 
 --[ID: find_all_direct_group_memberships]--
-select distinct m.*
+select m.*
 from _Group_Membership m
 
 --[ID: find_all_direct_user_memberships]--
-select distinct m.*
+select m.*
 from _User_Membership m
 inner join _User u
   on u.id = m.member_user_id
 where u.active or :active_only = false
 
 --[ID: find_all_transitive_group_memberships]--
-select distinct m.*
+select m.*
 from _Group_Membership_Transitive m
 
 --[ID: find_all_transitive_user_memberships]--
-select distinct m.*
+select m.*
 from _User_Membership_Transitive m
 inner join _User u
   on u.id = m.member_user_id

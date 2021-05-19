@@ -46,7 +46,7 @@ create view _Group_Membership_Transitive (parent_group_id, member_group_id) as
     join ParentRelationship p
     on p.group_id = m.member_group_id
   )
-  select distinct p.group_id, p.member_group_id
+  select p.group_id, p.member_group_id
   from ParentRelationship p;
 
 create view _User_Membership_Transitive (parent_group_id, member_user_id) as
@@ -59,5 +59,5 @@ create view _User_Membership_Transitive (parent_group_id, member_user_id) as
     inner join ParentRelationship p
       on p.group_id = m.member_group_id
   )
-  select distinct p.group_id, p.member_user_id
+  select p.group_id, p.member_user_id
   from ParentRelationship p;
