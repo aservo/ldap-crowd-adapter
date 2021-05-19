@@ -29,55 +29,40 @@ RUN groupadd -r -g 1000 appuser && \
     chmod a+x /app/start.sh && \
     mkhomedir_helper appuser
 
-RUN yum makecache && \
+RUN yum clean all && \
     yum -y update && \
-    yum clean all && \
+    yum clean all --enablerepo=* && \
     rm -rf /tmp/* /var/tmp/*
 
-RUN yum makecache && \
-	yum -y install \
+RUN yum -y install \
         deltarpm \
-        yum-utils && \
-    yum clean all && \
+        yum-utils \
+        ca-certificates && \
+    yum clean all --enablerepo=* && \
 	rm -rf /tmp/* /var/tmp/*
 
-RUN yum makecache && \
-    yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
+RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
     yum-config-manager --enable rhel-7-server-optional-rpms && \
     yum-config-manager --enable rhel-7-server-extras-rpms && \
-    yum clean all && \
+    yum clean all --enablerepo=* && \
 	rm -rf /tmp/* /var/tmp/*
 
 COPY ca_certs/ /usr/share/pki/ca-trust-source/anchors/
 
-RUN yum makecache && \
-    yum -y install \
-        ca-certificates && \
-    update-ca-trust && \
-    yum clean all && \
-    rm -rf /tmp/* /var/tmp/*
-
-RUN yum makecache && \
-	yum -y install \
-	    java-1.8.0-openjdk \
-        java-1.8.0-openjdk-headless \
-        java-1.8.0-openjdk-devel && \
-	yum clean all && \
-	rm -rf /tmp/* /var/tmp/*
+RUN update-ca-trust
 
 RUN curl https://www.scala-sbt.org/sbt-rpm.repo | tee > /etc/yum.repos.d/sbt-rpm.repo && \
-    yum -y install sbt && \
-    rm /etc/yum.repos.d/sbt-rpm.repo && \
-    yum clean all && \
-    rm -rf /tmp/* /var/tmp/*
-
-RUN yum makecache && \
-	yum -y install \
+    yum -y install \ 
+	    java-1.8.0-openjdk \
+        java-1.8.0-openjdk-headless \
+        java-1.8.0-openjdk-devel \
+        sbt \
 	    openssl \
 	    nc \
-        jq && \
-    yum clean all && \
-	rm -rf /tmp/* /var/tmp/*
+        jq && \    
+    mv /etc/yum.repos.d/sbt-rpm.repo /etc/yum.repos.d/sbt-rpm.repo.disabled && \
+    yum clean all --enablerepo=* && \
+    rm -rf /tmp/* /var/tmp/*
 
 ENV JAVA_OPTS "-Dfile.encoding=UTF-8"
 
