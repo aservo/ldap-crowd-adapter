@@ -30,6 +30,7 @@ import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -75,6 +76,7 @@ public class Executor {
     public <T extends Result> T execute(String clause, Map<String, Object> parameters, Class<T> clazz)
             throws SQLException {
 
+        long start = Instant.now().toEpochMilli();
         Query query = DSL.using(connection).parser().parseQuery(clause);
 
         try {
@@ -212,6 +214,10 @@ public class Executor {
         } finally {
 
             query.close();
+
+            long end = Instant.now().toEpochMilli();
+
+            logger.debug("A prepared statement was performed in {} ms.", end - start);
         }
     }
 
