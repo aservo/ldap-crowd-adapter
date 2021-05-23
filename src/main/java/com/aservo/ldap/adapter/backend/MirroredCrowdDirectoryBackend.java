@@ -19,6 +19,7 @@ package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
+import com.google.common.collect.Lists;
 import com.google.gson.*;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -187,7 +188,12 @@ public class MirroredCrowdDirectoryBackend
 
     private enum SyncState {
 
-        NO_SYNC, FOREIGN_SYNC, SYNC_START, SYNC_STOP,
+        NO_SYNC, FOREIGN_SYNC, SYNC_START, SYNC_STOP, SYNC_COMPLETE,
+    }
+
+    private enum AuditLogEntry {
+
+        SYNC_START, SYNC_STOP, SYNC_COMPLETE
     }
 
     @Override
@@ -275,7 +281,7 @@ public class MirroredCrowdDirectoryBackend
                     return;
                 }
 
-                AuditLogState state = auditLogProcessor.getAuditLogState();
+                AuditLogState state = auditLogProcessor.getAuditLogState(true);
 
                 if (state.equals(AuditLogState.FULL_UPDATE_REQUIRED)) {
 
@@ -349,6 +355,7 @@ public class MirroredCrowdDirectoryBackend
 
                 AuditLogState state = auditLogProcessor.updateConcurrent(() -> {
 
+                    boolean committed = false;
                     boolean lastPageDone = false;
                     int page = 0;
 
@@ -377,69 +384,76 @@ public class MirroredCrowdDirectoryBackend
                             String eventType = valueElement.getAsJsonObject().get("eventType").getAsString();
                             SyncState syncState = auditLogProcessor.getSynchronizationState(valueElement);
 
-                            if (syncState == SyncState.SYNC_STOP) {
+                            if (syncState == SyncState.SYNC_COMPLETE) {
+
+                                committed = true;
+
+                            } else if (syncState == SyncState.SYNC_STOP && committed) {
 
                                 lastPageDone = true;
                                 break;
 
-                            } else if (eventType.matches("(GROUP|USER)_(CREATED|UPDATED|DELETED)")) {
+                            } else if (syncState == SyncState.NO_SYNC) {
 
-                                for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
+                                if (eventType.matches("(GROUP|USER)_(CREATED|UPDATED|DELETED)")) {
 
-                                    String type = entity.getAsJsonObject().get("type").getAsString();
-                                    String name = entity.getAsJsonObject().get("name").getAsString();
+                                    for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
 
-                                    if (type.equals("GROUP")) {
+                                        String type = entity.getAsJsonObject().get("type").getAsString();
+                                        String name = entity.getAsJsonObject().get("name").getAsString();
 
-                                        if (eventType.equals("GROUP_CREATED") || eventType.equals("GROUP_UPDATED"))
-                                            deltaUpdateList.add(Pair.of(UpdateType.GROUP_VALIDATE, name));
-                                        else if (eventType.equals("GROUP_DELETED"))
-                                            deltaUpdateList.add(Pair.of(UpdateType.GROUP_INVALIDATE, name));
+                                        if (type.equals("GROUP")) {
 
-                                    } else if (type.equals("USER")) {
+                                            if (eventType.equals("GROUP_CREATED") || eventType.equals("GROUP_UPDATED"))
+                                                deltaUpdateList.add(Pair.of(UpdateType.GROUP_VALIDATE, name));
+                                            else if (eventType.equals("GROUP_DELETED"))
+                                                deltaUpdateList.add(Pair.of(UpdateType.GROUP_INVALIDATE, name));
 
-                                        if (eventType.equals("USER_CREATED") || eventType.equals("USER_UPDATED"))
-                                            deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, name));
-                                        else if (eventType.equals("USER_DELETED"))
-                                            deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, name));
+                                        } else if (type.equals("USER")) {
+
+                                            if (eventType.equals("USER_CREATED") || eventType.equals("USER_UPDATED"))
+                                                deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, name));
+                                            else if (eventType.equals("USER_DELETED"))
+                                                deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, name));
+                                        }
                                     }
-                                }
 
-                            } else if (eventType.matches("(ADDED_TO|REMOVED_FROM)_GROUP")) {
+                                } else if (eventType.matches("(ADDED_TO|REMOVED_FROM)_GROUP")) {
 
-                                String parentGroupId = null;
-                                Set<String> childGroupIds = new HashSet<>();
-                                Set<String> userIds = new HashSet<>();
+                                    String parentGroupId = null;
+                                    Set<String> childGroupIds = new HashSet<>();
+                                    Set<String> userIds = new HashSet<>();
 
-                                for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
+                                    for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
 
-                                    String type = entity.getAsJsonObject().get("type").getAsString();
-                                    String name = entity.getAsJsonObject().get("name").getAsString();
+                                        String type = entity.getAsJsonObject().get("type").getAsString();
+                                        String name = entity.getAsJsonObject().get("name").getAsString();
 
-                                    if (type.equals("GROUP")) {
+                                        if (type.equals("GROUP")) {
 
-                                        if (parentGroupId == null)
-                                            parentGroupId = name;
-                                        else
-                                            childGroupIds.add(name);
+                                            if (parentGroupId == null)
+                                                parentGroupId = name;
+                                            else
+                                                childGroupIds.add(name);
 
-                                    } else if (type.equals("USER")) {
+                                        } else if (type.equals("USER")) {
 
-                                        userIds.add(name);
+                                            userIds.add(name);
+                                        }
                                     }
-                                }
 
-                                if (parentGroupId == null)
-                                    logger.warn("Cannot find parent group to create membership object.");
-                                else {
+                                    if (parentGroupId == null)
+                                        logger.warn("Cannot find parent group to create membership object.");
+                                    else {
 
-                                    MembershipEntity membership =
-                                            new MembershipEntity(parentGroupId, childGroupIds, userIds);
+                                        MembershipEntity membership =
+                                                new MembershipEntity(parentGroupId, childGroupIds, userIds);
 
-                                    if (eventType.equals("ADDED_TO_GROUP"))
-                                        deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_VALIDATE, membership));
-                                    else if (eventType.equals("REMOVED_FROM_GROUP"))
-                                        deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_INVALIDATE, membership));
+                                        if (eventType.equals("ADDED_TO_GROUP"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_VALIDATE, membership));
+                                        else if (eventType.equals("REMOVED_FROM_GROUP"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_INVALIDATE, membership));
+                                    }
                                 }
                             }
                         }
@@ -457,7 +471,7 @@ public class MirroredCrowdDirectoryBackend
 
         private void downloadEntities(List<Pair<UpdateType, Object>> deltaUpdateList) {
 
-            for (Pair<UpdateType, Object> x : deltaUpdateList) {
+            for (Pair<UpdateType, Object> x : Lists.reverse(deltaUpdateList)) {
 
                 if (x.getLeft().equals(UpdateType.GROUP_VALIDATE) &&
                         x.getRight() instanceof String) {
@@ -523,19 +537,23 @@ public class MirroredCrowdDirectoryBackend
 
                 requireRetry = false;
 
-                setSynchronizationMarker(false);
+                setSynchronizationMarker(AuditLogEntry.SYNC_START);
                 aborted = supplier.get();
 
                 if (!aborted) {
 
-                    setSynchronizationMarker(true);
+                    setSynchronizationMarker(AuditLogEntry.SYNC_STOP);
 
-                    AuditLogState state = getAuditLogState();
+                    AuditLogState state = getAuditLogState(false);
 
                     if (state.equals(AuditLogState.CON_ISSUE))
                         return AuditLogState.CON_ISSUE;
 
-                    if (!state.equals(AuditLogState.UP_TO_DATE)) {
+                    if (state.equals(AuditLogState.UP_TO_DATE)) {
+
+                        setSynchronizationMarker(AuditLogEntry.SYNC_COMPLETE);
+
+                    } else {
 
                         logger.info("Retry synchronization.");
                         requireRetry = true;
@@ -551,10 +569,11 @@ public class MirroredCrowdDirectoryBackend
             return AuditLogState.UP_TO_DATE;
         }
 
-        public AuditLogState getAuditLogState() {
+        public AuditLogState getAuditLogState(boolean expectCommitted) {
 
             return repeatableRead(() -> {
 
+                boolean committed = !expectCommitted;
                 boolean changesFound = false;
                 boolean startedMarkerFound = false;
                 boolean finishedMarkerFound = false;
@@ -583,14 +602,19 @@ public class MirroredCrowdDirectoryBackend
 
                         SyncState syncState = getSynchronizationState(valueElement);
 
-                        if (syncState == SyncState.NO_SYNC) {
+                        if (syncState == SyncState.SYNC_COMPLETE) {
+
+                            committed = true;
+                            continue;
+
+                        } else if (syncState == SyncState.NO_SYNC) {
 
                             changesFound = true;
                             startedMarkerFound = false;
                             finishedMarkerFound = false;
                             continue;
 
-                        } else if (syncState == SyncState.FOREIGN_SYNC)
+                        } else if (syncState == SyncState.FOREIGN_SYNC || !committed)
                             continue;
 
                         if (syncState == SyncState.SYNC_START) {
@@ -621,7 +645,7 @@ public class MirroredCrowdDirectoryBackend
 
             String eventType = valueElement.getAsJsonObject().get("eventType").getAsString();
 
-            if (eventType.matches("SYNCHRONIZATION_(STARTED|FINISHED)")) {
+            if (eventType.matches("(SYNCHRONIZATION_(STARTED|FINISHED))|(COMPLETED)")) {
 
                 JsonArray entities = valueElement.getAsJsonObject().getAsJsonArray("entities");
 
@@ -648,6 +672,9 @@ public class MirroredCrowdDirectoryBackend
 
                 if (eventType.equals("SYNCHRONIZATION_FINISHED"))
                     return SyncState.SYNC_STOP;
+
+                if (eventType.equals("COMPLETED"))
+                    return SyncState.SYNC_COMPLETE;
             }
 
             return SyncState.NO_SYNC;
@@ -720,20 +747,25 @@ public class MirroredCrowdDirectoryBackend
             }
         }
 
-        private void setSynchronizationMarker(boolean finished) {
+        private void setSynchronizationMarker(AuditLogEntry entry) {
 
             JsonObject node = new JsonObject();
             JsonObject author = new JsonObject();
 
-            if (finished) {
+            if (entry == AuditLogEntry.SYNC_START) {
+
+                node.add("eventType", new JsonPrimitive("SYNCHRONIZATION_STARTED"));
+                node.add("eventMessage", new JsonPrimitive("Started synchronization with application"));
+
+            } else if (entry == AuditLogEntry.SYNC_STOP) {
 
                 node.add("eventType", new JsonPrimitive("SYNCHRONIZATION_FINISHED"));
                 node.add("eventMessage", new JsonPrimitive("Finished synchronization with application"));
 
-            } else {
+            } else if (entry == AuditLogEntry.SYNC_COMPLETE) {
 
-                node.add("eventType", new JsonPrimitive("SYNCHRONIZATION_STARTED"));
-                node.add("eventMessage", new JsonPrimitive("Started synchronization with application"));
+                node.add("eventType", new JsonPrimitive("COMPLETED"));
+                node.add("eventMessage", new JsonPrimitive("Committed last synchronization with application"));
             }
 
             node.add("entityType", new JsonPrimitive("APPLICATION"));
@@ -801,6 +833,7 @@ public class MirroredCrowdDirectoryBackend
             actions.add("REMOVED_FROM_GROUP");
             actions.add("SYNCHRONIZATION_STARTED");
             actions.add("SYNCHRONIZATION_FINISHED");
+            actions.add("COMPLETED");
 
             String queryString = "?start=" + (page * pageSize) + "&limit=" + pageSize;
             String route = "/rest/admin/1.0/auditlog/query" + queryString;
