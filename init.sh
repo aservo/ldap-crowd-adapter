@@ -2,10 +2,6 @@
 
 # basic settings
 
-if [ -n "$VAULT_TOKEN" ] && [ -n "$VAULT_TOKEN_TYPE" ]; then
-  VAULT_TOKEN="$VAULT_TOKEN_TYPE $VAULT_TOKEN"
-fi
-
 if [ -n "$LOGLEVEL" ]; then
   JAVA_OPTS="-Dloglevel=$LOGLEVEL $JAVA_OPTS"
 fi
@@ -36,9 +32,9 @@ if [ -n "$SERVER_SSL_KEY_STORE_PASSWORD" ]; then
   JAVA_OPTS="-Dssl.key-store-password=$SERVER_SSL_KEY_STORE_PASSWORD $JAVA_OPTS"
 fi
 
-if [ -n "$VAULT_HEADER" ] && [ -n "$VAULT_TOKEN" ] && [ -n "$VAULT_URI_SSL_CRT" ] && [ -n "$VAULT_URI_SSL_KEY" ]; then
-  curl -sSL -H "$VAULT_HEADER: $VAULT_TOKEN" -XGET "$VAULT_URI_SSL_CRT" | jq -r '.data.value' > "local.crt"
-  curl -sSL -H "$VAULT_HEADER: $VAULT_TOKEN" -XGET "$VAULT_URI_SSL_KEY" | jq -r '.data.value' > "local.key"
+if [ -n "$SSL_CRT" ] && [ -n "$SSL_KEY" ]; then
+  echo "$SSL_CRT" > "local.crt"
+  echo "$SSL_KEY" > "local.key"
   openssl pkcs12 -export -name "servercert" \
     -in "local.crt" -inkey "local.key" \
     -out local.keystore.p12 -passout "pass:changeit"
@@ -91,10 +87,6 @@ if [ -n "$CROWD_APP_NAME" ]; then
   JAVA_OPTS="-Dapplication.name=$CROWD_APP_NAME $JAVA_OPTS"
 fi
 
-if [ -n "$VAULT_HEADER" ] && [ -n "$VAULT_TOKEN" ] && [ -n "$VAULT_URI_CROWD_APP_PASSWORD" ]; then
-  CROWD_APP_PASSWORD="$(curl -sSL -H "$VAULT_HEADER: $VAULT_TOKEN" -XGET "$VAULT_URI_CROWD_APP_PASSWORD" | jq -r '.data.value')"
-fi
-
 if [ -n "$CROWD_APP_PASSWORD" ]; then
   JAVA_OPTS="-Dapplication.password=$CROWD_APP_PASSWORD $JAVA_OPTS"
 fi
@@ -133,10 +125,6 @@ if [ -n "$BACKEND_REST_USERNAME" ]; then
   JAVA_OPTS="-Drest.username=$BACKEND_REST_USERNAME $JAVA_OPTS"
 fi
 
-if [ -n "$VAULT_HEADER" ] && [ -n "$VAULT_TOKEN" ] && [ -n "$VAULT_URI_BACKEND_REST_USER_PASSWORD" ]; then
-  BACKEND_REST_USER_PASSWORD="$(curl -sSL -H "$VAULT_HEADER: $VAULT_TOKEN" -XGET "$VAULT_URI_BACKEND_REST_USER_PASSWORD" | jq -r '.data.value')"
-fi
-
 if [ -n "$BACKEND_REST_USER_PASSWORD" ]; then
   JAVA_OPTS="-Drest.user-password=$BACKEND_REST_USER_PASSWORD $JAVA_OPTS"
 fi
@@ -173,10 +161,6 @@ fi
 
 if [ -n "$BACKEND_JDBC_USER" ]; then
   JAVA_OPTS="-Ddatabase.jdbc.connection.user=$BACKEND_JDBC_USER $JAVA_OPTS"
-fi
-
-if [ -n "$VAULT_HEADER" ] && [ -n "$VAULT_TOKEN" ] && [ -n "$VAULT_URI_BACKEND_JDBC_PASSWORD" ]; then
-  BACKEND_JDBC_PASSWORD="$(curl -sSL -H "$VAULT_HEADER: $VAULT_TOKEN" -XGET "$VAULT_URI_BACKEND_JDBC_PASSWORD" | jq -r '.data.value')"
 fi
 
 if [ -n "$BACKEND_JDBC_PASSWORD" ]; then
