@@ -115,8 +115,8 @@ public class CommonLdapServer {
             directoryBackendFactory.startup();
             directoryService.startup();
 
+            // https://directory.apache.org/apacheds/configuration/ads-2.0-configuration.html
             LdapServer server = new LdapServer();
-
             Transport transport = new TcpTransport(serverConfig.getHost(), serverConfig.getPort());
 
             // SSL support
@@ -128,9 +128,13 @@ public class CommonLdapServer {
                 server.addExtendedOperationHandler(new StartTlsHandler());
             }
 
+            transport.setBackLog(serverConfig.getConnectionBackLog());
+            transport.setNbThreads(serverConfig.getConnectionActiveThreads());
             server.setTransports(transport);
             server.setDirectoryService(directoryService);
             server.setMaxSizeLimit(serverConfig.getResponseMaxSizeLimit());
+            server.setMaxTimeLimit(serverConfig.getResponseMaxTimeLimit());
+
             server.start();
 
         } catch (Exception e) {

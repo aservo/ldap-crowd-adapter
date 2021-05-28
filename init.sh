@@ -62,7 +62,19 @@ if [ -n "$SERVER_UNDEFINED_FILTER_EXPRESSION_RESULT" ]; then
 fi
 
 if [ -n "$SERVER_RESPONSE_MAX_SIZE_LIMIT" ]; then
-  JAVA_OPTS="-Dmode.response-max-size-limit=$SERVER_RESPONSE_MAX_SIZE_LIMIT $JAVA_OPTS"
+  JAVA_OPTS="-Dmode.response.max-size-limit=$SERVER_RESPONSE_MAX_SIZE_LIMIT $JAVA_OPTS"
+fi
+
+if [ -n "$SERVER_RESPONSE_MAX_TIME_LIMIT" ]; then
+  JAVA_OPTS="-Dmode.response.max-time-limit=$SERVER_RESPONSE_MAX_TIME_LIMIT $JAVA_OPTS"
+fi
+
+if [ -n "$SERVER_CONNECTION_BACK_LOG" ]; then
+  JAVA_OPTS="-Dmode.connection.back-log=$SERVER_CONNECTION_BACK_LOG $JAVA_OPTS"
+fi
+
+if [ -n "$SERVER_RESPONSE_ACTIVE_THREADS" ]; then
+  JAVA_OPTS="-Dmode.connection.active-threads=$SERVER_RESPONSE_ACTIVE_THREADS $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_DIRECTORY_BACKEND_PERMANENT" ]; then

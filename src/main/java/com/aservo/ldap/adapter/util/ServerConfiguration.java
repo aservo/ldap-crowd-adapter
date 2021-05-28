@@ -62,7 +62,19 @@ public class ServerConfiguration {
     /**
      * The constant CONFIG_RESPONSE_MAX_SIZE_LIMIT.
      */
-    public static final String CONFIG_RESPONSE_MAX_SIZE_LIMIT = "mode.response-max-size-limit";
+    public static final String CONFIG_RESPONSE_MAX_SIZE_LIMIT = "mode.response.max-size-limit";
+    /**
+     * The constant CONFIG_RESPONSE_MAX_TIME_LIMIT.
+     */
+    public static final String CONFIG_RESPONSE_MAX_TIME_LIMIT = "mode.response.max-time-limit";
+    /**
+     * The constant CONFIG_CONNECTION_BACK_LOG.
+     */
+    public static final String CONFIG_CONNECTION_BACK_LOG = "mode.connection.back-log";
+    /**
+     * The constant CONFIG_CONNECTION_ACTIVE_THREADS.
+     */
+    public static final String CONFIG_CONNECTION_ACTIVE_THREADS = "mode.connection.active-threads";
     /**
      * The constant CONFIG_DIRECTORY_BACKEND_PERMANENT.
      */
@@ -102,6 +114,9 @@ public class ServerConfiguration {
     private final boolean flattening;
     private final boolean undefFilterExprResult;
     private final int responseMaxSizeLimit;
+    private final int responseMaxTimeLimit;
+    private final int connectionBackLog;
+    private final int connectionActiveThreads;
     private final List<String> permanentDirectoryBackendClasses;
     private final List<String> sessionDirectoryBackendClasses;
     private final boolean abbreviateSn;
@@ -160,7 +175,17 @@ public class ServerConfiguration {
         undefFilterExprResult =
                 Boolean.parseBoolean(serverProperties.getProperty(CONFIG_UNDEFINED_FILTER_EXPRESSION_RESULT, "false"));
 
-        responseMaxSizeLimit = Integer.parseInt(serverProperties.getProperty(CONFIG_RESPONSE_MAX_SIZE_LIMIT, "100"));
+        responseMaxSizeLimit =
+                Integer.parseInt(serverProperties.getProperty(CONFIG_RESPONSE_MAX_SIZE_LIMIT, "50000"));
+
+         responseMaxTimeLimit =
+                 Integer.parseInt(serverProperties.getProperty(CONFIG_RESPONSE_MAX_SIZE_LIMIT, "1000"));
+
+         connectionBackLog =
+                 Integer.parseInt(serverProperties.getProperty(CONFIG_CONNECTION_BACK_LOG, "100"));
+
+         connectionActiveThreads =
+                 Integer.parseInt(serverProperties.getProperty(CONFIG_CONNECTION_ACTIVE_THREADS, "20"));
 
         if (responseMaxSizeLimit <= 0)
             throw new IllegalArgumentException("Expect value for " +
@@ -286,13 +311,43 @@ public class ServerConfiguration {
     }
 
     /**
-     * Gets the maximum size limit for responses.
+     * Gets the maximum number of entries for responses.
      *
      * @return the maximum number of entities
      */
     public int getResponseMaxSizeLimit() {
 
         return responseMaxSizeLimit;
+    }
+
+    /**
+     * Gets the maximum time in seconds before an operation is aborted.
+     *
+     * @return the maximum number of entities
+     */
+    public int getResponseMaxTimeLimit() {
+
+        return responseMaxTimeLimit;
+    }
+
+    /**
+     * Gets the number of incoming requests queued when all the threads are busy.
+     *
+     * @return the maximum number of entities
+     */
+    public int getConnectionBackLog() {
+
+        return connectionBackLog;
+    }
+
+    /**
+     * Gets the number of threads to use in the executor to handle the incoming requests.
+     *
+     * @return the maximum number of entities
+     */
+    public int getConnectionActiveThreads() {
+
+        return connectionActiveThreads;
     }
 
     /**
