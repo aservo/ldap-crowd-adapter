@@ -373,18 +373,6 @@ public class CachedInMemoryDirectoryBackend
     }
 
     @Override
-    public boolean isKnownGroup(String id) {
-
-        return entryCacheEnabled && groupIdToEntityCache.containsKey(id) || directoryBackend.isKnownGroup(id);
-    }
-
-    @Override
-    public boolean isKnownUser(String id) {
-
-        return entryCacheEnabled && userIdToEntityCache.containsKey(id) || directoryBackend.isKnownUser(id);
-    }
-
-    @Override
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 

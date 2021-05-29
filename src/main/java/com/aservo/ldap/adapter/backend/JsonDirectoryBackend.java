@@ -163,32 +163,6 @@ public class JsonDirectoryBackend
         userList.clear();
     }
 
-    public boolean isKnownGroup(String id) {
-
-        try {
-
-            findGroupById(id);
-            return true;
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
-
-    public boolean isKnownUser(String id) {
-
-        try {
-
-            findUserById(id);
-            return true;
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
-
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 

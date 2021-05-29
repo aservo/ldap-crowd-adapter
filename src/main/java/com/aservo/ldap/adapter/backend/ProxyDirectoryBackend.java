@@ -187,18 +187,6 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
-    public boolean isKnownGroup(String id) {
-
-        return directoryBackend.isKnownGroup(id);
-    }
-
-    @Override
-    public boolean isKnownUser(String id) {
-
-        return directoryBackend.isKnownUser(id);
-    }
-
-    @Override
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 

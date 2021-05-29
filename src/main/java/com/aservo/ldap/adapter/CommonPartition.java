@@ -419,7 +419,7 @@ public class CommonPartition
 
                 String groupId = LdapUtils.getGroupIdFromDn(schemaManager, directory, context.getDn().getName());
 
-                if (groupId != null && directory.isKnownGroup(groupId)) {
+                if (groupId != null) {
 
                     try {
 
@@ -439,7 +439,7 @@ public class CommonPartition
 
                 String userId = LdapUtils.getUserIdFromDn(schemaManager, directory, context.getDn().getName());
 
-                if (userId != null && directory.isKnownUser(userId)) {
+                if (userId != null) {
 
                     try {
 

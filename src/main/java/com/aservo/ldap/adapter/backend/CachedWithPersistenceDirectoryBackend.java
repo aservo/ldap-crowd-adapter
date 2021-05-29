@@ -526,37 +526,6 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
-    public boolean isKnownGroup(String id) {
-
-        QueryDefFactory factory = getCurrentQueryDefFactory();
-
-        boolean found = factory
-                .queryById("find_group")
-                .on("id", id)
-                .execute(SingleOptResult.class)
-                .transform(this::mapGroupEntity)
-                .isPresent();
-
-        return found || directoryBackend.isKnownGroup(id);
-    }
-
-    @Override
-    public boolean isKnownUser(String id) {
-
-        QueryDefFactory factory = getCurrentQueryDefFactory();
-
-        boolean found = factory
-                .queryById("find_user")
-                .on("id", id)
-                .on("active_only", activeUsersOnly)
-                .execute(SingleOptResult.class)
-                .transform(this::mapUserEntity)
-                .isPresent();
-
-        return found || directoryBackend.isKnownUser(id);
-    }
-
-    @Override
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 
