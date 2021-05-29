@@ -841,7 +841,7 @@ public class CachedWithPersistenceDirectoryBackend
             long id = Thread.currentThread().getId();
             T result;
 
-            logger.debug("Bind query definition factory to thread {}.", id);
+            logger.debug("[Thread ID {}] - Bind query definition factory to thread.", id);
 
             queryDefFactories.put(id, factory);
 

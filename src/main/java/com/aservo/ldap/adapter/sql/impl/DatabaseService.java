@@ -190,7 +190,8 @@ public class DatabaseService
 
         long end = Instant.now().toEpochMilli();
 
-        logger.debug("A transaction was performed in {} ms.", end - start);
+        logger.debug("[Thread ID {}] - A transaction was performed in {} ms.",
+                Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);
 
         return result;
     }

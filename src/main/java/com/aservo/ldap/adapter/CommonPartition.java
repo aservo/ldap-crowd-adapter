@@ -400,8 +400,8 @@ public class CommonPartition
     public ClonedServerEntry lookup(LookupOperationContext context)
             throws LdapException {
 
-        logger.debug("Lookup cache for entry with DN={}",
-                context.getDn().getName());
+        logger.debug("[Thread ID {}] - Perform lookup operation for entry with DN={}",
+                Thread.currentThread().getId(), context.getDn().getName());
 
         return directoryFactory.withSession(directory -> {
 
@@ -473,8 +473,8 @@ public class CommonPartition
     public boolean hasEntry(HasEntryOperationContext context)
             throws LdapException {
 
-        logger.debug("Check for existence of entry with DN={}",
-                context.getDn().getName());
+        logger.debug("[Thread ID {}] - Perform check for existence of entry with DN={}",
+                Thread.currentThread().getId(), context.getDn().getName());
 
         DirectoryBackend permanentDirectory = directoryFactory.getPermanentDirectory();
         Dn rootDn = LdapUtils.createDn(schemaManager, permanentDirectory, EntityType.DOMAIN);
@@ -538,6 +538,9 @@ public class CommonPartition
     }
 
     private List<Entry> findEntries(SearchOperationContext context, boolean ouOnly) {
+
+        logger.debug("[Thread ID {}] - Perform search for entries with DN={}",
+                Thread.currentThread().getId(), context.getDn().getName());
 
         return directoryFactory.withSession(directory -> {
 

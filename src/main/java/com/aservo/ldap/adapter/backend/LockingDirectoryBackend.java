@@ -55,7 +55,8 @@ public class LockingDirectoryBackend
 
         long end = Instant.now().toEpochMilli();
 
-        logger.debug("A read only session was performed in {} ms.", end - start);
+        logger.debug("[Thread ID {}] - A read only session was performed in {} ms.",
+                Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);
 
         return result;
     }
@@ -89,7 +90,8 @@ public class LockingDirectoryBackend
 
         long end = Instant.now().toEpochMilli();
 
-        logger.debug("A writing session was performed in {} ms.", end - start);
+        logger.debug("[Thread ID {}] - A writing session was performed in {} ms.",
+                Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);
 
         return result;
     }

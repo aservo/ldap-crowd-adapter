@@ -85,7 +85,8 @@ public class Executor {
 
             String sql = query.getSQL();
 
-            logger.debug("Apply dialect specific SQL statement: {}", sql);
+            logger.debug("[Thread ID {}] - Apply dialect specific SQL statement: {}",
+                    Thread.currentThread().getId(), sql);
 
             PreparedStatement statement = connection.prepareStatement(sql);
 
@@ -217,7 +218,8 @@ public class Executor {
 
             long end = Instant.now().toEpochMilli();
 
-            logger.debug("A prepared statement was performed in {} ms.", end - start);
+            logger.debug("[Thread ID {}] - A prepared statement was performed in {} ms.",
+                    Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);
         }
     }
 
