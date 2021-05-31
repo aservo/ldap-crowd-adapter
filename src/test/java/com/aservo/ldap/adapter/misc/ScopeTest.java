@@ -1,7 +1,7 @@
 package com.aservo.ldap.adapter.misc;
 
-import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
-import com.aservo.ldap.adapter.adapter.entity.UserEntity;
+import com.aservo.ldap.adapter.api.entity.GroupEntity;
+import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.helper.AbstractTest;
 import java.util.Arrays;
 import java.util.List;

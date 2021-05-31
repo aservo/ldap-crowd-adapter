@@ -1,6 +1,6 @@
 package com.aservo.ldap.adapter.misc;
 
-import com.aservo.ldap.adapter.adapter.entity.Entity;
+import com.aservo.ldap.adapter.api.entity.Entity;
 import com.aservo.ldap.adapter.helper.AbstractTest;
 import java.util.Arrays;
 import java.util.HashSet;

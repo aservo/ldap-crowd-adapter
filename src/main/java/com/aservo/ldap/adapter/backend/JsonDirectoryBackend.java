@@ -17,11 +17,11 @@
 
 package com.aservo.ldap.adapter.backend;
 
-import com.aservo.ldap.adapter.adapter.FilterMatcher;
-import com.aservo.ldap.adapter.adapter.entity.Entity;
-import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
-import com.aservo.ldap.adapter.adapter.entity.UserEntity;
-import com.aservo.ldap.adapter.adapter.query.FilterNode;
+import com.aservo.ldap.adapter.api.FilterMatcher;
+import com.aservo.ldap.adapter.api.entity.Entity;
+import com.aservo.ldap.adapter.api.entity.GroupEntity;
+import com.aservo.ldap.adapter.api.entity.UserEntity;
+import com.aservo.ldap.adapter.api.query.FilterNode;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;

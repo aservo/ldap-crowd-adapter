@@ -15,30 +15,21 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
+package com.aservo.ldap.adapter.api.database.result;
 
-import java.util.Optional;
+import java.util.List;
 
 
 /**
- * The no-operation converter is used by default.
+ * Result with processable values.
  */
-public class NoopConverter
-        implements Converter {
+public interface EnrichedResult
+        extends Result {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
-    }
-
-    public <T> Optional<T> write(T value) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
-    }
+    /**
+     * Gets the column names of the result.
+     *
+     * @return the column names
+     */
+    List<String> getColumns();
 }

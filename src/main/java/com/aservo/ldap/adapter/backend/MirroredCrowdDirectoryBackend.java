@@ -17,7 +17,7 @@
 
 package com.aservo.ldap.adapter.backend;
 
-import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
+import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.google.common.collect.Lists;
 import com.google.gson.*;

@@ -17,17 +17,17 @@
 
 package com.aservo.ldap.adapter.backend;
 
-import com.aservo.ldap.adapter.adapter.FilterMatcher;
-import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
-import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
-import com.aservo.ldap.adapter.adapter.entity.UserEntity;
-import com.aservo.ldap.adapter.adapter.query.FilterNode;
+import com.aservo.ldap.adapter.api.FilterMatcher;
+import com.aservo.ldap.adapter.api.database.QueryDefFactory;
+import com.aservo.ldap.adapter.api.database.Row;
+import com.aservo.ldap.adapter.api.database.result.IgnoredResult;
+import com.aservo.ldap.adapter.api.database.result.IndexedSeqResult;
+import com.aservo.ldap.adapter.api.database.result.SingleOptResult;
+import com.aservo.ldap.adapter.api.entity.GroupEntity;
+import com.aservo.ldap.adapter.api.entity.MembershipEntity;
+import com.aservo.ldap.adapter.api.entity.UserEntity;
+import com.aservo.ldap.adapter.api.query.FilterNode;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.sql.api.QueryDefFactory;
-import com.aservo.ldap.adapter.sql.api.Row;
-import com.aservo.ldap.adapter.sql.api.result.IgnoredResult;
-import com.aservo.ldap.adapter.sql.api.result.IndexedSeqResult;
-import com.aservo.ldap.adapter.sql.api.result.SingleOptResult;
 import com.aservo.ldap.adapter.sql.impl.DatabaseService;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.sql.Connection;

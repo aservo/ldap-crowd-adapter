@@ -15,30 +15,30 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
+package com.aservo.ldap.adapter.api.database;
 
-import java.util.Optional;
+import com.aservo.ldap.adapter.api.database.result.Result;
 
 
 /**
- * The no-operation converter is used by default.
+ * The query definition used to build queries in fluent style.
  */
-public class NoopConverter
-        implements Converter {
+public interface QueryDef {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
+    /**
+     * Adds an argument to the query.
+     *
+     * @param key   the ID of the parameter
+     * @param value the value of the parameter
+     * @return the query definition object
+     */
+    <T> QueryDef on(String key, T value);
 
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
-    }
-
-    public <T> Optional<T> write(T value) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
-    }
+    /**
+     * Executes a query.
+     *
+     * @param clazz the type of the expected result set
+     * @return the result set
+     */
+    <T extends Result> T execute(Class<T> clazz);
 }

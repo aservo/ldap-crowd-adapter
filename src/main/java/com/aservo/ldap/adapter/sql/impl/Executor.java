@@ -17,12 +17,11 @@
 
 package com.aservo.ldap.adapter.sql.impl;
 
-import com.aservo.ldap.adapter.sql.api.Converter;
-import com.aservo.ldap.adapter.sql.api.QueryDef;
-import com.aservo.ldap.adapter.sql.api.QueryDefFactory;
-import com.aservo.ldap.adapter.sql.api.Row;
-import com.aservo.ldap.adapter.sql.api.exception.UncheckedSQLException;
-import com.aservo.ldap.adapter.sql.api.result.*;
+import com.aservo.ldap.adapter.api.database.QueryDef;
+import com.aservo.ldap.adapter.api.database.QueryDefFactory;
+import com.aservo.ldap.adapter.api.database.Row;
+import com.aservo.ldap.adapter.api.database.exception.UncheckedSQLException;
+import com.aservo.ldap.adapter.api.database.result.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;

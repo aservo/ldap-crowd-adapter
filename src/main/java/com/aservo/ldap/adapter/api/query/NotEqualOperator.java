@@ -15,30 +15,22 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
-
-import java.util.Optional;
+package com.aservo.ldap.adapter.api.query;
 
 
-/**
- * The no-operation converter is used by default.
- */
-public class NoopConverter
-        implements Converter {
+public class NotEqualOperator
+        extends BinaryOperator {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
+    public NotEqualOperator(String attribute, String value) {
 
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
+        super(attribute, value);
     }
 
-    public <T> Optional<T> write(T value) {
+    public boolean check(String value) {
 
         if (value == null)
-            return null;
+            return false;
 
-        return Optional.of(value);
+        return !value.equalsIgnoreCase(getValue());
     }
 }

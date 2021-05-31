@@ -21,24 +21,24 @@ import java.util.Optional;
 
 
 /**
- * The no-operation converter is used by default.
+ * A converter to map complex types for comfortable database access.
  */
-public class NoopConverter
-        implements Converter {
+public interface Converter {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
+    /**
+     * Converts an argument to a database type.
+     *
+     * @param value the value which should be converted
+     * @param clazz the expected target type
+     * @return the optional result of a conversion
+     */
+    <T> Optional<T> read(Object value, Class<T> clazz);
 
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
-    }
-
-    public <T> Optional<T> write(T value) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
-    }
+    /**
+     * Converts from a database type.
+     *
+     * @param value the value which should be converted
+     * @return the optional result of a conversion
+     */
+    <T> Optional<T> write(T value);
 }

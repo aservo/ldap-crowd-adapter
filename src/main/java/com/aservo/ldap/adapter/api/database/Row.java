@@ -15,30 +15,20 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
-
-import java.util.Optional;
+package com.aservo.ldap.adapter.api.database;
 
 
 /**
- * The no-operation converter is used by default.
+ * The database row used for type mapping.
  */
-public class NoopConverter
-        implements Converter {
+public interface Row {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
-    }
-
-    public <T> Optional<T> write(T value) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
-    }
+    /**
+     * Returns the value of a column in this row.
+     *
+     * @param column the column name
+     * @param clazz  the type expected for a column
+     * @return the value of a column
+     */
+    <T> T apply(String column, Class<T> clazz);
 }

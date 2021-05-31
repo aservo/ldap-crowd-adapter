@@ -22,8 +22,8 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.adapter.LdapUtils;
-import com.aservo.ldap.adapter.adapter.entity.UserEntity;
+import com.aservo.ldap.adapter.api.LdapUtils;
+import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;

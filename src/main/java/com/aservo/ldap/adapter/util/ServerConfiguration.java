@@ -178,14 +178,14 @@ public class ServerConfiguration {
         responseMaxSizeLimit =
                 Integer.parseInt(serverProperties.getProperty(CONFIG_RESPONSE_MAX_SIZE_LIMIT, "50000"));
 
-         responseMaxTimeLimit =
-                 Integer.parseInt(serverProperties.getProperty(CONFIG_RESPONSE_MAX_SIZE_LIMIT, "1000"));
+        responseMaxTimeLimit =
+                Integer.parseInt(serverProperties.getProperty(CONFIG_RESPONSE_MAX_SIZE_LIMIT, "1000"));
 
-         connectionBackLog =
-                 Integer.parseInt(serverProperties.getProperty(CONFIG_CONNECTION_BACK_LOG, "100"));
+        connectionBackLog =
+                Integer.parseInt(serverProperties.getProperty(CONFIG_CONNECTION_BACK_LOG, "100"));
 
-         connectionActiveThreads =
-                 Integer.parseInt(serverProperties.getProperty(CONFIG_CONNECTION_ACTIVE_THREADS, "20"));
+        connectionActiveThreads =
+                Integer.parseInt(serverProperties.getProperty(CONFIG_CONNECTION_ACTIVE_THREADS, "20"));
 
         if (responseMaxSizeLimit <= 0)
             throw new IllegalArgumentException("Expect value for " +

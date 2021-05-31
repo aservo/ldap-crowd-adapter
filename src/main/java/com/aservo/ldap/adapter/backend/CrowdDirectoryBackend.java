@@ -17,15 +17,15 @@
 
 package com.aservo.ldap.adapter.backend;
 
-import com.aservo.ldap.adapter.adapter.FilterMatcher;
-import com.aservo.ldap.adapter.adapter.LdapUtils;
-import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
-import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
-import com.aservo.ldap.adapter.adapter.entity.UserEntity;
-import com.aservo.ldap.adapter.adapter.query.AndLogicExpression;
-import com.aservo.ldap.adapter.adapter.query.EqualOperator;
-import com.aservo.ldap.adapter.adapter.query.FilterNode;
-import com.aservo.ldap.adapter.adapter.query.OrLogicExpression;
+import com.aservo.ldap.adapter.api.FilterMatcher;
+import com.aservo.ldap.adapter.api.LdapUtils;
+import com.aservo.ldap.adapter.api.entity.GroupEntity;
+import com.aservo.ldap.adapter.api.entity.MembershipEntity;
+import com.aservo.ldap.adapter.api.entity.UserEntity;
+import com.aservo.ldap.adapter.api.query.AndLogicExpression;
+import com.aservo.ldap.adapter.api.query.EqualOperator;
+import com.aservo.ldap.adapter.api.query.FilterNode;
+import com.aservo.ldap.adapter.api.query.OrLogicExpression;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;

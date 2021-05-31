@@ -1,8 +1,8 @@
 package com.aservo.ldap.adapter.misc;
 
-import com.aservo.ldap.adapter.adapter.LdapUtils;
-import com.aservo.ldap.adapter.adapter.entity.GroupEntity;
-import com.aservo.ldap.adapter.adapter.entity.UserEntity;
+import com.aservo.ldap.adapter.api.LdapUtils;
+import com.aservo.ldap.adapter.api.entity.GroupEntity;
+import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.helper.AbstractTest;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.Attributes;

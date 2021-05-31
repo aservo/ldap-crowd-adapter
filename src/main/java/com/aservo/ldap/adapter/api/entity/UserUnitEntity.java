@@ -15,30 +15,34 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
+package com.aservo.ldap.adapter.api.entity;
 
-import java.util.Optional;
+import com.aservo.ldap.adapter.api.LdapUtils;
 
 
 /**
- * The no-operation converter is used by default.
+ * The user unit entity.
  */
-public class NoopConverter
-        implements Converter {
+public class UserUnitEntity
+        extends UnitEntity {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
+    /**
+     * Instantiates a new Unit.
+     *
+     * @param description the description
+     */
+    public UserUnitEntity(String description) {
 
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
+        super(LdapUtils.OU_USERS, description);
     }
 
-    public <T> Optional<T> write(T value) {
+    /**
+     * Gets the entity type.
+     *
+     * @return the entity type
+     */
+    public EntityType getEntityType() {
 
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
+        return EntityType.USER_UNIT;
     }
 }

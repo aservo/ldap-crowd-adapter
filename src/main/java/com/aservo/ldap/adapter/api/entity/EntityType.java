@@ -15,30 +15,13 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
-
-import java.util.Optional;
+package com.aservo.ldap.adapter.api.entity;
 
 
 /**
- * The no-operation converter is used by default.
+ * The enumeration for all supported entity types.
  */
-public class NoopConverter
-        implements Converter {
+public enum EntityType {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
-    }
-
-    public <T> Optional<T> write(T value) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
-    }
+    DOMAIN, GROUP_UNIT, USER_UNIT, GROUP, USER;
 }

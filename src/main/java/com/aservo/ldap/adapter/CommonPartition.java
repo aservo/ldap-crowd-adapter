@@ -22,12 +22,12 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.adapter.FilterMatcher;
-import com.aservo.ldap.adapter.adapter.LdapUtils;
-import com.aservo.ldap.adapter.adapter.entity.*;
-import com.aservo.ldap.adapter.adapter.query.AndLogicExpression;
-import com.aservo.ldap.adapter.adapter.query.EqualOperator;
-import com.aservo.ldap.adapter.adapter.query.FilterNode;
+import com.aservo.ldap.adapter.api.FilterMatcher;
+import com.aservo.ldap.adapter.api.LdapUtils;
+import com.aservo.ldap.adapter.api.entity.*;
+import com.aservo.ldap.adapter.api.query.AndLogicExpression;
+import com.aservo.ldap.adapter.api.query.EqualOperator;
+import com.aservo.ldap.adapter.api.query.FilterNode;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;

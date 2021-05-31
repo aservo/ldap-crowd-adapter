@@ -15,30 +15,23 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
+package com.aservo.ldap.adapter.api.database.result;
 
-import java.util.Optional;
+import com.aservo.ldap.adapter.api.database.Row;
+import java.util.function.Function;
 
 
 /**
- * The no-operation converter is used by default.
+ * Result for a single value.
  */
-public class NoopConverter
-        implements Converter {
+public interface SingleResult
+        extends EnrichedResult {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
-    }
-
-    public <T> Optional<T> write(T value) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
-    }
+    /**
+     * Transforms rows to expected types.
+     *
+     * @param f the function used to map a single row
+     * @return the value of an expected type
+     */
+    <T> T transform(Function<Row, T> f);
 }

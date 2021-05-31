@@ -15,30 +15,16 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
+package com.aservo.ldap.adapter.api.query;
 
-import java.util.Optional;
+import java.util.List;
 
 
-/**
- * The no-operation converter is used by default.
- */
-public class NoopConverter
-        implements Converter {
+public class NotLogicExpression
+        extends LogicExpression {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
+    public NotLogicExpression(List<FilterNode> children) {
 
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
-    }
-
-    public <T> Optional<T> write(T value) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
+        super(children);
     }
 }

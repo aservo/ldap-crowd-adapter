@@ -17,11 +17,11 @@
 
 package com.aservo.ldap.adapter.sql.impl;
 
-import com.aservo.ldap.adapter.sql.api.QueryDefFactory;
-import com.aservo.ldap.adapter.sql.api.Transactional;
-import com.aservo.ldap.adapter.sql.api.exception.UncheckedSQLException;
-import com.aservo.ldap.adapter.sql.api.result.IgnoredResult;
-import com.aservo.ldap.adapter.sql.api.result.IndexedSeqResult;
+import com.aservo.ldap.adapter.api.database.QueryDefFactory;
+import com.aservo.ldap.adapter.api.database.Transactional;
+import com.aservo.ldap.adapter.api.database.exception.UncheckedSQLException;
+import com.aservo.ldap.adapter.api.database.result.IgnoredResult;
+import com.aservo.ldap.adapter.api.database.result.IndexedSeqResult;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.InputStream;

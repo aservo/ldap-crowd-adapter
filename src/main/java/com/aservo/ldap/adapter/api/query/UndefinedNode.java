@@ -15,30 +15,32 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
+package com.aservo.ldap.adapter.api.query;
 
-import java.util.Optional;
+import java.util.Objects;
 
 
-/**
- * The no-operation converter is used by default.
- */
-public class NoopConverter
-        implements Converter {
+public class UndefinedNode
+        implements FilterNode {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
+    @Override
+    public boolean equals(Object that) {
 
-        if (value == null)
-            return null;
+        if (this == that)
+            return true;
 
-        return Optional.of((T) value);
+        if (that == null)
+            return false;
+
+        if (this.getClass() != that.getClass())
+            return false;
+
+        return true;
     }
 
-    public <T> Optional<T> write(T value) {
+    @Override
+    public int hashCode() {
 
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
+        return Objects.hash(this.getClass().getSimpleName());
     }
 }

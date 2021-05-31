@@ -17,7 +17,7 @@
 
 package com.aservo.ldap.adapter.backend;
 
-import com.aservo.ldap.adapter.adapter.entity.MembershipEntity;
+import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import java.util.List;
 import java.util.function.Supplier;
 import javax.naming.OperationNotSupportedException;

@@ -15,30 +15,34 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
-
-import java.util.Optional;
+package com.aservo.ldap.adapter.api.entity;
 
 
-/**
- * The no-operation converter is used by default.
- */
-public class NoopConverter
-        implements Converter {
+public abstract class UnitEntity
+        extends Entity
+        implements DescribableEntity {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
+    private final String description;
 
-        if (value == null)
-            return null;
+    /**
+     * Instantiates a new Unit.
+     *
+     * @param id          the id
+     * @param description the description
+     */
+    public UnitEntity(String id, String description) {
 
-        return Optional.of((T) value);
+        super(id);
+        this.description = description;
     }
 
-    public <T> Optional<T> write(T value) {
+    /**
+     * Gets description.
+     *
+     * @return the description
+     */
+    public String getDescription() {
 
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
+        return description;
     }
 }

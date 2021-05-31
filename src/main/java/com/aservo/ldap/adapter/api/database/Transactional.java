@@ -15,30 +15,29 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.sql.impl;
+package com.aservo.ldap.adapter.api.database;
 
-import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 
 /**
- * The no-operation converter is used by default.
+ * The transactional access definition.
  */
-public class NoopConverter
-        implements Converter {
+public interface Transactional {
 
-    public <T> Optional<T> read(Object value, Class<T> clazz) {
+    /**
+     * Creates a transaction for the lifetime of a code block.
+     *
+     * @param block the code block
+     * @return the return value of the code block
+     */
+    <T> T withTransaction(Function<QueryDefFactory, T> block);
 
-        if (value == null)
-            return null;
-
-        return Optional.of((T) value);
-    }
-
-    public <T> Optional<T> write(T value) {
-
-        if (value == null)
-            return null;
-
-        return Optional.of(value);
-    }
+    /**
+     * Creates a transaction for the lifetime of a code block.
+     *
+     * @param block the code block
+     */
+    void withTransaction(Consumer<QueryDefFactory> block);
 }
