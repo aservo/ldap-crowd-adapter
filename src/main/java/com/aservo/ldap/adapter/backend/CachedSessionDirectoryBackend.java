@@ -40,6 +40,11 @@ public class CachedSessionDirectoryBackend
     private boolean initTransitiveUserRelationships = false;
     private boolean initTransitiveGroupRelationships = false;
 
+    private int usesToCacheDirectUserRelationships = 3;
+    private int usesToCacheDirectGroupRelationships = 3;
+    private int usesToCacheTransitiveUserRelationships = 1;
+    private int usesToCacheTransitiveGroupRelationships = 1;
+
     /**
      * Instantiates a new directory backend.
      *
@@ -55,6 +60,12 @@ public class CachedSessionDirectoryBackend
     public List<String> getDirectUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
+        // below the configured number of queries, we use direct calls, then we start caching
+        if (usesToCacheDirectUserRelationships > 0) {
+            usesToCacheDirectUserRelationships--;
+            return directoryBackend.getDirectUserNamesOfGroup(id);
+        }
+
         updateDirectUserRelationships();
 
         if (!directUsersOfGroup.containsKey(id))
@@ -66,6 +77,12 @@ public class CachedSessionDirectoryBackend
     @Override
     public List<String> getDirectGroupNamesOfUser(String id)
             throws EntityNotFoundException {
+
+        // below the configured number of queries, we use direct calls, then we start caching
+        if (usesToCacheDirectUserRelationships > 0) {
+            usesToCacheDirectUserRelationships--;
+            return directoryBackend.getDirectGroupNamesOfUser(id);
+        }
 
         updateDirectUserRelationships();
 
@@ -79,6 +96,12 @@ public class CachedSessionDirectoryBackend
     public List<String> getDirectChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
+        // below the configured number of queries, we use direct calls, then we start caching
+        if (usesToCacheDirectGroupRelationships > 0) {
+            usesToCacheDirectGroupRelationships--;
+            return directoryBackend.getDirectChildGroupNamesOfGroup(id);
+        }
+
         updateDirectGroupRelationships();
 
         if (!directChildGroupsOfGroup.containsKey(id))
@@ -90,6 +113,12 @@ public class CachedSessionDirectoryBackend
     @Override
     public List<String> getDirectParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
+
+        // below the configured number of queries, we use direct calls, then we start caching
+        if (usesToCacheDirectGroupRelationships > 0) {
+            usesToCacheDirectGroupRelationships--;
+            return directoryBackend.getDirectParentGroupNamesOfGroup(id);
+        }
 
         updateDirectGroupRelationships();
 
@@ -103,6 +132,12 @@ public class CachedSessionDirectoryBackend
     public List<String> getTransitiveUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
+        // below the configured number of queries, we use direct calls, then we start caching
+        if (usesToCacheTransitiveUserRelationships > 0) {
+            usesToCacheTransitiveUserRelationships--;
+            return directoryBackend.getTransitiveUserNamesOfGroup(id);
+        }
+
         updateTransitiveUserRelationships();
 
         if (!transitiveUsersOfGroup.containsKey(id))
@@ -114,6 +149,12 @@ public class CachedSessionDirectoryBackend
     @Override
     public List<String> getTransitiveGroupNamesOfUser(String id)
             throws EntityNotFoundException {
+
+        // below the configured number of queries, we use direct calls, then we start caching
+        if (usesToCacheTransitiveUserRelationships > 0) {
+            usesToCacheTransitiveUserRelationships--;
+            return directoryBackend.getTransitiveGroupNamesOfUser(id);
+        }
 
         updateTransitiveUserRelationships();
 
@@ -127,6 +168,12 @@ public class CachedSessionDirectoryBackend
     public List<String> getTransitiveChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
+        // below the configured number of queries, we use direct calls, then we start caching
+        if (usesToCacheTransitiveGroupRelationships > 0) {
+            usesToCacheTransitiveGroupRelationships--;
+            return directoryBackend.getTransitiveChildGroupNamesOfGroup(id);
+        }
+
         updateTransitiveGroupRelationships();
 
         if (!transitiveChildGroupsOfGroup.containsKey(id))
@@ -138,6 +185,12 @@ public class CachedSessionDirectoryBackend
     @Override
     public List<String> getTransitiveParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
+
+        // below the configured number of queries, we use direct calls, then we start caching
+        if (usesToCacheTransitiveGroupRelationships > 0) {
+            usesToCacheTransitiveGroupRelationships--;
+            return directoryBackend.getTransitiveParentGroupNamesOfGroup(id);
+        }
 
         updateTransitiveGroupRelationships();
 
@@ -197,6 +250,8 @@ public class CachedSessionDirectoryBackend
 
             initDirectUserRelationships = true;
 
+            usesToCacheDirectUserRelationships = 0;
+
             directoryBackend.getAllDirectUserRelationships()
                     .forEach(x -> updateCache(x, directUsersOfGroup, directGroupsOfUser));
         }
@@ -207,6 +262,8 @@ public class CachedSessionDirectoryBackend
         if (!initDirectGroupRelationships) {
 
             initDirectGroupRelationships = true;
+
+            usesToCacheDirectGroupRelationships = 0;
 
             directoryBackend.getAllDirectGroupRelationships()
                     .forEach(x -> updateCache(x, directChildGroupsOfGroup, directParentGroupsOfGroup));
@@ -219,6 +276,8 @@ public class CachedSessionDirectoryBackend
 
             initTransitiveUserRelationships = true;
 
+            usesToCacheTransitiveUserRelationships = 0;
+
             directoryBackend.getAllTransitiveUserRelationships()
                     .forEach(x -> updateCache(x, transitiveUsersOfGroup, transitiveGroupsOfUser));
         }
@@ -229,6 +288,8 @@ public class CachedSessionDirectoryBackend
         if (!initTransitiveGroupRelationships) {
 
             initTransitiveGroupRelationships = true;
+
+            usesToCacheTransitiveGroupRelationships = 0;
 
             directoryBackend.getAllTransitiveGroupRelationships()
                     .forEach(x -> updateCache(x, transitiveChildGroupsOfGroup, transitiveParentGroupsOfGroup));
