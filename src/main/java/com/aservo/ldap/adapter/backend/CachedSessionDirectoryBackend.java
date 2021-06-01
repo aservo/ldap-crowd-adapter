@@ -21,10 +21,14 @@ import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.*;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class CachedSessionDirectoryBackend
         extends CachedDirectoryBackend {
+
+    private final Logger logger = LoggerFactory.getLogger(CachedSessionDirectoryBackend.class);
 
     private static final int directCacheHashMapInitialSize = 8192;
     private static final int transitiveCacheHashMapInitialSize = 8192;
@@ -58,11 +62,15 @@ public class CachedSessionDirectoryBackend
     public CachedSessionDirectoryBackend(ServerConfiguration config, NestedDirectoryBackend directoryBackend) {
 
         super(config, directoryBackend);
+
+        logger.debug("[Thread ID {}] - Create new CachedSessionDirectoryBackend.", Thread.currentThread().getId());
     }
 
     @Override
     public List<String> getDirectUserNamesOfGroup(String id)
             throws EntityNotFoundException {
+
+        logger.debug("[Thread ID {}] - getDirectUserIdsOfGroup", Thread.currentThread().getId());
 
         // below the configured number of queries, we use direct calls, then we start caching
         if (usesToCacheDirectUserRelationships > 0) {
@@ -82,6 +90,8 @@ public class CachedSessionDirectoryBackend
     public List<String> getDirectGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
+        logger.debug("[Thread ID {}] - getDirectGroupIdsOfUser", Thread.currentThread().getId());
+
         // below the configured number of queries, we use direct calls, then we start caching
         if (usesToCacheDirectUserRelationships > 0) {
             usesToCacheDirectUserRelationships--;
@@ -99,6 +109,8 @@ public class CachedSessionDirectoryBackend
     @Override
     public List<String> getDirectChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
+
+        logger.debug("[Thread ID {}] - getDirectChildGroupIdsOfGroup", Thread.currentThread().getId());
 
         // below the configured number of queries, we use direct calls, then we start caching
         if (usesToCacheDirectGroupRelationships > 0) {
@@ -118,6 +130,8 @@ public class CachedSessionDirectoryBackend
     public List<String> getDirectParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
+        logger.debug("[Thread ID {}] - getDirectParentGroupIdsOfGroup", Thread.currentThread().getId());
+
         // below the configured number of queries, we use direct calls, then we start caching
         if (usesToCacheDirectGroupRelationships > 0) {
             usesToCacheDirectGroupRelationships--;
@@ -135,6 +149,8 @@ public class CachedSessionDirectoryBackend
     @Override
     public List<String> getTransitiveUserNamesOfGroup(String id)
             throws EntityNotFoundException {
+
+        logger.debug("[Thread ID {}] - getTransitiveUserIdsOfGroup", Thread.currentThread().getId());
 
         // below the configured number of queries, we use direct calls, then we start caching
         if (usesToCacheTransitiveUserRelationships > 0) {
@@ -154,6 +170,8 @@ public class CachedSessionDirectoryBackend
     public List<String> getTransitiveGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
+        logger.debug("[Thread ID {}] - getTransitiveGroupIdsOfUser", Thread.currentThread().getId());
+
         // below the configured number of queries, we use direct calls, then we start caching
         if (usesToCacheTransitiveUserRelationships > 0) {
             usesToCacheTransitiveUserRelationships--;
@@ -172,6 +190,8 @@ public class CachedSessionDirectoryBackend
     public List<String> getTransitiveChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
+        logger.debug("[Thread ID {}] - getTransitiveChildGroupIdsOfGroup", Thread.currentThread().getId());
+
         // below the configured number of queries, we use direct calls, then we start caching
         if (usesToCacheTransitiveGroupRelationships > 0) {
             usesToCacheTransitiveGroupRelationships--;
@@ -189,6 +209,8 @@ public class CachedSessionDirectoryBackend
     @Override
     public List<String> getTransitiveParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
+
+        logger.debug("[Thread ID {}] - getTransitiveParentGroupIdsOfGroup", Thread.currentThread().getId());
 
         // below the configured number of queries, we use direct calls, then we start caching
         if (usesToCacheTransitiveGroupRelationships > 0) {
@@ -250,6 +272,8 @@ public class CachedSessionDirectoryBackend
 
     private void updateDirectUserRelationships() {
 
+        logger.debug("[Thread ID {}] - updateDirectUserRelationships", Thread.currentThread().getId());
+        
         if (!initDirectUserRelationships) {
 
             initDirectUserRelationships = true;
@@ -262,6 +286,8 @@ public class CachedSessionDirectoryBackend
     }
 
     private void updateDirectGroupRelationships() {
+
+        logger.debug("[Thread ID {}] - updateDirectGroupRelationships", Thread.currentThread().getId());
 
         if (!initDirectGroupRelationships) {
 
@@ -276,6 +302,8 @@ public class CachedSessionDirectoryBackend
 
     private void updateTransitiveUserRelationships() {
 
+        logger.debug("[Thread ID {}] - updateTransitiveUserRelationships", Thread.currentThread().getId());
+
         if (!initTransitiveUserRelationships) {
 
             initTransitiveUserRelationships = true;
@@ -288,6 +316,8 @@ public class CachedSessionDirectoryBackend
     }
 
     private void updateTransitiveGroupRelationships() {
+
+        logger.debug("[Thread ID {}] - updateTransitiveGroupRelationships", Thread.currentThread().getId());
 
         if (!initTransitiveGroupRelationships) {
 
