@@ -26,14 +26,18 @@ import org.apache.commons.lang3.tuple.Pair;
 public class CachedSessionDirectoryBackend
         extends CachedDirectoryBackend {
 
-    private final Map<String, Set<String>> directUsersOfGroup = new HashMap<>();
-    private final Map<String, Set<String>> directGroupsOfUser = new HashMap<>();
-    private final Map<String, Set<String>> directChildGroupsOfGroup = new HashMap<>();
-    private final Map<String, Set<String>> directParentGroupsOfGroup = new HashMap<>();
-    private final Map<String, Set<String>> transitiveUsersOfGroup = new HashMap<>();
-    private final Map<String, Set<String>> transitiveGroupsOfUser = new HashMap<>();
-    private final Map<String, Set<String>> transitiveChildGroupsOfGroup = new HashMap<>();
-    private final Map<String, Set<String>> transitiveParentGroupsOfGroup = new HashMap<>();
+    private static final int directCacheHashMapInitialSize = 8192;
+    private static final int transitiveCacheHashMapInitialSize = 8192;
+    private static final int cacheEntryHashSetInitialSize = 16;
+
+    private final Map<String, Set<String>> directUsersOfGroup = new HashMap<>(directCacheHashMapInitialSize);
+    private final Map<String, Set<String>> directGroupsOfUser = new HashMap<>(directCacheHashMapInitialSize);
+    private final Map<String, Set<String>> directChildGroupsOfGroup = new HashMap<>(directCacheHashMapInitialSize);
+    private final Map<String, Set<String>> directParentGroupsOfGroup = new HashMap<>(directCacheHashMapInitialSize);
+    private final Map<String, Set<String>> transitiveUsersOfGroup = new HashMap<>(transitiveCacheHashMapInitialSize);
+    private final Map<String, Set<String>> transitiveGroupsOfUser = new HashMap<>(transitiveCacheHashMapInitialSize);
+    private final Map<String, Set<String>> transitiveChildGroupsOfGroup = new HashMap<>(transitiveCacheHashMapInitialSize);
+    private final Map<String, Set<String>> transitiveParentGroupsOfGroup = new HashMap<>(transitiveCacheHashMapInitialSize);
 
     private boolean initDirectUserRelationships = false;
     private boolean initDirectGroupRelationships = false;
@@ -302,10 +306,10 @@ public class CachedSessionDirectoryBackend
             Map<String, Set<String>> cacheReverse) {
 
         if (!cache.containsKey(pair.getLeft()))
-            cache.put(pair.getLeft(), new HashSet<>());
+            cache.put(pair.getLeft(), new HashSet<>(cacheEntryHashSetInitialSize));
 
         if (!cacheReverse.containsKey(pair.getRight()))
-            cacheReverse.put(pair.getRight(), new HashSet<>());
+            cacheReverse.put(pair.getRight(), new HashSet<>(cacheEntryHashSetInitialSize));
 
         cache.get(pair.getLeft()).add(pair.getRight());
         cacheReverse.get(pair.getRight()).add(pair.getLeft());
