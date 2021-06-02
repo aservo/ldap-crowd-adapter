@@ -183,3 +183,9 @@ from _User_Membership_Transitive m
 inner join _User u
   on u.id = m.member_user_id
 where u.active or :active_only = false
+
+--[ID: refresh_materialized_view_for_transitive_group_memberships]--
+NATIVE_SQL:refresh materialized view concurrently _Group_Membership_Transitive
+
+--[ID: refresh_materialized_view_for_transitive_user_memberships]--
+NATIVE_SQL:refresh materialized view concurrently _User_Membership_Transitive

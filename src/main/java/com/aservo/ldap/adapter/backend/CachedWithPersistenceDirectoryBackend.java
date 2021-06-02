@@ -202,13 +202,32 @@ public class CachedWithPersistenceDirectoryBackend
     @Override
     public <T> T withWriteAccess(Supplier<T> block) {
 
-        return processTransaction(block);
+        return processTransaction(() -> {
+
+            T result = block.get();
+
+            QueryDefFactory factory = getCurrentQueryDefFactory();
+
+            logger.debug("Starting materialized views refresh.");
+
+            factory
+                    .queryById("refresh_materialized_view_for_transitive_group_memberships")
+                    .execute(IgnoredResult.class);
+
+            factory
+                    .queryById("refresh_materialized_view_for_transitive_user_memberships")
+                    .execute(IgnoredResult.class);
+            
+            logger.debug("Finished materialized views refresh.");
+
+            return result;
+        });
     }
 
     @Override
     public void withWriteAccess(Runnable block) {
 
-        processTransaction(() -> {
+        withWriteAccess(() -> {
 
             block.run();
             return null;

@@ -53,6 +53,8 @@ public class Executor {
     private final Converter converter;
     private final Map<String, String> clauses;
 
+    private static final String NATIVE_SQL_INDICATOR = "NATIVE_SQL:";
+
     public Executor(Logger logger, Connection connection, Converter converter, String resourcePath) {
 
         this.logger = logger;
@@ -75,16 +77,35 @@ public class Executor {
     public <T extends Result> T execute(String clause, Map<String, Object> parameters, Class<T> clazz)
             throws SQLException {
 
+        Query query = null;
+        String sql = null;
         long start = Instant.now().toEpochMilli();
-        Query query = DSL.using(connection).parser().parseQuery(clause);
+
+        String trimmedClause = clause.trim();
+
+        if (trimmedClause.startsWith(NATIVE_SQL_INDICATOR)) {
+
+            sql = trimmedClause.substring(NATIVE_SQL_INDICATOR.length()).trim();
+
+        } else {
+
+            logger.debug("[Thread ID {}] - Parse dialect free SQL statement:\n{}",
+                    Thread.currentThread().getId(), trimmedClause);
+
+            query = DSL.using(connection).parser().parseQuery(trimmedClause);
+        }
 
         try {
 
-            findBinding(query, parameters);
+            if (query != null) {
 
-            String sql = query.getSQL();
+                findBinding(query, parameters);
 
-            logger.debug("[Thread ID {}] - Apply dialect specific SQL statement: {}",
+                sql = query.getSQL();
+
+            }
+
+            logger.debug("[Thread ID {}] - Apply dialect specific SQL statement:\n{}",
                     Thread.currentThread().getId(), sql);
 
             PreparedStatement statement = connection.prepareStatement(sql);
@@ -93,7 +114,13 @@ public class Executor {
 
                 Result concreteResult;
 
-                setValues(statement, query.getBindValues());
+                if (query != null) {
+
+                    setValues(statement, query.getBindValues());
+
+                } else {
+                    // TODO: support parameters for native SQL statements
+                }
 
                 statement.execute();
 
@@ -213,7 +240,8 @@ public class Executor {
 
         } finally {
 
-            query.close();
+            if (query != null)
+                query.close();
 
             long end = Instant.now().toEpochMilli();
 
