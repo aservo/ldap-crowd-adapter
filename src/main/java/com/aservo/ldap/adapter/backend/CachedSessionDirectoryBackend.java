@@ -52,7 +52,7 @@ public class CachedSessionDirectoryBackend
     }
 
     @Override
-    public List<String> getDirectUserIdsOfGroup(String id)
+    public List<String> getDirectUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         updateDirectUserRelationships();
@@ -64,7 +64,7 @@ public class CachedSessionDirectoryBackend
     }
 
     @Override
-    public List<String> getDirectGroupIdsOfUser(String id)
+    public List<String> getDirectGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
         updateDirectUserRelationships();
@@ -76,7 +76,7 @@ public class CachedSessionDirectoryBackend
     }
 
     @Override
-    public List<String> getDirectChildGroupIdsOfGroup(String id)
+    public List<String> getDirectChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         updateDirectGroupRelationships();
@@ -88,7 +88,7 @@ public class CachedSessionDirectoryBackend
     }
 
     @Override
-    public List<String> getDirectParentGroupIdsOfGroup(String id)
+    public List<String> getDirectParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         updateDirectGroupRelationships();
@@ -100,7 +100,7 @@ public class CachedSessionDirectoryBackend
     }
 
     @Override
-    public List<String> getTransitiveUserIdsOfGroup(String id)
+    public List<String> getTransitiveUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         updateTransitiveUserRelationships();
@@ -112,7 +112,7 @@ public class CachedSessionDirectoryBackend
     }
 
     @Override
-    public List<String> getTransitiveGroupIdsOfUser(String id)
+    public List<String> getTransitiveGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
         updateTransitiveUserRelationships();
@@ -124,7 +124,7 @@ public class CachedSessionDirectoryBackend
     }
 
     @Override
-    public List<String> getTransitiveChildGroupIdsOfGroup(String id)
+    public List<String> getTransitiveChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         updateTransitiveGroupRelationships();
@@ -136,7 +136,7 @@ public class CachedSessionDirectoryBackend
     }
 
     @Override
-    public List<String> getTransitiveParentGroupIdsOfGroup(String id)
+    public List<String> getTransitiveParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         updateTransitiveGroupRelationships();

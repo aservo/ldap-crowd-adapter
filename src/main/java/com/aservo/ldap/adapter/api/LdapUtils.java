@@ -144,7 +144,15 @@ public class LdapUtils {
      */
     public static Dn createDn(SchemaManager schemaManager, DirectoryBackend directoryBackend, Entity entity) {
 
-        return createDn(schemaManager, directoryBackend, entity.getEntityType(), entity.getId());
+        String name = entity.getId();
+
+        if (entity instanceof GroupEntity)
+            name = ((GroupEntity) entity).getName();
+
+        if (entity instanceof UserEntity)
+            name = ((UserEntity) entity).getUsername();
+
+        return createDn(schemaManager, directoryBackend, entity.getEntityType(), name);
     }
 
     /**
@@ -167,7 +175,7 @@ public class LdapUtils {
                     queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.DOMAIN))) &&
                     attribute.equals(SchemaConstants.CN_AT_OID)) {
 
-                return queryDn.getRdn().getNormValue();
+                return queryDn.getRdn().getNormValue().toLowerCase();
             }
 
         } catch (LdapInvalidDnException e) {
@@ -197,7 +205,7 @@ public class LdapUtils {
                     attribute.equals(SchemaConstants.UID_AT_OID) ||
                             attribute.equals(SchemaConstants.CN_AT_OID))) {
 
-                return queryDn.getRdn().getNormValue();
+                return queryDn.getRdn().getNormValue().toLowerCase();
             }
 
         } catch (LdapInvalidDnException e) {
@@ -311,7 +319,7 @@ public class LdapUtils {
             throws EntityNotFoundException {
 
         if (!flattening)
-            return directoryBackend.getDirectChildGroupIdsOfGroup(groupId);
+            return directoryBackend.getDirectChildGroupNamesOfGroup(groupId);
 
         return Collections.emptyList();
     }
@@ -328,9 +336,9 @@ public class LdapUtils {
             throws EntityNotFoundException {
 
         if (flattening)
-            return directoryBackend.getTransitiveUserIdsOfGroup(groupId);
+            return directoryBackend.getTransitiveUserNamesOfGroup(groupId);
 
-        return directoryBackend.getDirectUserIdsOfGroup(groupId);
+        return directoryBackend.getDirectUserNamesOfGroup(groupId);
     }
 
     /**
@@ -345,7 +353,7 @@ public class LdapUtils {
             throws EntityNotFoundException {
 
         if (!flattening)
-            return directoryBackend.getDirectParentGroupIdsOfGroup(groupId);
+            return directoryBackend.getDirectParentGroupNamesOfGroup(groupId);
 
         return Collections.emptyList();
     }
@@ -362,9 +370,9 @@ public class LdapUtils {
             throws EntityNotFoundException {
 
         if (flattening)
-            return directoryBackend.getTransitiveGroupIdsOfUser(userId);
+            return directoryBackend.getTransitiveGroupNamesOfUser(userId);
 
-        return directoryBackend.getDirectGroupIdsOfUser(userId);
+        return directoryBackend.getDirectGroupNamesOfUser(userId);
     }
 
     /**

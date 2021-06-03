@@ -243,83 +243,83 @@ public interface DirectoryBackend {
             throws EntityNotFoundException;
 
     /**
-     * Gets direct user IDs of group.
+     * Gets direct user names of group.
      *
      * @param id the group ID
      * @return the direct users of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getDirectUserIdsOfGroup(String id)
+    List<String> getDirectUserNamesOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
-     * Gets direct group IDs of user.
+     * Gets direct group names of user.
      *
      * @param id the user ID
      * @return the direct groups of user
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getDirectGroupIdsOfUser(String id)
+    List<String> getDirectGroupNamesOfUser(String id)
             throws EntityNotFoundException;
 
     /**
-     * Gets transitive user IDs of group.
+     * Gets transitive user names of group.
      *
      * @param id the group ID
      * @return the transitive users of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getTransitiveUserIdsOfGroup(String id)
+    List<String> getTransitiveUserNamesOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
-     * Gets transitive group IDs of user.
+     * Gets transitive group names of user.
      *
      * @param id the user ID
      * @return the transitive groups of user
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getTransitiveGroupIdsOfUser(String id)
+    List<String> getTransitiveGroupNamesOfUser(String id)
             throws EntityNotFoundException;
 
     /**
-     * Gets direct child group IDs of group.
+     * Gets direct child group names of group.
      *
      * @param id the group ID
      * @return the direct child groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getDirectChildGroupIdsOfGroup(String id)
+    List<String> getDirectChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
-     * Gets direct parent group IDs of group.
+     * Gets direct parent group names of group.
      *
      * @param id the group ID
      * @return the direct parent groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getDirectParentGroupIdsOfGroup(String id)
+    List<String> getDirectParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
-     * Gets transitive child group IDs of group.
+     * Gets transitive child group names of group.
      *
      * @param id the group ID
      * @return the transitive child groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getTransitiveChildGroupIdsOfGroup(String id)
+    List<String> getTransitiveChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
-     * Gets transitive parent group IDs of group.
+     * Gets transitive parent group names of group.
      *
      * @param id the group ID
      * @return the transitive parent groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<String> getTransitiveParentGroupIdsOfGroup(String id)
+    List<String> getTransitiveParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException;
 
     /**

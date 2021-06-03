@@ -39,7 +39,7 @@ public class ScopeTest
 
                         Assertions.assertTrue(results.hasMore());
                         Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        Assertions.assertEquals(userName, getAndCheckGroupEntry(attributes, false));
+                        Assertions.assertEquals(userName.toLowerCase(), getAndCheckGroupEntry(attributes, false));
                         Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {
@@ -91,7 +91,7 @@ public class ScopeTest
 
                         Assertions.assertTrue(results.hasMore());
                         Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        Assertions.assertEquals(userName, getAndCheckUserEntry(attributes, false));
+                        Assertions.assertEquals(userName.toLowerCase(), getAndCheckUserEntry(attributes, false));
                         Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {

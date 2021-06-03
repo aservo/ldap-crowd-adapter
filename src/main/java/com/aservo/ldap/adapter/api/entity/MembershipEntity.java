@@ -19,6 +19,7 @@ package com.aservo.ldap.adapter.api.entity;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 /**
@@ -39,9 +40,9 @@ public class MembershipEntity
      */
     public MembershipEntity(String parentGroupId, Set<String> memberGroupIds, Set<String> memberUserIds) {
 
-        super(parentGroupId);
-        this.memberGroupIds = new HashSet<>(memberGroupIds);
-        this.memberUserIds = new HashSet<>(memberUserIds);
+        super(parentGroupId.toLowerCase());
+        this.memberGroupIds = memberGroupIds.stream().map(String::toLowerCase).collect(Collectors.toSet());
+        this.memberUserIds = memberUserIds.stream().map(String::toLowerCase).collect(Collectors.toSet());
     }
 
     /**

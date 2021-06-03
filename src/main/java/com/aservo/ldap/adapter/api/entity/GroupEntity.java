@@ -25,18 +25,30 @@ public class GroupEntity
         extends Entity
         implements DescribableEntity {
 
+    private final String name;
     private final String description;
 
     /**
      * Instantiates a new Group.
      *
-     * @param id          the id
+     * @param name        the name
      * @param description the description
      */
-    public GroupEntity(String id, String description) {
+    public GroupEntity(String name, String description) {
 
-        super(id);
+        super(name.toLowerCase());
+        this.name = name;
         this.description = description;
+    }
+
+    /**
+     * Gets name.
+     *
+     * @return the name
+     */
+    public String getName() {
+
+        return name;
     }
 
     /**

@@ -24,6 +24,7 @@ package com.aservo.ldap.adapter.api.entity;
 public class UserEntity
         extends Entity {
 
+    private final String username;
     private final String lastName;
     private final String firstName;
     private final String displayName;
@@ -33,21 +34,32 @@ public class UserEntity
     /**
      * Instantiates a new User.
      *
-     * @param id          the id
+     * @param username    the username
      * @param lastName    the last name
      * @param firstName   the first name
      * @param displayName the display name
      * @param email       the email
      * @param active      the active flag
      */
-    public UserEntity(String id, String lastName, String firstName, String displayName, String email, boolean active) {
+    public UserEntity(String username, String lastName, String firstName, String displayName, String email, boolean active) {
 
-        super(id);
+        super(username.toLowerCase());
+        this.username = username;
         this.lastName = lastName;
         this.firstName = firstName;
         this.displayName = displayName;
         this.email = email;
         this.active = active;
+    }
+
+    /**
+     * Gets username.
+     *
+     * @return the username
+     */
+    public String getUsername() {
+
+        return username;
     }
 
     /**

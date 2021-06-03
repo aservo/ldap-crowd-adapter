@@ -247,7 +247,7 @@ public class CommonPartition
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.CN_AT_OID)) {
 
-                    entry.put(SchemaConstants.CN_AT, group.getId());
+                    entry.put(SchemaConstants.CN_AT, group.getName());
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
@@ -306,7 +306,7 @@ public class CommonPartition
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.CN_AT_OID)) {
 
-                    entry.put(SchemaConstants.CN_AT, user.getId());
+                    entry.put(SchemaConstants.CN_AT, user.getUsername());
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.SN_AT_OID)) {

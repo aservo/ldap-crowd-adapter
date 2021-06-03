@@ -1,11 +1,13 @@
 create table _Group (
   id varchar(255) not null,
+  name varchar(255) not null,
   description text null,
   primary key (id)
 );
 
 create table _User (
   id varchar(255) not null,
+  username varchar(255) not null,
   last_name text null,
   first_name text null,
   display_name text null,

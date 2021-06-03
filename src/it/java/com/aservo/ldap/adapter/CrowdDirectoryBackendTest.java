@@ -1,6 +1,7 @@
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.api.entity.Entity;
+import com.aservo.ldap.adapter.api.entity.GroupEntity;
+import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.helper.AbstractIntegrationTest;
@@ -25,8 +26,11 @@ public class CrowdDirectoryBackendTest
 
         for (String index : indices) {
 
-            Assertions.assertEquals("Group" + index,
+            Assertions.assertEquals(("Group" + index).toLowerCase(),
                     directoryBackend.getGroup("Group" + index).getId());
+
+            Assertions.assertEquals("Group" + index,
+                    directoryBackend.getGroup("Group" + index).getName());
 
             Assertions.assertEquals("Description of Group" + index + ".",
                     directoryBackend.getGroup("Group" + index).getDescription());
@@ -34,8 +38,11 @@ public class CrowdDirectoryBackendTest
 
         for (String index : indices) {
 
-            Assertions.assertEquals("User" + index,
+            Assertions.assertEquals(("User" + index).toLowerCase(),
                     directoryBackend.getUser("User" + index).getId());
+
+            Assertions.assertEquals("User" + index,
+                    directoryBackend.getUser("User" + index).getUsername());
 
             Assertions.assertEquals("LastNameOfUser" + index,
                     directoryBackend.getUser("User" + index).getLastName());
@@ -62,7 +69,7 @@ public class CrowdDirectoryBackendTest
             Assertions.assertEquals("User" + index,
                     directoryBackend
                             .getAuthenticatedUser("User" + index, "pw-user-" + index.toLowerCase())
-                            .getId());
+                            .getUsername());
         }
 
         Assertions.assertThrows(SecurityProblemException.class, () -> {
@@ -84,12 +91,12 @@ public class CrowdDirectoryBackendTest
 
         Assertions.assertEquals(indices.stream().map((x) -> "Group" + x).collect(Collectors.toSet()),
                 directoryBackend.getAllGroups().stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(indices.stream().map((x) -> "User" + x).collect(Collectors.toSet()),
                 directoryBackend.getAllUsers().stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
     }
 
@@ -101,27 +108,27 @@ public class CrowdDirectoryBackendTest
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB")),
                 directoryBackend.getDirectGroupsOfUser("UserA").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB")),
                 directoryBackend.getDirectGroupsOfUser("UserB").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupB")),
                 directoryBackend.getDirectGroupsOfUser("UserC").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupC")),
                 directoryBackend.getDirectGroupsOfUser("UserD").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE")),
                 directoryBackend.getDirectGroupsOfUser("UserE").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
 
@@ -133,27 +140,27 @@ public class CrowdDirectoryBackendTest
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserD")),
                 directoryBackend.getDirectUsersOfGroup("GroupA").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserC")),
                 directoryBackend.getDirectUsersOfGroup("GroupB").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserD")),
                 directoryBackend.getDirectUsersOfGroup("GroupC").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
                 directoryBackend.getDirectUsersOfGroup("GroupD").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserE")),
                 directoryBackend.getDirectUsersOfGroup("GroupE").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
     }
 
@@ -165,27 +172,27 @@ public class CrowdDirectoryBackendTest
 
         Assertions.assertEquals(new HashSet<>(),
                 directoryBackend.getDirectChildGroupsOfGroup("GroupA").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
                 directoryBackend.getDirectChildGroupsOfGroup("GroupB").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA")),
                 directoryBackend.getDirectChildGroupsOfGroup("GroupC").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC")),
                 directoryBackend.getDirectChildGroupsOfGroup("GroupD").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD")),
                 directoryBackend.getDirectChildGroupsOfGroup("GroupE").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
 
@@ -197,27 +204,27 @@ public class CrowdDirectoryBackendTest
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC")),
                 directoryBackend.getDirectParentGroupsOfGroup("GroupA").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
                 directoryBackend.getDirectParentGroupsOfGroup("GroupB").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD")),
                 directoryBackend.getDirectParentGroupsOfGroup("GroupC").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE")),
                 directoryBackend.getDirectParentGroupsOfGroup("GroupD").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
                 directoryBackend.getDirectParentGroupsOfGroup("GroupE").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
 
@@ -229,27 +236,27 @@ public class CrowdDirectoryBackendTest
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB", "GroupC", "GroupD", "GroupE")),
                 directoryBackend.getTransitiveGroupsOfUser("UserA").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB", "GroupC", "GroupD", "GroupE")),
                 directoryBackend.getTransitiveGroupsOfUser("UserB").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupB")),
                 directoryBackend.getTransitiveGroupsOfUser("UserC").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupC", "GroupD", "GroupE")),
                 directoryBackend.getTransitiveGroupsOfUser("UserD").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE")),
                 directoryBackend.getTransitiveGroupsOfUser("UserE").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
 
@@ -261,27 +268,27 @@ public class CrowdDirectoryBackendTest
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserD")),
                 directoryBackend.getTransitiveUsersOfGroup("GroupA").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserC")),
                 directoryBackend.getTransitiveUsersOfGroup("GroupB").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserD", "UserA", "UserB")),
                 directoryBackend.getTransitiveUsersOfGroup("GroupC").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserD", "UserA", "UserB")),
                 directoryBackend.getTransitiveUsersOfGroup("GroupD").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserE", "UserD", "UserA", "UserB")),
                 directoryBackend.getTransitiveUsersOfGroup("GroupE").stream()
-                        .map(Entity::getId)
+                        .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
     }
 
@@ -293,27 +300,27 @@ public class CrowdDirectoryBackendTest
 
         Assertions.assertEquals(new HashSet<>(),
                 directoryBackend.getTransitiveChildGroupsOfGroup("GroupA").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
                 directoryBackend.getTransitiveChildGroupsOfGroup("GroupB").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA")),
                 directoryBackend.getTransitiveChildGroupsOfGroup("GroupC").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC", "GroupA")),
                 directoryBackend.getTransitiveChildGroupsOfGroup("GroupD").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD", "GroupC", "GroupA")),
                 directoryBackend.getTransitiveChildGroupsOfGroup("GroupE").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
 
@@ -325,27 +332,27 @@ public class CrowdDirectoryBackendTest
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC", "GroupD", "GroupE")),
                 directoryBackend.getTransitiveParentGroupsOfGroup("GroupA").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
                 directoryBackend.getTransitiveParentGroupsOfGroup("GroupB").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD", "GroupE")),
                 directoryBackend.getTransitiveParentGroupsOfGroup("GroupC").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE")),
                 directoryBackend.getTransitiveParentGroupsOfGroup("GroupD").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
                 directoryBackend.getTransitiveParentGroupsOfGroup("GroupE").stream()
-                        .map(Entity::getId)
+                        .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
 }

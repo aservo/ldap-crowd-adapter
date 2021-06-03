@@ -268,7 +268,7 @@ public abstract class AbstractTest {
                 NamingEnumeration ne4 = attributes.get(SchemaConstants.MEMBER_AT).getAll();
 
                 for (UserEntity x : userMembers)
-                    Assertions.assertEquals("cn=" + Rdn.escapeValue(x.getId()) + ",ou=users,dc=json", ne4.next());
+                    Assertions.assertEquals("cn=" + Rdn.escapeValue(x.getUsername()) + ",ou=users,dc=json", ne4.next());
 
                 Assertions.assertFalse(ne4.hasMore());
             }
@@ -280,14 +280,14 @@ public abstract class AbstractTest {
             Set<String> members =
                     Stream.concat(
                             directoryBackend.getDirectUsersOfGroup(entry).stream()
-                                    .map(x -> "cn=" + Rdn.escapeValue(x.getId()) + ",ou=users,dc=json"),
+                                    .map(x -> "cn=" + Rdn.escapeValue(x.getUsername()) + ",ou=users,dc=json"),
                             directoryBackend.getDirectChildGroupsOfGroup(entry).stream()
-                                    .map(x -> "cn=" + Rdn.escapeValue(x.getId()) + ",ou=groups,dc=json"))
+                                    .map(x -> "cn=" + Rdn.escapeValue(x.getName()) + ",ou=groups,dc=json"))
                             .collect(Collectors.toSet());
 
             Set<String> memberOf =
                     directoryBackend.getDirectParentGroupsOfGroup(entry).stream()
-                            .map(x -> "cn=" + Rdn.escapeValue(x.getId()) + ",ou=groups,dc=json")
+                            .map(x -> "cn=" + Rdn.escapeValue(x.getName()) + ",ou=groups,dc=json")
                             .collect(Collectors.toSet());
 
             Attribute membersResultAttribute = attributes.get(SchemaConstants.MEMBER_AT);
@@ -319,7 +319,7 @@ public abstract class AbstractTest {
             Assertions.assertEquals(memberOf, new HashSet<>(memberOfResult));
         }
 
-        return entry;
+        return entry.toLowerCase();
     }
 
     protected String getAndCheckUserEntry(Attributes attributes, boolean flattening)
@@ -347,7 +347,7 @@ public abstract class AbstractTest {
 
         NamingEnumeration ne3 = attributes.get(SchemaConstants.CN_AT).getAll();
 
-        Assertions.assertEquals(user.getId(), ne3.next());
+        Assertions.assertEquals(user.getUsername(), ne3.next());
         Assertions.assertFalse(ne3.hasMore());
 
         NamingEnumeration ne4 = attributes.get(SchemaConstants.SURNAME_AT).getAll();
@@ -377,7 +377,7 @@ public abstract class AbstractTest {
             NamingEnumeration ne9 = attributes.get(LdapUtils.MEMBER_OF_AT).getAll();
 
             for (GroupEntity x : memberOfGroups)
-                Assertions.assertEquals("cn=" + Rdn.escapeValue(x.getId()) + ",ou=groups,dc=json", ne9.next());
+                Assertions.assertEquals("cn=" + Rdn.escapeValue(x.getName()) + ",ou=groups,dc=json", ne9.next());
 
             Assertions.assertFalse(ne9.hasMore());
 
@@ -388,12 +388,12 @@ public abstract class AbstractTest {
             NamingEnumeration ne9 = attributes.get(LdapUtils.MEMBER_OF_AT).getAll();
 
             for (GroupEntity x : memberOfGroups)
-                Assertions.assertEquals("cn=" + Rdn.escapeValue(x.getId()) + ",ou=groups,dc=json", ne9.next());
+                Assertions.assertEquals("cn=" + Rdn.escapeValue(x.getName()) + ",ou=groups,dc=json", ne9.next());
 
             Assertions.assertFalse(ne9.hasMore());
         }
 
-        return entry;
+        return entry.toLowerCase();
     }
 
     public enum BackendConfig {

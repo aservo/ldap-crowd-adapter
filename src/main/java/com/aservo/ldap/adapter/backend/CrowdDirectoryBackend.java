@@ -457,10 +457,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getDirectUserIdsOfGroup(String id)
+    public List<String> getDirectUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectUserIdsOfGroup; ID={}", id);
+        logger.info("Backend call: getDirectUserNamesOfGroup; ID={}", id);
 
         try {
 
@@ -481,10 +481,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getDirectGroupIdsOfUser(String id)
+    public List<String> getDirectGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectGroupIdsOfUser; ID={}", id);
+        logger.info("Backend call: getDirectGroupNamesOfUser; ID={}", id);
 
         try {
 
@@ -505,10 +505,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getTransitiveUserIdsOfGroup(String id)
+    public List<String> getTransitiveUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveUserIdsOfGroup; ID={}", id);
+        logger.info("Backend call: getTransitiveUserNamesOfGroup; ID={}", id);
 
         try {
 
@@ -529,10 +529,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getTransitiveGroupIdsOfUser(String id)
+    public List<String> getTransitiveGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveGroupIdsOfUser; ID={}", id);
+        logger.info("Backend call: getTransitiveGroupNamesOfUser; ID={}", id);
 
         try {
 
@@ -553,10 +553,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getDirectChildGroupIdsOfGroup(String id)
+    public List<String> getDirectChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectChildGroupIdsOfGroup; ID={}", id);
+        logger.info("Backend call: getDirectChildGroupNamesOfGroup; ID={}", id);
 
         try {
 
@@ -577,10 +577,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getDirectParentGroupIdsOfGroup(String id)
+    public List<String> getDirectParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getDirectParentGroupIdsOfGroup; ID={}", id);
+        logger.info("Backend call: getDirectParentGroupNamesOfGroup; ID={}", id);
 
         try {
 
@@ -601,10 +601,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getTransitiveChildGroupIdsOfGroup(String id)
+    public List<String> getTransitiveChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveChildGroupIdsOfGroup; ID={}", id);
+        logger.info("Backend call: getTransitiveChildGroupNamesOfGroup; ID={}", id);
 
         try {
 
@@ -625,10 +625,10 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<String> getTransitiveParentGroupIdsOfGroup(String id)
+    public List<String> getTransitiveParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        logger.info("Backend call: getTransitiveParentGroupIdsOfGroup; ID={}", id);
+        logger.info("Backend call: getTransitiveParentGroupNamesOfGroup; ID={}", id);
 
         try {
 

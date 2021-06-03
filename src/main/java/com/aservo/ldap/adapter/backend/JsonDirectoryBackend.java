@@ -18,7 +18,6 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.api.FilterMatcher;
-import com.aservo.ldap.adapter.api.entity.Entity;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.FilterNode;
@@ -111,7 +110,7 @@ public class JsonDirectoryBackend
             for (JsonElement element : userNode) {
 
                 userList.add(new User(
-                        element.getAsJsonObject().get("id").getAsString(),
+                        element.getAsJsonObject().get("username").getAsString(),
                         element.getAsJsonObject().get("last_name").getAsString(),
                         element.getAsJsonObject().get("first_name").getAsString(),
                         element.getAsJsonObject().get("display_name").getAsString(),
@@ -124,28 +123,28 @@ public class JsonDirectoryBackend
             for (JsonElement x : groupNode) {
 
                 groupList.add(new Group(
-                        x.getAsJsonObject().get("id").getAsString(),
+                        x.getAsJsonObject().get("name").getAsString(),
                         x.getAsJsonObject().get("description").getAsString()
                 ));
             }
 
             for (JsonElement x : groupNode) {
 
-                String groupId = x.getAsJsonObject().get("id").getAsString();
+                String groupId = x.getAsJsonObject().get("name").getAsString();
                 JsonArray groupMemberNode = x.getAsJsonObject().getAsJsonArray("group_members");
                 JsonArray userMemberNode = x.getAsJsonObject().getAsJsonArray("user_members");
 
-                Group group = groupList.stream().filter(z -> z.getId().equals(groupId)).findAny()
-                        .orElseThrow(() -> new IllegalStateException("Unknown error."));
+                Group group = groupList.stream().filter(z -> z.getId().equalsIgnoreCase(groupId)).findAny()
+                        .orElseThrow(() -> new IllegalArgumentException("Unknown error."));
 
                 for (JsonElement y : groupMemberNode)
-                    group.addGroup(groupList.stream().filter(z -> z.getId().equals(y.getAsString())).findAny()
+                    group.addGroup(groupList.stream().filter(z -> z.getId().equalsIgnoreCase(y.getAsString())).findAny()
                             .orElseThrow(() -> new IllegalArgumentException(
                                     "Cannot find group member with id " + y.getAsString()
                             )));
 
                 for (JsonElement y : userMemberNode)
-                    group.addUser(userList.stream().filter(z -> z.getId().equals(y.getAsString())).findAny()
+                    group.addUser(userList.stream().filter(z -> z.getId().equalsIgnoreCase(y.getAsString())).findAny()
                             .orElseThrow(() -> new IllegalArgumentException(
                                     "Cannot find user member with id " + y.getAsString()
                             )));
@@ -326,67 +325,67 @@ public class JsonDirectoryBackend
         return new ArrayList<>(groups);
     }
 
-    public List<String> getDirectUserIdsOfGroup(String id)
+    public List<String> getDirectUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         return getDirectUsersOfGroup(id).stream()
-                .map(Entity::getId)
+                .map(UserEntity::getUsername)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getDirectGroupIdsOfUser(String id)
+    public List<String> getDirectGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
         return getDirectGroupsOfUser(id).stream()
-                .map(Entity::getId)
+                .map(GroupEntity::getName)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getTransitiveUserIdsOfGroup(String id)
+    public List<String> getTransitiveUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         return getTransitiveUsersOfGroup(id).stream()
-                .map(Entity::getId)
+                .map(UserEntity::getUsername)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getTransitiveGroupIdsOfUser(String id)
+    public List<String> getTransitiveGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
         return getTransitiveGroupsOfUser(id).stream()
-                .map(Entity::getId)
+                .map(GroupEntity::getName)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getDirectChildGroupIdsOfGroup(String id)
+    public List<String> getDirectChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         return getDirectChildGroupsOfGroup(id).stream()
-                .map(Entity::getId)
+                .map(GroupEntity::getName)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getDirectParentGroupIdsOfGroup(String id)
+    public List<String> getDirectParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         return getDirectParentGroupsOfGroup(id).stream()
-                .map(Entity::getId)
+                .map(GroupEntity::getName)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getTransitiveChildGroupIdsOfGroup(String id)
+    public List<String> getTransitiveChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         return getTransitiveChildGroupsOfGroup(id).stream()
-                .map(Entity::getId)
+                .map(GroupEntity::getName)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getTransitiveParentGroupIdsOfGroup(String id)
+    public List<String> getTransitiveParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         return getTransitiveParentGroupsOfGroup(id).stream()
-                .map(Entity::getId)
+                .map(GroupEntity::getName)
                 .collect(Collectors.toList());
     }
 
@@ -444,12 +443,12 @@ public class JsonDirectoryBackend
         /**
          * Instantiates a new Group.
          *
-         * @param id          the id
+         * @param name        the id
          * @param description the description
          */
-        public Group(String id, String description) {
+        public Group(String name, String description) {
 
-            super(id, description);
+            super(name, description);
         }
 
         /**
@@ -501,7 +500,7 @@ public class JsonDirectoryBackend
         /**
          * Instantiates a new User.
          *
-         * @param id          the id
+         * @param username    the username
          * @param firstName   the first name
          * @param lastName    the last name
          * @param displayName the display name
@@ -509,10 +508,10 @@ public class JsonDirectoryBackend
          * @param password    the password
          * @param active      the active flag
          */
-        public User(String id, String lastName, String firstName, String displayName, String email, String password,
-                    boolean active) {
+        public User(String username, String lastName, String firstName, String displayName, String email,
+                    String password, boolean active) {
 
-            super(id, lastName, firstName, displayName, email, active);
+            super(username, lastName, firstName, displayName, email, active);
             this.password = password;
         }
 

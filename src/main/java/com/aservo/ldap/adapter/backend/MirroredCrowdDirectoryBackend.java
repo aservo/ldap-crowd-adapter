@@ -472,22 +472,22 @@ public class MirroredCrowdDirectoryBackend
                 if (x.getLeft().equals(UpdateType.GROUP_VALIDATE) &&
                         x.getRight() instanceof String) {
 
-                    directoryBackend.upsertGroup((String) x.getRight());
+                    directoryBackend.upsertGroup(((String) x.getRight()).toLowerCase());
 
                 } else if (x.getLeft().equals(UpdateType.GROUP_INVALIDATE) &&
                         x.getRight() instanceof String) {
 
-                    directoryBackend.dropGroup((String) x.getRight());
+                    directoryBackend.dropGroup(((String) x.getRight()).toLowerCase());
 
                 } else if (x.getLeft().equals(UpdateType.USER_VALIDATE) &&
                         x.getRight() instanceof String) {
 
-                    directoryBackend.upsertUser((String) x.getRight());
+                    directoryBackend.upsertUser(((String) x.getRight()).toLowerCase());
 
                 } else if (x.getLeft().equals(UpdateType.USER_INVALIDATE) &&
                         x.getRight() instanceof String) {
 
-                    directoryBackend.dropUser((String) x.getRight());
+                    directoryBackend.dropUser(((String) x.getRight()).toLowerCase());
 
                 } else if (x.getLeft().equals(UpdateType.MEMBERSHIP_VALIDATE) &&
                         x.getRight() instanceof MembershipEntity) {

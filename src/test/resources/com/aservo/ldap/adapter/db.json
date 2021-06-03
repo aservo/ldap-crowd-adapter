@@ -1,7 +1,7 @@
 {
   "groups": [
     {
-      "id": "GroupA",
+      "name": "GroupA",
       "description": "Description of GroupA.",
       "group_members": [],
       "user_members": [
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "id": "GroupB",
+      "name": "GroupB",
       "description": "Description of GroupB.",
       "group_members": [],
       "user_members": [
@@ -21,7 +21,7 @@
       ]
     },
     {
-      "id": "GroupC",
+      "name": "GroupC",
       "description": "Description of GroupC.",
       "group_members": [
         "GroupA"
@@ -31,7 +31,7 @@
       ]
     },
     {
-      "id": "GroupD",
+      "name": "GroupD",
       "description": "Description of GroupD.",
       "group_members": [
         "GroupC"
@@ -39,7 +39,7 @@
       "user_members": []
     },
     {
-      "id": "GroupE+,",
+      "name": "GroupE+,",
       "description": "Description of GroupE+,.",
       "group_members": [
         "GroupD"
@@ -51,7 +51,7 @@
   ],
   "users": [
     {
-      "id": "UserA",
+      "username": "UserA",
       "first_name": "FirstNameOfUserA",
       "last_name": "LastNameOfUserA",
       "display_name": "DisplayNameOfUserA",
@@ -60,7 +60,7 @@
       "active": true
     },
     {
-      "id": "UserB",
+      "username": "UserB",
       "first_name": "FirstNameOfUserB",
       "last_name": "LastNameOfUserB",
       "display_name": "DisplayNameOfUserB",
@@ -69,7 +69,7 @@
       "active": true
     },
     {
-      "id": "UserC",
+      "username": "UserC",
       "first_name": "FirstNameOfUserC",
       "last_name": "LastNameOfUserC",
       "display_name": "DisplayNameOfUserC",
@@ -78,7 +78,7 @@
       "active": true
     },
     {
-      "id": "UserD",
+      "username": "UserD",
       "first_name": "FirstNameOfUserD",
       "last_name": "LastNameOfUserD",
       "display_name": "DisplayNameOfUserD",
@@ -87,7 +87,7 @@
       "active": true
     },
     {
-      "id": "UserE+,",
+      "username": "UserE+,",
       "first_name": "FirstNameOfUserE+,",
       "last_name": "LastNameOfUserE+,",
       "display_name": "DisplayNameOfUserE+,",

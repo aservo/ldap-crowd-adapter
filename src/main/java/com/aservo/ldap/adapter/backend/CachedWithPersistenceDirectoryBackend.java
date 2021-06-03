@@ -235,6 +235,7 @@ public class CachedWithPersistenceDirectoryBackend
             factory
                     .queryById("create_or_update_group")
                     .on("id", entity.getId())
+                    .on("name", entity.getName())
                     .on("description", Optional.ofNullable(entity.getDescription()))
                     .execute(IgnoredResult.class);
 
@@ -258,6 +259,7 @@ public class CachedWithPersistenceDirectoryBackend
             factory
                     .queryById("create_or_update_group")
                     .on("id", entity.getId())
+                    .on("name", entity.getName())
                     .on("description", Optional.ofNullable(entity.getDescription()))
                     .execute(IgnoredResult.class);
         });
@@ -279,6 +281,7 @@ public class CachedWithPersistenceDirectoryBackend
             factory
                     .queryById("create_or_update_group")
                     .on("id", entity.getId())
+                    .on("name", entity.getName())
                     .on("description", Optional.ofNullable(entity.getDescription()))
                     .execute(IgnoredResult.class);
         });
@@ -300,6 +303,7 @@ public class CachedWithPersistenceDirectoryBackend
             factory
                     .queryById("create_or_update_user")
                     .on("id", entity.getId())
+                    .on("username", entity.getUsername())
                     .on("last_name", Optional.ofNullable(entity.getLastName()))
                     .on("first_name", Optional.ofNullable(entity.getFirstName()))
                     .on("display_name", Optional.ofNullable(entity.getDisplayName()))
@@ -327,6 +331,7 @@ public class CachedWithPersistenceDirectoryBackend
             factory
                     .queryById("create_or_update_user")
                     .on("id", entity.getId())
+                    .on("username", entity.getUsername())
                     .on("last_name", Optional.ofNullable(entity.getLastName()))
                     .on("first_name", Optional.ofNullable(entity.getFirstName()))
                     .on("display_name", Optional.ofNullable(entity.getDisplayName()))
@@ -352,6 +357,7 @@ public class CachedWithPersistenceDirectoryBackend
             factory
                     .queryById("create_or_update_user")
                     .on("id", entity.getId())
+                    .on("username", entity.getUsername())
                     .on("last_name", Optional.ofNullable(entity.getLastName()))
                     .on("first_name", Optional.ofNullable(entity.getFirstName()))
                     .on("display_name", Optional.ofNullable(entity.getDisplayName()))
@@ -642,7 +648,7 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
-    public List<String> getDirectUserIdsOfGroup(String id)
+    public List<String> getDirectUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
@@ -652,11 +658,11 @@ public class CachedWithPersistenceDirectoryBackend
                 .on("group_id", id)
                 .on("active_only", activeUsersOnly)
                 .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("id", String.class));
+                .transform(row -> row.apply("username", String.class));
     }
 
     @Override
-    public List<String> getDirectGroupIdsOfUser(String id)
+    public List<String> getDirectGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
@@ -666,11 +672,11 @@ public class CachedWithPersistenceDirectoryBackend
                 .on("user_id", id)
                 .on("active_only", activeUsersOnly)
                 .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("id", String.class));
+                .transform(row -> row.apply("name", String.class));
     }
 
     @Override
-    public List<String> getDirectChildGroupIdsOfGroup(String id)
+    public List<String> getDirectChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
@@ -679,11 +685,11 @@ public class CachedWithPersistenceDirectoryBackend
                 .queryById("find_direct_child_groups_of_group")
                 .on("group_id", id)
                 .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("id", String.class));
+                .transform(row -> row.apply("name", String.class));
     }
 
     @Override
-    public List<String> getDirectParentGroupIdsOfGroup(String id)
+    public List<String> getDirectParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
@@ -692,7 +698,7 @@ public class CachedWithPersistenceDirectoryBackend
                 .queryById("find_direct_parent_groups_of_group")
                 .on("group_id", id)
                 .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("id", String.class));
+                .transform(row -> row.apply("name", String.class));
     }
 
     @Override
@@ -750,7 +756,7 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
-    public List<String> getTransitiveUserIdsOfGroup(String id)
+    public List<String> getTransitiveUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
@@ -760,11 +766,11 @@ public class CachedWithPersistenceDirectoryBackend
                 .on("group_id", id)
                 .on("active_only", activeUsersOnly)
                 .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("id", String.class));
+                .transform(row -> row.apply("username", String.class));
     }
 
     @Override
-    public List<String> getTransitiveGroupIdsOfUser(String id)
+    public List<String> getTransitiveGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
@@ -774,11 +780,11 @@ public class CachedWithPersistenceDirectoryBackend
                 .on("user_id", id)
                 .on("active_only", activeUsersOnly)
                 .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("id", String.class));
+                .transform(row -> row.apply("name", String.class));
     }
 
     @Override
-    public List<String> getTransitiveChildGroupIdsOfGroup(String id)
+    public List<String> getTransitiveChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
@@ -787,11 +793,11 @@ public class CachedWithPersistenceDirectoryBackend
                 .queryById("find_transitive_child_groups_of_group")
                 .on("group_id", id)
                 .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("id", String.class));
+                .transform(row -> row.apply("name", String.class));
     }
 
     @Override
-    public List<String> getTransitiveParentGroupIdsOfGroup(String id)
+    public List<String> getTransitiveParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
@@ -800,7 +806,7 @@ public class CachedWithPersistenceDirectoryBackend
                 .queryById("find_transitive_parent_groups_of_group")
                 .on("group_id", id)
                 .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("id", String.class));
+                .transform(row -> row.apply("name", String.class));
     }
 
     @Override
@@ -891,14 +897,14 @@ public class CachedWithPersistenceDirectoryBackend
     private GroupEntity mapGroupEntity(Row row) {
 
         return new GroupEntity(
-                row.apply("id", String.class),
+                row.apply("name", String.class),
                 row.apply("description", String.class));
     }
 
     private UserEntity mapUserEntity(Row row) {
 
         return new UserEntity(
-                row.apply("id", String.class),
+                row.apply("username", String.class),
                 row.apply("last_name", String.class),
                 row.apply("first_name", String.class),
                 row.apply("display_name", String.class),

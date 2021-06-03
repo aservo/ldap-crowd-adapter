@@ -1,7 +1,7 @@
 {
   "groups": [
     {
-      "id": "GroupA",
+      "name": "GroupA",
       "description": "Description of GroupA.",
       "group_members": [
         "GroupA"
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "id": "GroupB",
+      "name": "GroupB",
       "description": "Description of GroupB.",
       "group_members": [
         "GroupC"
@@ -21,7 +21,7 @@
       ]
     },
     {
-      "id": "GroupC",
+      "name": "GroupC",
       "description": "Description of GroupC.",
       "group_members": [
         "GroupB"
@@ -33,7 +33,7 @@
   ],
   "users": [
     {
-      "id": "UserA",
+      "username": "UserA",
       "first_name": "FirstNameOfUserA",
       "last_name": "LastNameOfUserA",
       "display_name": "DisplayNameOfUserA",
@@ -42,7 +42,7 @@
       "active": true
     },
     {
-      "id": "UserB",
+      "username": "UserB",
       "first_name": "FirstNameOfUserB",
       "last_name": "LastNameOfUserB",
       "display_name": "DisplayNameOfUserB",
@@ -51,7 +51,7 @@
       "active": true
     },
     {
-      "id": "UserC",
+      "username": "UserC",
       "first_name": "FirstNameOfUserC",
       "last_name": "LastNameOfUserC",
       "display_name": "DisplayNameOfUserC",

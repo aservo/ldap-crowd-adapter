@@ -30,17 +30,19 @@ inner join _User u
 where m.parent_group_id = :parent_group_id and m.member_user_id = :member_user_id and (u.active or :active_only = false)
 
 --[ID: create_or_update_group]--
-insert into _Group (id, description)
-  values (:id, :description)
+insert into _Group (id, name, description)
+  values (:id, :name, :description)
   on conflict (id) do
     update set
+      name = :name,
       description = :description
 
 --[ID: create_or_update_user]--
-insert into _User (id, last_name, first_name, display_name, email, active)
-  values (:id, :last_name, :first_name, :display_name, :email, :active)
+insert into _User (id, username, last_name, first_name, display_name, email, active)
+  values (:id, :username, :last_name, :first_name, :display_name, :email, :active)
   on conflict (id) do
     update set
+      username = :username,
       last_name = :last_name,
       first_name = :first_name,
       display_name = :display_name,

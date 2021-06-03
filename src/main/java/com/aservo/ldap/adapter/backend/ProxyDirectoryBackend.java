@@ -312,59 +312,59 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
-    public List<String> getDirectUserIdsOfGroup(String id)
+    public List<String> getDirectUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        return directoryBackend.getDirectUserIdsOfGroup(id);
+        return directoryBackend.getDirectUserNamesOfGroup(id);
     }
 
     @Override
-    public List<String> getDirectGroupIdsOfUser(String id)
+    public List<String> getDirectGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
-        return directoryBackend.getDirectGroupIdsOfUser(id);
+        return directoryBackend.getDirectGroupNamesOfUser(id);
     }
 
     @Override
-    public List<String> getTransitiveUserIdsOfGroup(String id)
+    public List<String> getTransitiveUserNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        return directoryBackend.getTransitiveUserIdsOfGroup(id);
+        return directoryBackend.getTransitiveUserNamesOfGroup(id);
     }
 
     @Override
-    public List<String> getTransitiveGroupIdsOfUser(String id)
+    public List<String> getTransitiveGroupNamesOfUser(String id)
             throws EntityNotFoundException {
 
-        return directoryBackend.getTransitiveGroupIdsOfUser(id);
+        return directoryBackend.getTransitiveGroupNamesOfUser(id);
     }
 
     @Override
-    public List<String> getDirectChildGroupIdsOfGroup(String id)
+    public List<String> getDirectChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        return directoryBackend.getDirectChildGroupIdsOfGroup(id);
+        return directoryBackend.getDirectChildGroupNamesOfGroup(id);
     }
 
     @Override
-    public List<String> getDirectParentGroupIdsOfGroup(String id)
+    public List<String> getDirectParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        return directoryBackend.getDirectParentGroupIdsOfGroup(id);
+        return directoryBackend.getDirectParentGroupNamesOfGroup(id);
     }
 
     @Override
-    public List<String> getTransitiveChildGroupIdsOfGroup(String id)
+    public List<String> getTransitiveChildGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        return directoryBackend.getTransitiveChildGroupIdsOfGroup(id);
+        return directoryBackend.getTransitiveChildGroupNamesOfGroup(id);
     }
 
     @Override
-    public List<String> getTransitiveParentGroupIdsOfGroup(String id)
+    public List<String> getTransitiveParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException {
 
-        return directoryBackend.getTransitiveParentGroupIdsOfGroup(id);
+        return directoryBackend.getTransitiveParentGroupNamesOfGroup(id);
     }
 
     @Override

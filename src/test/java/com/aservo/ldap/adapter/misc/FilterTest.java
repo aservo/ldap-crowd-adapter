@@ -310,11 +310,11 @@ public class FilterTest
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes1 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupA", getAndCheckGroupEntry(attributes1, false));
+        Assertions.assertEquals(("GroupA").toLowerCase(), getAndCheckGroupEntry(attributes1, false));
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes2 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupB", getAndCheckGroupEntry(attributes2, false));
+        Assertions.assertEquals(("GroupB").toLowerCase(), getAndCheckGroupEntry(attributes2, false));
 
         Assertions.assertFalse(results.hasMore());
 
@@ -346,19 +346,19 @@ public class FilterTest
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes1 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupB", getAndCheckGroupEntry(attributes1, false));
+        Assertions.assertEquals(("GroupB").toLowerCase(), getAndCheckGroupEntry(attributes1, false));
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes2 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupC", getAndCheckGroupEntry(attributes2, false));
+        Assertions.assertEquals(("GroupC").toLowerCase(), getAndCheckGroupEntry(attributes2, false));
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes3 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupD", getAndCheckGroupEntry(attributes3, false));
+        Assertions.assertEquals(("GroupD").toLowerCase(), getAndCheckGroupEntry(attributes3, false));
 
         Assertions.assertTrue(results.hasMore());
         Attributes attributes4 = ((SearchResult) results.next()).getAttributes();
-        Assertions.assertEquals("GroupE+,", getAndCheckGroupEntry(attributes4, false));
+        Assertions.assertEquals(("GroupE+,").toLowerCase(), getAndCheckGroupEntry(attributes4, false));
 
         Assertions.assertFalse(results.hasMore());
 
