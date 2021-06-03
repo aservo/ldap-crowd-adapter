@@ -29,7 +29,6 @@ import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -79,7 +78,7 @@ public class Executor {
 
         Query query = null;
         String sql = null;
-        long start = Instant.now().toEpochMilli();
+        long start = System.currentTimeMillis();
 
         String trimmedClause = clause.trim();
 
@@ -243,7 +242,7 @@ public class Executor {
             if (query != null)
                 query.close();
 
-            long end = Instant.now().toEpochMilli();
+            long end = System.currentTimeMillis();
 
             logger.debug("[Thread ID {}] - A prepared statement was performed in {} ms.",
                     Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);

@@ -31,7 +31,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -152,7 +151,7 @@ public class DatabaseService
         }
 
         Executor executor = new Executor(logger, connection, new NoopConverter(), QUERIES_CLAUSES);
-        long start = Instant.now().toEpochMilli();
+        long start = System.currentTimeMillis();
         T result;
 
         try {
@@ -188,7 +187,7 @@ public class DatabaseService
             }
         }
 
-        long end = Instant.now().toEpochMilli();
+        long end = System.currentTimeMillis();
 
         logger.debug("[Thread ID {}] - A transaction was performed in {} ms.",
                 Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);

@@ -18,7 +18,6 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.util.ServerConfiguration;
-import java.time.Instant;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -39,7 +38,7 @@ public class LockingDirectoryBackend
     @Override
     public <T> T withReadAccess(Supplier<T> block) {
 
-        long start = Instant.now().toEpochMilli();
+        long start = System.currentTimeMillis();
         T result;
 
         rwLock.readLock().lock();
@@ -53,7 +52,7 @@ public class LockingDirectoryBackend
             rwLock.readLock().unlock();
         }
 
-        long end = Instant.now().toEpochMilli();
+        long end = System.currentTimeMillis();
 
         logger.debug("[Thread ID {}] - A read only session was performed in {} ms.",
                 Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);
@@ -74,7 +73,7 @@ public class LockingDirectoryBackend
     @Override
     public <T> T withWriteAccess(Supplier<T> block) {
 
-        long start = Instant.now().toEpochMilli();
+        long start = System.currentTimeMillis();
         T result;
 
         rwLock.writeLock().lock();
@@ -88,7 +87,7 @@ public class LockingDirectoryBackend
             rwLock.writeLock().unlock();
         }
 
-        long end = Instant.now().toEpochMilli();
+        long end = System.currentTimeMillis();
 
         logger.debug("[Thread ID {}] - A writing session was performed in {} ms.",
                 Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);
