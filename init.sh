@@ -33,13 +33,16 @@ if [ -n "$SERVER_SSL_KEY_STORE_PASSWORD" ]; then
 fi
 
 if [ -n "$SSL_CRT" ] && [ -n "$SSL_KEY" ]; then
+  if [ -z "$SERVER_KEYSTORE_PASSWORD" ]; then
+    SERVER_KEYSTORE_PASSWORD="$(openssl rand -hex 42)"
+  fi
+  JAVA_OPTS="-Dssl.key-store-password=$SERVER_KEYSTORE_PASSWORD $JAVA_OPTS"
   echo "$SSL_CRT" > "local.crt"
-  echo "$SSL_KEY" > "local.key"
-  openssl pkcs12 -export -name "servercert" \
-    -in "local.crt" -inkey "local.key" \
-    -out local.keystore.p12 -passout "pass:changeit"
-  keytool -importkeystore -srcstorepass "changeit" --deststorepass "changeit" \
-    -srckeystore local.keystore.p12 -destkeystore local.keystore.jks \
+  echo "$SSL_KEY" | openssl pkcs12 -export -name "servercert" \
+    -in "local.crt" -inkey "/dev/stdin" \
+    -out "local.keystore.p12" -passout "pass:$SERVER_KEYSTORE_PASSWORD"
+  keytool -importkeystore -srcstorepass "$SERVER_KEYSTORE_PASSWORD" --deststorepass "$SERVER_KEYSTORE_PASSWORD" \
+    -srckeystore "local.keystore.p12" -destkeystore "local.keystore.jks" \
     -srcstoretype pkcs12 -alias "servercert"
 fi
 
