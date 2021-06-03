@@ -97,8 +97,7 @@ public abstract class AbstractTest {
             throws Exception {
 
         System.setProperty("directory-backend.permanent",
-                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend," +
-                        "com.aservo.ldap.adapter.backend.CachedInMemoryDirectoryBackend");
+                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
 
         System.setProperty("directory-backend.session", "");
 
