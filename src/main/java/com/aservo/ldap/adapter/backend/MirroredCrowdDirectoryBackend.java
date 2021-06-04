@@ -428,18 +428,14 @@ public class MirroredCrowdDirectoryBackend
 
                                         String type = entity.getAsJsonObject().get("type").getAsString();
                                         String name = entity.getAsJsonObject().get("name").getAsString();
+                                        boolean primary = entity.getAsJsonObject().get("primary").getAsBoolean();
 
-                                        if (type.equals("GROUP")) {
-
-                                            if (parentGroupId == null)
-                                                parentGroupId = name;
-                                            else
-                                                childGroupIds.add(name);
-
-                                        } else if (type.equals("USER")) {
-
+                                        if (primary && type.equals("GROUP"))
+                                            parentGroupId = name;
+                                        else if (type.equals("GROUP"))
+                                            childGroupIds.add(name);
+                                        else if (type.equals("USER"))
                                             userIds.add(name);
-                                        }
                                     }
 
                                     if (parentGroupId == null)
