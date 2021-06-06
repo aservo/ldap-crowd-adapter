@@ -49,16 +49,14 @@ public class Executor {
 
     private final Logger logger;
     private final Connection connection;
-    private final Converter converter;
     private final Map<String, String> clauses;
 
     private static final String NATIVE_SQL_INDICATOR = "NATIVE_SQL:";
 
-    public Executor(Logger logger, Connection connection, Converter converter, String resourcePath) {
+    public Executor(Logger logger, Connection connection, String resourcePath) {
 
         this.logger = logger;
         this.connection = connection;
-        this.converter = converter;
         this.clauses = parseSqlFile(resourcePath);
     }
 
@@ -153,7 +151,7 @@ public class Executor {
                                     public <R> R transform(Function<Row, R> f) {
 
                                         return rows.stream()
-                                                .map(x -> new RowImpl(converter, x))
+                                                .map(RowImpl::new)
                                                 .map(f)
                                                 .findFirst().get();
                                     }
@@ -177,7 +175,7 @@ public class Executor {
                                     public <R> Optional<R> transform(Function<Row, R> f) {
 
                                         return rows.stream()
-                                                .map(x -> new RowImpl(converter, x))
+                                                .map(RowImpl::new)
                                                 .map(f)
                                                 .findFirst();
                                     }
@@ -196,7 +194,7 @@ public class Executor {
                                     public <R> List<R> transform(Function<Row, R> f) {
 
                                         return rows.stream()
-                                                .map(x -> new RowImpl(converter, x))
+                                                .map(RowImpl::new)
                                                 .map(f)
                                                 .collect(Collectors.toList());
                                     }
@@ -220,7 +218,7 @@ public class Executor {
                                     public <R> List<R> transform(Function<Row, R> f) {
 
                                         return rows.stream()
-                                                .map(x -> new RowImpl(converter, x))
+                                                .map(RowImpl::new)
                                                 .map(f)
                                                 .collect(Collectors.toList());
                                     }
@@ -268,11 +266,6 @@ public class Executor {
     public Connection getConnection() {
 
         return connection;
-    }
-
-    public Converter getConverter() {
-
-        return converter;
     }
 
     private void findBinding(Query query, Map<String, Object> parameters) {
@@ -564,12 +557,10 @@ public class Executor {
     private static class RowImpl
             implements Row {
 
-        private final Converter converter;
         private final Map<String, Object> row;
 
-        public RowImpl(Converter converter, Map<String, Object> row) {
+        public RowImpl(Map<String, Object> row) {
 
-            this.converter = converter;
             this.row = row;
         }
 
@@ -584,11 +575,18 @@ public class Executor {
             if (entry == null)
                 return null;
 
-            T result =
-                    converter.read(entry, clazz)
-                            .orElseThrow(() -> new IllegalArgumentException(
-                                    "Cannot perform a read conversion with column " + column +
-                                            " and with type [" + clazz.getName() + "]."));
+            T result;
+
+            try {
+
+                result = (T) entry;
+
+            } catch (ClassCastException e) {
+
+                throw new IllegalArgumentException(
+                        "Cannot perform a read conversion with column " + column +
+                                " and with type [" + clazz.getName() + "].", e);
+            }
 
             return result;
         }
@@ -616,16 +614,22 @@ public class Executor {
             this.byId = byId;
         }
 
-        public <T> QueryDefImpl on(String key, T value) {
+        public QueryDefImpl on(String key, Object value) {
 
             Map<String, Object> parameters = new HashMap<>(this.parameters);
 
-            Object result = Executor.this.getConverter().write(value)
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Cannot perform a write conversion with key " + key +
-                                    " and with type [" + value.getClass().getName() + "]."));
+            parameters.put(key, value);
 
-            parameters.put(key, result);
+            return new QueryDefImpl(clauseOrId, parameters, byId);
+        }
+
+        public QueryDef on(List<Object> arguments) {
+
+            Map<String, Object> parameters = new HashMap<>(this.parameters);
+            int index = 1;
+
+            for (Object argument : arguments)
+                parameters.put(Integer.toString(index++), argument);
 
             return new QueryDefImpl(clauseOrId, parameters, byId);
         }
@@ -643,6 +647,22 @@ public class Executor {
 
                 throw new UncheckedSQLException(e);
             }
+        }
+
+        @Override
+        public boolean equals(Object that) {
+
+            if (this == that)
+                return true;
+
+            if (!(that instanceof QueryDefImpl))
+                return false;
+
+            QueryDefImpl queryDef = (QueryDefImpl) that;
+
+            return byId == queryDef.byId &&
+                    Objects.equals(clauseOrId, queryDef.clauseOrId) &&
+                    Objects.equals(parameters, queryDef.parameters);
         }
     }
 }

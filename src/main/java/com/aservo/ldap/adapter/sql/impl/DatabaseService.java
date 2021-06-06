@@ -106,7 +106,7 @@ public class DatabaseService
             throw new UncheckedSQLException("Could not create connection from pool.", e);
         }
 
-        Executor executor = new Executor(logger, connection, new NoopConverter(), VERSIONING_SCHEMA_CLAUSES);
+        Executor executor = new Executor(logger, connection, VERSIONING_SCHEMA_CLAUSES);
 
         performSchemaEvolution(executor.newQueryDefFactory());
     }
@@ -150,7 +150,7 @@ public class DatabaseService
             throw new UncheckedSQLException("Could not create connection from pool.", e);
         }
 
-        Executor executor = new Executor(logger, connection, new NoopConverter(), QUERIES_CLAUSES);
+        Executor executor = new Executor(logger, connection, QUERIES_CLAUSES);
         long start = System.currentTimeMillis();
         T result;
 

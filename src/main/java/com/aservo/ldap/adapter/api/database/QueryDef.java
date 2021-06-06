@@ -18,6 +18,7 @@
 package com.aservo.ldap.adapter.api.database;
 
 import com.aservo.ldap.adapter.api.database.result.Result;
+import java.util.List;
 
 
 /**
@@ -32,7 +33,15 @@ public interface QueryDef {
      * @param value the value of the parameter
      * @return the query definition object
      */
-    <T> QueryDef on(String key, T value);
+    QueryDef on(String key, Object value);
+
+    /**
+     * Adds multiple arguments to the query.
+     *
+     * @param arguments the collection of arguments
+     * @return the query definition object
+     */
+    QueryDef on(List<Object> arguments);
 
     /**
      * Executes a query.
