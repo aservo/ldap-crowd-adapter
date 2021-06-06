@@ -72,7 +72,7 @@ public class CommonAuthenticator
 
         try {
 
-            String userId = LdapUtils.getUserIdFromDn(schemaManager, directory, context.getDn().getName());
+            String userId = LdapUtils.getUserIdFromDn(schemaManager, context.getDn().getName(), directory.getId());
 
             if (userId == null)
                 throw new LdapInvalidDnException("Cannot handle unexpected DN=" + context.getDn());

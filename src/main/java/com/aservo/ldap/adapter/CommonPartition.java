@@ -102,7 +102,7 @@ public class CommonPartition
     @Override
     public Dn getSuffixDn() {
 
-        return LdapUtils.createDn(schemaManager, directoryFactory.getPermanentDirectory(), EntityType.DOMAIN);
+        return LdapUtils.createDn(schemaManager, EntityType.DOMAIN, getId());
     }
 
     private FilterMatcher newFilterMatcher(DirectoryBackend directory) {
@@ -111,27 +111,66 @@ public class CommonPartition
 
             protected boolean isGroupMember(GroupEntity entity, String dn, boolean negated) {
 
-                return LdapUtils.isGroupMember(schemaManager, directory, entity, dn,
-                        serverConfig.isFlatteningEnabled(), negated);
+                String id = LdapUtils.getUserIdFromDn(schemaManager, dn, getId());
+
+                if (id != null) {
+
+                    if (serverConfig.isFlatteningEnabled())
+                        return directory.isUserTransitiveGroupMember(id, entity.getId()) != negated;
+
+                    return directory.isUserDirectGroupMember(id, entity.getId()) != negated;
+
+                } else {
+
+                    id = LdapUtils.getGroupIdFromDn(schemaManager, dn, getId());
+
+                    if (id != null) {
+
+                        if (serverConfig.isFlatteningEnabled())
+                            return directory.isGroupTransitiveGroupMember(id, entity.getId()) != negated;
+
+                        return directory.isGroupDirectGroupMember(id, entity.getId()) != negated;
+                    }
+                }
+
+                return false;
             }
 
             protected boolean isMemberOfGroup(GroupEntity entity, String dn, boolean negated) {
 
-                return LdapUtils.isMemberOfGroup(schemaManager, directory, entity, dn,
-                        serverConfig.isFlatteningEnabled(), negated);
+                String id = LdapUtils.getGroupIdFromDn(schemaManager, dn, getId());
+
+                if (id != null) {
+
+                    if (serverConfig.isFlatteningEnabled())
+                        return directory.isGroupTransitiveGroupMember(id, entity.getId()) != negated;
+
+                    return directory.isGroupDirectGroupMember(id, entity.getId()) != negated;
+                }
+
+                return false;
             }
 
             protected boolean isMemberOfGroup(UserEntity entity, String dn, boolean negated) {
 
-                return LdapUtils.isMemberOfGroup(schemaManager, directory, entity, dn,
-                        serverConfig.isFlatteningEnabled(), negated);
+                String id = LdapUtils.getGroupIdFromDn(schemaManager, dn, getId());
+
+                if (id != null) {
+
+                    if (serverConfig.isFlatteningEnabled())
+                        return directory.isUserTransitiveGroupMember(entity.getId(), id) != negated;
+
+                    return directory.isUserDirectGroupMember(entity.getId(), id) != negated;
+                }
+
+                return false;
             }
         };
     }
 
     private Entry createEntry(DirectoryBackend directory, Entity entity, Set<String> attributes) {
 
-        Dn queryDn = LdapUtils.createDn(schemaManager, directory, entity);
+        Dn queryDn = LdapUtils.createDn(schemaManager, entity, getId());
         Entry entry;
 
         if (entity instanceof DomainEntity) {
@@ -363,10 +402,10 @@ public class CommonPartition
             throws EntityNotFoundException {
 
         return Stream.concat(
-                LdapUtils.findGroupMembers(directory, groupId, serverConfig.isFlatteningEnabled()).stream()
-                        .map(x -> LdapUtils.createDn(schemaManager, directory, EntityType.GROUP, x)),
-                LdapUtils.findUserMembers(directory, groupId, serverConfig.isFlatteningEnabled()).stream()
-                        .map(x -> LdapUtils.createDn(schemaManager, directory, EntityType.USER, x))
+                findGroupMembers(directory, groupId, serverConfig.isFlatteningEnabled()).stream()
+                        .map(x -> LdapUtils.createDn(schemaManager, EntityType.GROUP, x, getId())),
+                findUserMembers(directory, groupId, serverConfig.isFlatteningEnabled()).stream()
+                        .map(x -> LdapUtils.createDn(schemaManager, EntityType.USER, x, getId()))
         )
                 .map(Dn::getName)
                 .collect(Collectors.toList());
@@ -375,8 +414,8 @@ public class CommonPartition
     private List<String> collectMemberOfDnForGroup(DirectoryBackend directory, String groupId)
             throws EntityNotFoundException {
 
-        return LdapUtils.findGroupMembersReverse(directory, groupId, serverConfig.isFlatteningEnabled()).stream()
-                .map(x -> LdapUtils.createDn(schemaManager, directory, EntityType.GROUP, x))
+        return findGroupMembersReverse(directory, groupId, serverConfig.isFlatteningEnabled()).stream()
+                .map(x -> LdapUtils.createDn(schemaManager, EntityType.GROUP, x, getId()))
                 .map(Dn::getName)
                 .collect(Collectors.toList());
     }
@@ -384,10 +423,46 @@ public class CommonPartition
     private List<String> collectMemberOfDnForUser(DirectoryBackend directory, String userId)
             throws EntityNotFoundException {
 
-        return LdapUtils.findUserMembersReverse(directory, userId, serverConfig.isFlatteningEnabled()).stream()
-                .map(x -> LdapUtils.createDn(schemaManager, directory, EntityType.GROUP, x))
+        return findUserMembersReverse(directory, userId, serverConfig.isFlatteningEnabled()).stream()
+                .map(x -> LdapUtils.createDn(schemaManager, EntityType.GROUP, x, getId()))
                 .map(Dn::getName)
                 .collect(Collectors.toList());
+    }
+
+    private List<String> findGroupMembers(DirectoryBackend directoryBackend, String groupId, boolean flattening)
+            throws EntityNotFoundException {
+
+        if (!flattening)
+            return directoryBackend.getDirectChildGroupNamesOfGroup(groupId);
+
+        return Collections.emptyList();
+    }
+
+    private List<String> findUserMembers(DirectoryBackend directoryBackend, String groupId, boolean flattening)
+            throws EntityNotFoundException {
+
+        if (flattening)
+            return directoryBackend.getTransitiveUserNamesOfGroup(groupId);
+
+        return directoryBackend.getDirectUserNamesOfGroup(groupId);
+    }
+
+    private List<String> findGroupMembersReverse(DirectoryBackend directoryBackend, String groupId, boolean flattening)
+            throws EntityNotFoundException {
+
+        if (!flattening)
+            return directoryBackend.getDirectParentGroupNamesOfGroup(groupId);
+
+        return Collections.emptyList();
+    }
+
+    private List<String> findUserMembersReverse(DirectoryBackend directoryBackend, String userId, boolean flattening)
+            throws EntityNotFoundException {
+
+        if (flattening)
+            return directoryBackend.getTransitiveGroupNamesOfUser(userId);
+
+        return directoryBackend.getDirectGroupNamesOfUser(userId);
     }
 
     @Nullable
@@ -400,9 +475,9 @@ public class CommonPartition
 
         return directoryFactory.withSession(directory -> {
 
-            Dn rootDn = LdapUtils.createDn(schemaManager, directory, EntityType.DOMAIN);
-            Dn groupsDn = LdapUtils.createDn(schemaManager, directory, EntityType.GROUP_UNIT);
-            Dn usersDn = LdapUtils.createDn(schemaManager, directory, EntityType.USER_UNIT);
+            Dn rootDn = LdapUtils.createDn(schemaManager, EntityType.DOMAIN, getId());
+            Dn groupsDn = LdapUtils.createDn(schemaManager, EntityType.GROUP_UNIT, getId());
+            Dn usersDn = LdapUtils.createDn(schemaManager, EntityType.USER_UNIT, getId());
 
             Entry entry = null;
 
@@ -412,7 +487,7 @@ public class CommonPartition
 
             } else if (context.getDn().getParent().equals(groupsDn)) {
 
-                String groupId = LdapUtils.getGroupIdFromDn(schemaManager, directory, context.getDn().getName());
+                String groupId = LdapUtils.getGroupIdFromDn(schemaManager, context.getDn().getName(), getId());
 
                 if (groupId != null) {
 
@@ -432,7 +507,7 @@ public class CommonPartition
 
             } else if (context.getDn().getParent().equals(usersDn)) {
 
-                String userId = LdapUtils.getUserIdFromDn(schemaManager, directory, context.getDn().getName());
+                String userId = LdapUtils.getUserIdFromDn(schemaManager, context.getDn().getName(), getId());
 
                 if (userId != null) {
 
@@ -471,10 +546,9 @@ public class CommonPartition
         logger.debug("[Thread ID {}] - Perform check for existence of entry with DN={}",
                 Thread.currentThread().getId(), context.getDn().getName());
 
-        DirectoryBackend permanentDirectory = directoryFactory.getPermanentDirectory();
-        Dn rootDn = LdapUtils.createDn(schemaManager, permanentDirectory, EntityType.DOMAIN);
-        Dn groupsDn = LdapUtils.createDn(schemaManager, permanentDirectory, EntityType.GROUP_UNIT);
-        Dn usersDn = LdapUtils.createDn(schemaManager, permanentDirectory, EntityType.USER_UNIT);
+        Dn rootDn = LdapUtils.createDn(schemaManager, EntityType.DOMAIN, getId());
+        Dn groupsDn = LdapUtils.createDn(schemaManager, EntityType.GROUP_UNIT, getId());
+        Dn usersDn = LdapUtils.createDn(schemaManager, EntityType.USER_UNIT, getId());
 
         if (context.getDn().equals(groupsDn)) {
 
@@ -539,9 +613,9 @@ public class CommonPartition
 
         return directoryFactory.withSession(directory -> {
 
-            Dn rootDn = LdapUtils.createDn(schemaManager, directory, EntityType.DOMAIN);
-            Dn groupsDn = LdapUtils.createDn(schemaManager, directory, EntityType.GROUP_UNIT);
-            Dn usersDn = LdapUtils.createDn(schemaManager, directory, EntityType.USER_UNIT);
+            Dn rootDn = LdapUtils.createDn(schemaManager, EntityType.DOMAIN, getId());
+            Dn groupsDn = LdapUtils.createDn(schemaManager, EntityType.GROUP_UNIT, getId());
+            Dn usersDn = LdapUtils.createDn(schemaManager, EntityType.USER_UNIT, getId());
             FilterMatcher filterMatcher = newFilterMatcher(directory);
 
             Set<String> attributes =

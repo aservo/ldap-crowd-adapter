@@ -22,8 +22,6 @@ import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.*;
-import com.aservo.ldap.adapter.backend.DirectoryBackend;
-import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.exception.UnsupportedQueryExpressionException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -71,28 +69,24 @@ public class LdapUtils {
     /**
      * Creates a DN with suffix.
      *
-     * @param schemaManager    the schema manager
-     * @param directoryBackend the related directory backend
-     * @param entityType       the entry type
+     * @param schemaManager the schema manager
+     * @param entityType    the entry type
      * @return the DN
      */
-    public static Dn createDn(SchemaManager schemaManager, DirectoryBackend directoryBackend, EntityType entityType) {
+    public static Dn createDn(SchemaManager schemaManager, EntityType entityType, String dcId) {
 
         try {
 
             switch (entityType) {
 
                 case DOMAIN:
-                    return new Dn(schemaManager, String.format("dc=%s",
-                            directoryBackend.getId()));
+                    return new Dn(schemaManager, String.format("dc=%s", dcId));
 
                 case GROUP_UNIT:
-                    return new Dn(schemaManager, String.format("ou=%s,dc=%s",
-                            LdapUtils.OU_GROUPS, directoryBackend.getId()));
+                    return new Dn(schemaManager, String.format("ou=%s,dc=%s", LdapUtils.OU_GROUPS, dcId));
 
                 case USER_UNIT:
-                    return new Dn(schemaManager, String.format("ou=%s,dc=%s",
-                            LdapUtils.OU_USERS, directoryBackend.getId()));
+                    return new Dn(schemaManager, String.format("ou=%s,dc=%s", LdapUtils.OU_USERS, dcId));
 
                 default:
                     throw new IllegalArgumentException("Cannot create DN from unknown entity.");
@@ -107,14 +101,12 @@ public class LdapUtils {
     /**
      * Creates a DN with suffix.
      *
-     * @param schemaManager    the schema manager
-     * @param directoryBackend the related directory backend
-     * @param entityType       the entry type
-     * @param id               the entry ID
+     * @param schemaManager the schema manager
+     * @param entityType    the entry type
+     * @param name          the entry name
      * @return the DN
      */
-    public static Dn createDn(SchemaManager schemaManager, DirectoryBackend directoryBackend, EntityType entityType,
-                              String id) {
+    public static Dn createDn(SchemaManager schemaManager, EntityType entityType, String name, String dcId) {
 
         try {
 
@@ -122,14 +114,14 @@ public class LdapUtils {
 
                 case GROUP:
                     return new Dn(schemaManager, String.format("cn=%s,ou=%s,dc=%s",
-                            Rdn.escapeValue(id), LdapUtils.OU_GROUPS, directoryBackend.getId()));
+                            Rdn.escapeValue(name), LdapUtils.OU_GROUPS, dcId));
 
                 case USER:
                     return new Dn(schemaManager, String.format("cn=%s,ou=%s,dc=%s",
-                            Rdn.escapeValue(id), LdapUtils.OU_USERS, directoryBackend.getId()));
+                            Rdn.escapeValue(name), LdapUtils.OU_USERS, dcId));
 
                 default:
-                    return createDn(schemaManager, directoryBackend, entityType);
+                    return createDn(schemaManager, entityType, dcId);
             }
 
         } catch (LdapInvalidDnException e) {
@@ -141,12 +133,11 @@ public class LdapUtils {
     /**
      * Creates a DN with suffix.
      *
-     * @param schemaManager    the schema manager
-     * @param directoryBackend the related directory backend
-     * @param entity           the entry
+     * @param schemaManager the schema manager
+     * @param entity        the entity
      * @return the DN
      */
-    public static Dn createDn(SchemaManager schemaManager, DirectoryBackend directoryBackend, Entity entity) {
+    public static Dn createDn(SchemaManager schemaManager, Entity entity, String dcId) {
 
         String name = entity.getId();
 
@@ -156,27 +147,26 @@ public class LdapUtils {
         if (entity instanceof UserEntity)
             name = ((UserEntity) entity).getUsername();
 
-        return createDn(schemaManager, directoryBackend, entity.getEntityType(), name);
+        return createDn(schemaManager, entity.getEntityType(), name, dcId);
     }
 
     /**
-     * Gets group from DN.
+     * Gets group ID from DN.
      *
-     * @param schemaManager    the schema manager
-     * @param directoryBackend the related directory backend
-     * @param dn               the DN
+     * @param schemaManager the schema manager
+     * @param dn            the DN
      * @return the group ID
      */
     @Nullable
-    public static String getGroupIdFromDn(SchemaManager schemaManager, DirectoryBackend directoryBackend, String dn) {
+    public static String getGroupIdFromDn(SchemaManager schemaManager, String dn, String dcId) {
 
         try {
 
             Dn queryDn = new Dn(schemaManager, dn);
             String attribute = normalizeAttribute(queryDn.getRdn().getType());
 
-            if ((queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.GROUP_UNIT)) ||
-                    queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.DOMAIN))) &&
+            if ((queryDn.getParent().equals(createDn(schemaManager, EntityType.GROUP_UNIT, dcId)) ||
+                    queryDn.getParent().equals(createDn(schemaManager, EntityType.DOMAIN, dcId))) &&
                     attribute.equals(SchemaConstants.CN_AT_OID)) {
 
                 return queryDn.getRdn().getNormValue().toLowerCase();
@@ -189,23 +179,22 @@ public class LdapUtils {
     }
 
     /**
-     * Gets user from DN.
+     * Gets user ID from DN.
      *
-     * @param schemaManager    the schema manager
-     * @param directoryBackend the related directory backend
-     * @param dn               the DN
+     * @param schemaManager the schema manager
+     * @param dn            the DN
      * @return the user ID
      */
     @Nullable
-    public static String getUserIdFromDn(SchemaManager schemaManager, DirectoryBackend directoryBackend, String dn) {
+    public static String getUserIdFromDn(SchemaManager schemaManager, String dn, String dcId) {
 
         try {
 
             Dn queryDn = new Dn(schemaManager, dn);
             String attribute = normalizeAttribute(queryDn.getRdn().getType());
 
-            if ((queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.USER_UNIT)) ||
-                    queryDn.getParent().equals(createDn(schemaManager, directoryBackend, EntityType.DOMAIN))) && (
+            if ((queryDn.getParent().equals(createDn(schemaManager, EntityType.USER_UNIT, dcId)) ||
+                    queryDn.getParent().equals(createDn(schemaManager, EntityType.DOMAIN, dcId))) && (
                     attribute.equals(SchemaConstants.UID_AT_OID) ||
                             attribute.equals(SchemaConstants.CN_AT_OID))) {
 
@@ -216,167 +205,6 @@ public class LdapUtils {
         }
 
         return null;
-    }
-
-    /**
-     * Check user and child group membership by DN.
-     *
-     * @param schemaManager    the schema manager
-     * @param directoryBackend the directory backend
-     * @param group            the group entity
-     * @param dn               the DN
-     * @param flattening       the flattening enabled flag
-     * @param negated          the flag to negate the check
-     * @return the boolean
-     */
-    public static boolean isGroupMember(SchemaManager schemaManager, DirectoryBackend directoryBackend,
-                                        GroupEntity group, String dn, boolean flattening, boolean negated) {
-
-        String id = LdapUtils.getUserIdFromDn(schemaManager, directoryBackend, dn);
-
-        if (id != null) {
-
-            if (flattening)
-                return directoryBackend.isUserTransitiveGroupMember(id, group.getId()) != negated;
-
-            return directoryBackend.isUserDirectGroupMember(id, group.getId()) != negated;
-
-        } else {
-
-            id = LdapUtils.getGroupIdFromDn(schemaManager, directoryBackend, dn);
-
-            if (id != null) {
-
-                if (flattening)
-                    return directoryBackend.isGroupTransitiveGroupMember(id, group.getId()) != negated;
-
-                return directoryBackend.isGroupDirectGroupMember(id, group.getId()) != negated;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Check group membership by DN.
-     *
-     * @param schemaManager    the schema manager
-     * @param directoryBackend the directory backend
-     * @param group            the group entity
-     * @param dn               the DN
-     * @param flattening       the flattening enabled flag
-     * @param negated          the flag to negate the check
-     * @return the boolean
-     */
-    public static boolean isMemberOfGroup(SchemaManager schemaManager, DirectoryBackend directoryBackend,
-                                          GroupEntity group, String dn, boolean flattening, boolean negated) {
-
-        String id = LdapUtils.getGroupIdFromDn(schemaManager, directoryBackend, dn);
-
-        if (id != null) {
-
-            if (flattening)
-                return directoryBackend.isGroupTransitiveGroupMember(id, group.getId()) != negated;
-
-            return directoryBackend.isGroupDirectGroupMember(id, group.getId()) != negated;
-        }
-
-        return false;
-    }
-
-    /**
-     * Check user membership by DN.
-     *
-     * @param schemaManager    the schema manager
-     * @param directoryBackend the directory backend
-     * @param user             the user entity
-     * @param dn               the DN
-     * @param flattening       the flattening enabled flag
-     * @param negated          the flag to negate the check
-     * @return the boolean
-     */
-    public static boolean isMemberOfGroup(SchemaManager schemaManager, DirectoryBackend directoryBackend,
-                                          UserEntity user, String dn, boolean flattening, boolean negated) {
-
-        String id = LdapUtils.getGroupIdFromDn(schemaManager, directoryBackend, dn);
-
-        if (id != null) {
-
-            if (flattening)
-                return directoryBackend.isUserTransitiveGroupMember(user.getId(), id) != negated;
-
-            return directoryBackend.isUserDirectGroupMember(user.getId(), id) != negated;
-        }
-
-        return false;
-    }
-
-    /**
-     * Find all IDs of group members.
-     *
-     * @param directoryBackend the directory backend
-     * @param groupId          the group ID
-     * @param flattening       the flattening enabled flag
-     * @return the list of group IDs
-     */
-    public static List<String> findGroupMembers(DirectoryBackend directoryBackend, String groupId, boolean flattening)
-            throws EntityNotFoundException {
-
-        if (!flattening)
-            return directoryBackend.getDirectChildGroupNamesOfGroup(groupId);
-
-        return Collections.emptyList();
-    }
-
-    /**
-     * Find all IDs of user members.
-     *
-     * @param directoryBackend the directory backend
-     * @param groupId          the group ID
-     * @param flattening       the flattening enabled flag
-     * @return the list of user IDs
-     */
-    public static List<String> findUserMembers(DirectoryBackend directoryBackend, String groupId, boolean flattening)
-            throws EntityNotFoundException {
-
-        if (flattening)
-            return directoryBackend.getTransitiveUserNamesOfGroup(groupId);
-
-        return directoryBackend.getDirectUserNamesOfGroup(groupId);
-    }
-
-    /**
-     * Find all IDs of reverse group members.
-     *
-     * @param directoryBackend the directory backend
-     * @param groupId          the group ID
-     * @param flattening       the flattening enabled flag
-     * @return the list of group IDs
-     */
-    public static List<String> findGroupMembersReverse(DirectoryBackend directoryBackend, String groupId, boolean flattening)
-            throws EntityNotFoundException {
-
-        if (!flattening)
-            return directoryBackend.getDirectParentGroupNamesOfGroup(groupId);
-
-        return Collections.emptyList();
-    }
-
-    /**
-     * Find all IDs of reverse user members.
-     *
-     * @param directoryBackend the directory backend
-     * @param userId           the user ID
-     * @param flattening       the flattening enabled flag
-     * @return the list of user IDs
-     */
-    public static List<String> findUserMembersReverse(DirectoryBackend directoryBackend, String userId, boolean flattening)
-            throws EntityNotFoundException {
-
-        if (flattening)
-            return directoryBackend.getTransitiveGroupNamesOfUser(userId);
-
-        return directoryBackend.getDirectGroupNamesOfUser(userId);
     }
 
     /**
