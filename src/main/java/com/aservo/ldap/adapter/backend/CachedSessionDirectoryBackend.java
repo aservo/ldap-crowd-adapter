@@ -17,7 +17,8 @@
 
 package com.aservo.ldap.adapter.backend;
 
-import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
+import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
+import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.*;
 import org.apache.commons.lang3.tuple.Pair;

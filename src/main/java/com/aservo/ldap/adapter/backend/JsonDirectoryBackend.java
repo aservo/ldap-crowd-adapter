@@ -18,12 +18,13 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.api.FilterMatcher;
+import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
+import com.aservo.ldap.adapter.api.directory.exception.DirectoryAccessFailureException;
+import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
+import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
-import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
-import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;

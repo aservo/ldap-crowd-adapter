@@ -1,9 +1,9 @@
 package com.aservo.ldap.adapter;
 
+import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
+import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.helper.AbstractIntegrationTest;
 import java.util.Arrays;
 import java.util.HashSet;

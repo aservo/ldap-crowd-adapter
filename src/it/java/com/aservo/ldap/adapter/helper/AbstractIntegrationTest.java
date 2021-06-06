@@ -1,9 +1,9 @@
 package com.aservo.ldap.adapter.helper;
 
 import com.aservo.ldap.adapter.CommonLdapServer;
+import com.aservo.ldap.adapter.DirectoryBackendFactory;
 import com.aservo.ldap.adapter.Main;
-import com.aservo.ldap.adapter.backend.DirectoryBackend;
-import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
+import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

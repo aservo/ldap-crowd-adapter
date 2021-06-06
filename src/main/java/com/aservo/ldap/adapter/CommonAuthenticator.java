@@ -23,12 +23,11 @@
 package com.aservo.ldap.adapter;
 
 import com.aservo.ldap.adapter.api.LdapUtils;
+import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
+import com.aservo.ldap.adapter.api.directory.exception.DirectoryAccessFailureException;
+import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
+import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.backend.DirectoryBackend;
-import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
-import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
-import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.util.exception.InternalServerException;
 import java.nio.charset.StandardCharsets;
 import javax.naming.AuthenticationException;

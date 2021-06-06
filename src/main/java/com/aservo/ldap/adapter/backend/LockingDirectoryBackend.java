@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.backend;
 
+import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;

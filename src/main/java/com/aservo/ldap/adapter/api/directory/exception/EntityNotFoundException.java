@@ -15,50 +15,50 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.backend.exception;
+package com.aservo.ldap.adapter.api.directory.exception;
 
 
 /**
- * The type Directory access failure exception.
+ * The type Entry not found exception.
  */
-public class DirectoryAccessFailureException
+public class EntityNotFoundException
         extends RuntimeException {
 
     /**
-     * Instantiates a new Directory access failure exception.
+     * Instantiates a new Entry not found exception.
      */
-    public DirectoryAccessFailureException() {
+    public EntityNotFoundException() {
 
         super();
     }
 
     /**
-     * Instantiates a new Directory access failure exception.
+     * Instantiates a new Entry not found exception.
      *
      * @param message the message
      */
-    public DirectoryAccessFailureException(String message) {
+    public EntityNotFoundException(String message) {
 
         super(message);
     }
 
     /**
-     * Instantiates a new Directory access failure exception.
+     * Instantiates a new Entry not found exception.
      *
      * @param message   the message
      * @param throwable the throwable
      */
-    public DirectoryAccessFailureException(String message, Throwable throwable) {
+    public EntityNotFoundException(String message, Throwable throwable) {
 
         super(message, throwable);
     }
 
     /**
-     * Instantiates a new Directory access failure exception.
+     * Instantiates a new Entry not found exception.
      *
      * @param throwable the throwable
      */
-    public DirectoryAccessFailureException(Throwable throwable) {
+    public EntityNotFoundException(Throwable throwable) {
 
         super(throwable);
     }

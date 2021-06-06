@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.backend;
+package com.aservo.ldap.adapter.api.directory;
 
 import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import java.util.List;
@@ -24,6 +24,9 @@ import javax.naming.OperationNotSupportedException;
 import org.apache.commons.lang3.tuple.Pair;
 
 
+/**
+ * The interface for all nested directory backends.
+ */
 public interface NestedDirectoryBackend
         extends DirectoryBackend {
 

@@ -1,12 +1,12 @@
 package com.aservo.ldap.adapter.helper;
 
 import com.aservo.ldap.adapter.CommonLdapServer;
+import com.aservo.ldap.adapter.DirectoryBackendFactory;
 import com.aservo.ldap.adapter.Main;
 import com.aservo.ldap.adapter.api.LdapUtils;
+import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.backend.DirectoryBackend;
-import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
