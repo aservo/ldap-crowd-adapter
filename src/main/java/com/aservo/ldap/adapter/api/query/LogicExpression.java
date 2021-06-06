@@ -23,16 +23,16 @@ import java.util.Objects;
 
 
 public abstract class LogicExpression
-        implements FilterNode {
+        implements QueryExpression {
 
-    private final List<FilterNode> children = new LinkedList<>();
+    private final List<QueryExpression> children = new LinkedList<>();
 
-    public LogicExpression(List<FilterNode> children) {
+    public LogicExpression(List<QueryExpression> children) {
 
         this.children.addAll(children);
     }
 
-    public List<FilterNode> getChildren() {
+    public List<QueryExpression> getChildren() {
 
         return new LinkedList<>(children);
     }

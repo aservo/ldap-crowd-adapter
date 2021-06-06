@@ -24,8 +24,8 @@ import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.AndLogicExpression;
 import com.aservo.ldap.adapter.api.query.EqualOperator;
-import com.aservo.ldap.adapter.api.query.FilterNode;
 import com.aservo.ldap.adapter.api.query.OrLogicExpression;
+import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
@@ -187,24 +187,24 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
+    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
 
-        return getGroups(filterNode, filterMatcher, 0, Integer.MAX_VALUE);
+        return getGroups(expression, filterMatcher, 0, Integer.MAX_VALUE);
     }
 
-    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
+    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher,
                                        int startIndex, int maxResults) {
 
         logger.info("Backend call: getGroups({}, {})", startIndex, maxResults);
 
         SearchRestriction restriction =
-                removeNullRestrictions(createGroupSearchRestriction(LdapUtils.removeNotExpressions(filterNode)));
+                removeNullRestrictions(createGroupSearchRestriction(LdapUtils.removeNotExpressions(expression)));
 
         try {
 
             return crowdClient.searchGroups(restriction, startIndex, maxResults).stream()
                     .map(this::createGroupEntity)
-                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
                     .collect(Collectors.toList());
 
         } catch (ApplicationPermissionException |
@@ -218,24 +218,24 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
+    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
 
-        return getUsers(filterNode, filterMatcher, 0, Integer.MAX_VALUE);
+        return getUsers(expression, filterMatcher, 0, Integer.MAX_VALUE);
     }
 
-    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
+    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher,
                                      int startIndex, int maxResults) {
 
         logger.info("Backend call: getUsers({}, {})", startIndex, maxResults);
 
         SearchRestriction restriction =
-                removeNullRestrictions(createUserSearchRestriction(LdapUtils.removeNotExpressions(filterNode)));
+                removeNullRestrictions(createUserSearchRestriction(LdapUtils.removeNotExpressions(expression)));
 
         try {
 
             return crowdClient.searchUsers(restriction, startIndex, maxResults).stream()
                     .map(this::createUserEntity)
-                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
                     .collect(Collectors.toList());
 
         } catch (ApplicationPermissionException |
@@ -755,36 +755,36 @@ public class CrowdDirectoryBackend
         );
     }
 
-    private SearchRestriction createGroupSearchRestriction(FilterNode filterNode) {
+    private SearchRestriction createGroupSearchRestriction(QueryExpression expression) {
 
-        if (filterNode instanceof AndLogicExpression) {
+        if (expression instanceof AndLogicExpression) {
 
             return new BooleanRestrictionImpl(
                     BooleanRestriction.BooleanLogic.AND,
-                    ((AndLogicExpression) filterNode).getChildren().stream()
+                    ((AndLogicExpression) expression).getChildren().stream()
                             .map(this::createGroupSearchRestriction)
                             .collect(Collectors.toList())
             );
 
-        } else if (filterNode instanceof OrLogicExpression) {
+        } else if (expression instanceof OrLogicExpression) {
 
             return new BooleanRestrictionImpl(
                     BooleanRestriction.BooleanLogic.OR,
-                    ((OrLogicExpression) filterNode).getChildren().stream()
+                    ((OrLogicExpression) expression).getChildren().stream()
                             .map(this::createGroupSearchRestriction)
                             .collect(Collectors.toList())
             );
 
-        } else if (filterNode instanceof EqualOperator) {
+        } else if (expression instanceof EqualOperator) {
 
-            switch (LdapUtils.normalizeAttribute(((EqualOperator) filterNode).getAttribute())) {
+            switch (LdapUtils.normalizeAttribute(((EqualOperator) expression).getAttribute())) {
 
                 case SchemaConstants.CN_AT_OID:
 
                     return new TermRestriction<>(
                             GroupTermKeys.NAME,
                             MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) filterNode).getValue()
+                            ((EqualOperator) expression).getValue()
                     );
 
                 case SchemaConstants.DESCRIPTION_AT_OID:
@@ -792,7 +792,7 @@ public class CrowdDirectoryBackend
                     return new TermRestriction<>(
                             GroupTermKeys.DESCRIPTION,
                             MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) filterNode).getValue()
+                            ((EqualOperator) expression).getValue()
                     );
 
                 default:
@@ -803,29 +803,29 @@ public class CrowdDirectoryBackend
         return NullRestrictionImpl.INSTANCE;
     }
 
-    private SearchRestriction createUserSearchRestriction(FilterNode filterNode) {
+    private SearchRestriction createUserSearchRestriction(QueryExpression expression) {
 
-        if (filterNode instanceof AndLogicExpression) {
+        if (expression instanceof AndLogicExpression) {
 
             return new BooleanRestrictionImpl(
                     BooleanRestriction.BooleanLogic.AND,
-                    ((AndLogicExpression) filterNode).getChildren().stream()
+                    ((AndLogicExpression) expression).getChildren().stream()
                             .map(this::createUserSearchRestriction)
                             .collect(Collectors.toList())
             );
 
-        } else if (filterNode instanceof OrLogicExpression) {
+        } else if (expression instanceof OrLogicExpression) {
 
             return new BooleanRestrictionImpl(
                     BooleanRestriction.BooleanLogic.OR,
-                    ((OrLogicExpression) filterNode).getChildren().stream()
+                    ((OrLogicExpression) expression).getChildren().stream()
                             .map(this::createUserSearchRestriction)
                             .collect(Collectors.toList())
             );
 
-        } else if (filterNode instanceof EqualOperator) {
+        } else if (expression instanceof EqualOperator) {
 
-            switch (LdapUtils.normalizeAttribute(((EqualOperator) filterNode).getAttribute())) {
+            switch (LdapUtils.normalizeAttribute(((EqualOperator) expression).getAttribute())) {
 
                 case SchemaConstants.UID_AT_OID:
                 case SchemaConstants.CN_AT_OID:
@@ -833,7 +833,7 @@ public class CrowdDirectoryBackend
                     return new TermRestriction<>(
                             UserTermKeys.USERNAME,
                             MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) filterNode).getValue()
+                            ((EqualOperator) expression).getValue()
                     );
 
                 case SchemaConstants.SN_AT_OID:
@@ -841,7 +841,7 @@ public class CrowdDirectoryBackend
                     return new TermRestriction<>(
                             UserTermKeys.LAST_NAME,
                             MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) filterNode).getValue()
+                            ((EqualOperator) expression).getValue()
                     );
 
                 case SchemaConstants.GN_AT_OID:
@@ -849,7 +849,7 @@ public class CrowdDirectoryBackend
                     return new TermRestriction<>(
                             UserTermKeys.FIRST_NAME,
                             MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) filterNode).getValue()
+                            ((EqualOperator) expression).getValue()
                     );
 
                 case SchemaConstants.DISPLAY_NAME_AT_OID:
@@ -857,7 +857,7 @@ public class CrowdDirectoryBackend
                     return new TermRestriction<>(
                             UserTermKeys.DISPLAY_NAME,
                             MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) filterNode).getValue()
+                            ((EqualOperator) expression).getValue()
                     );
 
                 case SchemaConstants.MAIL_AT_OID:
@@ -865,7 +865,7 @@ public class CrowdDirectoryBackend
                     return new TermRestriction<>(
                             UserTermKeys.EMAIL,
                             MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) filterNode).getValue()
+                            ((EqualOperator) expression).getValue()
                     );
 
                 default:

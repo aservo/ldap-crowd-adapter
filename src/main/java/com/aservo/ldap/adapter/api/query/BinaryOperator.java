@@ -20,20 +20,35 @@ package com.aservo.ldap.adapter.api.query;
 import java.util.Objects;
 
 
-public abstract class BinaryOperator
-        extends Operator {
+public abstract class BinaryOperator<T extends BinaryOperator<?>>
+        implements OperatorExpression<T> {
 
-    private final String value;
+    private final String attribute;
+    private final boolean negated;
+    private final boolean ignoreCase;
 
-    public BinaryOperator(String attribute, String value) {
+    public BinaryOperator(String attribute, boolean negated, boolean ignoreCase) {
 
-        super(attribute);
-        this.value = value;
+        this.attribute = attribute;
+        this.negated = negated;
+        this.ignoreCase = ignoreCase;
     }
 
-    public String getValue() {
+    public String getAttribute() {
 
-        return value;
+        return attribute;
+    }
+
+    public abstract String getValue();
+
+    public boolean isNegated() {
+
+        return negated;
+    }
+
+    public boolean isIgnoreCase() {
+
+        return ignoreCase;
     }
 
     @Override
@@ -48,12 +63,20 @@ public abstract class BinaryOperator
         if (this.getClass() != that.getClass())
             return false;
 
-        return getAttribute().equalsIgnoreCase(((BinaryOperator) that).getAttribute()) &&
-                getValue().equalsIgnoreCase(((BinaryOperator) that).getValue());
+        if (ignoreCase)
+            return getAttribute().equalsIgnoreCase(((BinaryOperator) that).getAttribute()) &&
+                    getValue().equalsIgnoreCase(((BinaryOperator) that).getValue());
+
+        return getAttribute().equals(((BinaryOperator) that).getAttribute()) &&
+                getValue().equals(((BinaryOperator) that).getValue());
     }
 
     @Override
     public int hashCode() {
+
+        if (ignoreCase)
+            return Objects.hash(this.getClass().getSimpleName(), getAttribute().toLowerCase(),
+                    getValue().toLowerCase());
 
         return Objects.hash(this.getClass().getSimpleName(), getAttribute(), getValue());
     }

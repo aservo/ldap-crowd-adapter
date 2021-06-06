@@ -20,12 +20,33 @@ package com.aservo.ldap.adapter.api.query;
 import java.util.Objects;
 
 
-public abstract class UnaryOperator
-        extends Operator {
+public abstract class UnaryOperator<T extends UnaryOperator<?>>
+        implements OperatorExpression<T> {
 
-    public UnaryOperator(String attribute) {
+    private final String attribute;
+    private final boolean negated;
+    private final boolean ignoreCase;
 
-        super(attribute);
+    public UnaryOperator(String attribute, boolean negated, boolean ignoreCase) {
+
+        this.attribute = attribute;
+        this.negated = negated;
+        this.ignoreCase = ignoreCase;
+    }
+
+    public String getAttribute() {
+
+        return attribute;
+    }
+
+    public boolean isNegated() {
+
+        return negated;
+    }
+
+    public boolean isIgnoreCase() {
+
+        return ignoreCase;
     }
 
     @Override
@@ -40,11 +61,17 @@ public abstract class UnaryOperator
         if (this.getClass() != that.getClass())
             return false;
 
-        return getAttribute().equalsIgnoreCase(((UnaryOperator) that).getAttribute());
+        if (ignoreCase)
+            return getAttribute().equalsIgnoreCase(((UnaryOperator) that).getAttribute());
+
+        return getAttribute().equals(((UnaryOperator) that).getAttribute());
     }
 
     @Override
     public int hashCode() {
+
+        if (ignoreCase)
+            return Objects.hash(this.getClass().getSimpleName(), getAttribute().toLowerCase());
 
         return Objects.hash(this.getClass().getSimpleName(), getAttribute());
     }

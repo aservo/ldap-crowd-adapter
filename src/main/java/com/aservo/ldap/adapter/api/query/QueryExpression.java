@@ -18,5 +18,5 @@
 package com.aservo.ldap.adapter.api.query;
 
 
-public interface FilterNode {
+public interface QueryExpression {
 }

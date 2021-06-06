@@ -20,10 +20,12 @@ package com.aservo.ldap.adapter.api.query;
 import java.util.List;
 
 
-public class OrLogicExpression
+public final class OrLogicExpression
         extends LogicExpression {
 
-    public OrLogicExpression(List<FilterNode> children) {
+    public static boolean EMPTY_SEQ_BOOLEAN = false;
+
+    public OrLogicExpression(List<QueryExpression> children) {
 
         super(children);
     }

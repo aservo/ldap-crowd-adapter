@@ -18,16 +18,26 @@
 package com.aservo.ldap.adapter.api.query;
 
 
-public class PresenceOperator
-        extends UnaryOperator {
+public final class PresenceOperator
+        extends UnaryOperator<PresenceOperator> {
+
+    public PresenceOperator(String attribute, boolean negated, boolean ignoreCase) {
+
+        super(attribute, negated, ignoreCase);
+    }
 
     public PresenceOperator(String attribute) {
 
-        super(attribute);
+        this(attribute, false, true);
+    }
+
+    public PresenceOperator negate() {
+
+        return new PresenceOperator(getAttribute(), !isNegated(), isIgnoreCase());
     }
 
     public boolean check(String value) {
 
-        return value != null;
+        return !isNegated();
     }
 }

@@ -21,7 +21,7 @@ import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.api.query.FilterNode;
+import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.List;
@@ -232,27 +232,27 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
-    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
+    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
 
-        return directoryBackend.getGroups(filterNode, filterMatcher);
+        return directoryBackend.getGroups(expression, filterMatcher);
     }
 
     @Override
-    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
 
-        return directoryBackend.getGroups(filterNode, filterMatcher, startIndex, maxResults);
+        return directoryBackend.getGroups(expression, filterMatcher, startIndex, maxResults);
     }
 
     @Override
-    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
+    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
 
-        return directoryBackend.getUsers(filterNode, filterMatcher);
+        return directoryBackend.getUsers(expression, filterMatcher);
     }
 
     @Override
-    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
 
-        return directoryBackend.getUsers(filterNode, filterMatcher, startIndex, maxResults);
+        return directoryBackend.getUsers(expression, filterMatcher, startIndex, maxResults);
     }
 
     @Override

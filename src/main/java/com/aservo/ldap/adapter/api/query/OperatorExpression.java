@@ -18,19 +18,14 @@
 package com.aservo.ldap.adapter.api.query;
 
 
-public class NotEqualOperator
-        extends BinaryOperator {
+public interface OperatorExpression<T extends OperatorExpression>
+        extends QueryExpression {
 
-    public NotEqualOperator(String attribute, String value) {
+    String getAttribute();
 
-        super(attribute, value);
-    }
+    boolean isNegated();
 
-    public boolean check(String value) {
+    T negate();
 
-        if (value == null)
-            return false;
-
-        return !value.equalsIgnoreCase(getValue());
-    }
+    boolean check(String value);
 }

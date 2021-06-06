@@ -27,7 +27,7 @@ import com.aservo.ldap.adapter.api.LdapUtils;
 import com.aservo.ldap.adapter.api.entity.*;
 import com.aservo.ldap.adapter.api.query.AndLogicExpression;
 import com.aservo.ldap.adapter.api.query.EqualOperator;
-import com.aservo.ldap.adapter.api.query.FilterNode;
+import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.DirectoryBackendFactory;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
@@ -108,11 +108,6 @@ public class CommonPartition
     private FilterMatcher newFilterMatcher(DirectoryBackend directory) {
 
         return new FilterMatcher() {
-
-            protected boolean evaluateUndefinedFilterExprSuccessfully() {
-
-                return serverConfig.evaluateUndefinedFilterExprSuccessfully();
-            }
 
             protected boolean isGroupMember(GroupEntity entity, String dn, boolean negated) {
 
@@ -489,13 +484,13 @@ public class CommonPartition
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
-            FilterNode filterNode = new EqualOperator(attribute, value);
+            QueryExpression equalOperator = new EqualOperator(attribute, value);
 
             return directoryFactory.withSession(directory -> {
 
                 FilterMatcher filterMatcher = newFilterMatcher(directory);
 
-                return directory.getGroups(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
+                return directory.getGroups(equalOperator, Optional.of(filterMatcher)).stream().findAny().isPresent();
             });
 
         } else if (context.getDn().equals(usersDn)) {
@@ -506,13 +501,13 @@ public class CommonPartition
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
-            FilterNode filterNode = new EqualOperator(attribute, value);
+            QueryExpression equalOperator = new EqualOperator(attribute, value);
 
             return directoryFactory.withSession(directory -> {
 
                 FilterMatcher filterMatcher = newFilterMatcher(directory);
 
-                return directory.getUsers(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
+                return directory.getUsers(equalOperator, Optional.of(filterMatcher)).stream().findAny().isPresent();
             });
 
         } else if (context.getDn().equals(rootDn)) {
@@ -523,14 +518,14 @@ public class CommonPartition
 
             String attribute = context.getDn().getRdn().getType();
             String value = context.getDn().getRdn().getNormValue();
-            FilterNode filterNode = new EqualOperator(attribute, value);
+            QueryExpression equalOperator = new EqualOperator(attribute, value);
 
             return directoryFactory.withSession(directory -> {
 
                 FilterMatcher filterMatcher = newFilterMatcher(directory);
 
-                return directory.getGroups(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent() ||
-                        directory.getUsers(filterNode, Optional.of(filterMatcher)).stream().findAny().isPresent();
+                return directory.getGroups(equalOperator, Optional.of(filterMatcher)).stream().findAny().isPresent() ||
+                        directory.getUsers(equalOperator, Optional.of(filterMatcher)).stream().findAny().isPresent();
             });
         }
 
@@ -554,17 +549,17 @@ public class CommonPartition
                             .map(LdapUtils::normalizeAttribute)
                             .collect(Collectors.toSet());
 
-            FilterNode filterNode = LdapUtils.createInternalFilterNode(context.getFilter());
+            QueryExpression expression = LdapUtils.createQueryExpression(context.getFilter());
             List<Entity> mergedEntities = new ArrayList<>();
 
             if (context.getDn().equals(groupsDn)) {
 
-                if (filterMatcher.matchEntity(groupUnitEntity, filterNode))
+                if (filterMatcher.matchEntity(groupUnitEntity, expression))
                     mergedEntities.add(groupUnitEntity);
 
                 if (!ouOnly) {
 
-                    mergedEntities.addAll(directory.getGroups(filterNode, Optional.of(filterMatcher)));
+                    mergedEntities.addAll(directory.getGroups(expression, Optional.of(filterMatcher)));
                 }
 
             } else if (context.getDn().getParent().equals(groupsDn)) {
@@ -572,18 +567,18 @@ public class CommonPartition
                 String attribute = context.getDn().getRdn().getType();
                 String value = context.getDn().getRdn().getNormValue();
 
-                filterNode = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), filterNode));
+                expression = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
 
-                mergedEntities.addAll(directory.getGroups(filterNode, Optional.of(filterMatcher)));
+                mergedEntities.addAll(directory.getGroups(expression, Optional.of(filterMatcher)));
 
             } else if (context.getDn().equals(usersDn)) {
 
-                if (filterMatcher.matchEntity(userUnitEntity, filterNode))
+                if (filterMatcher.matchEntity(userUnitEntity, expression))
                     mergedEntities.add(userUnitEntity);
 
                 if (!ouOnly) {
 
-                    mergedEntities.addAll(directory.getUsers(filterNode, Optional.of(filterMatcher)));
+                    mergedEntities.addAll(directory.getUsers(expression, Optional.of(filterMatcher)));
                 }
 
             } else if (context.getDn().getParent().equals(usersDn)) {
@@ -591,25 +586,25 @@ public class CommonPartition
                 String attribute = context.getDn().getRdn().getType();
                 String value = context.getDn().getRdn().getNormValue();
 
-                filterNode = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), filterNode));
+                expression = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
 
-                mergedEntities.addAll(directory.getUsers(filterNode, Optional.of(filterMatcher)));
+                mergedEntities.addAll(directory.getUsers(expression, Optional.of(filterMatcher)));
 
             } else if (context.getDn().equals(rootDn)) {
 
-                if (filterMatcher.matchEntity(domainEntity, filterNode))
+                if (filterMatcher.matchEntity(domainEntity, expression))
                     mergedEntities.add(domainEntity);
 
                 if (!ouOnly) {
 
-                    if (filterMatcher.matchEntity(groupUnitEntity, filterNode))
+                    if (filterMatcher.matchEntity(groupUnitEntity, expression))
                         mergedEntities.add(groupUnitEntity);
 
-                    if (filterMatcher.matchEntity(userUnitEntity, filterNode))
+                    if (filterMatcher.matchEntity(userUnitEntity, expression))
                         mergedEntities.add(userUnitEntity);
 
-                    mergedEntities.addAll(directory.getGroups(filterNode, Optional.of(filterMatcher)));
-                    mergedEntities.addAll(directory.getUsers(filterNode, Optional.of(filterMatcher)));
+                    mergedEntities.addAll(directory.getGroups(expression, Optional.of(filterMatcher)));
+                    mergedEntities.addAll(directory.getUsers(expression, Optional.of(filterMatcher)));
                 }
 
             } else if (context.getDn().getParent().equals(rootDn)) {
@@ -617,10 +612,10 @@ public class CommonPartition
                 String attribute = context.getDn().getRdn().getType();
                 String value = context.getDn().getRdn().getNormValue();
 
-                filterNode = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), filterNode));
+                expression = new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
 
-                mergedEntities.addAll(directory.getGroups(filterNode, Optional.of(filterMatcher)));
-                mergedEntities.addAll(directory.getUsers(filterNode, Optional.of(filterMatcher)));
+                mergedEntities.addAll(directory.getGroups(expression, Optional.of(filterMatcher)));
+                mergedEntities.addAll(directory.getUsers(expression, Optional.of(filterMatcher)));
             }
 
             return mergedEntities.stream().map(x -> createEntry(directory, x, attributes)).collect(Collectors.toList());

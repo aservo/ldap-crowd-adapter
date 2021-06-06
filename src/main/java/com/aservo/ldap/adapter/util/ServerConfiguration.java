@@ -56,10 +56,6 @@ public class ServerConfiguration {
      */
     public static final String CONFIG_MODE_FLATTENING = "mode.flattening";
     /**
-     * The constant CONFIG_UNDEFINED_FILTER_EXPRESSION_RESULT.
-     */
-    public static final String CONFIG_UNDEFINED_FILTER_EXPRESSION_RESULT = "mode.undefined-filter-expression-result";
-    /**
      * The constant CONFIG_RESPONSE_MAX_SIZE_LIMIT.
      */
     public static final String CONFIG_RESPONSE_MAX_SIZE_LIMIT = "mode.response.max-size-limit";
@@ -112,7 +108,6 @@ public class ServerConfiguration {
     private final Path keyStoreFile;
     private final String keyStorePassword;
     private final boolean flattening;
-    private final boolean undefFilterExprResult;
     private final int responseMaxSizeLimit;
     private final int responseMaxTimeLimit;
     private final int connectionBackLog;
@@ -171,9 +166,6 @@ public class ServerConfiguration {
         }
 
         flattening = Boolean.parseBoolean(serverProperties.getProperty(CONFIG_MODE_FLATTENING, "true"));
-
-        undefFilterExprResult =
-                Boolean.parseBoolean(serverProperties.getProperty(CONFIG_UNDEFINED_FILTER_EXPRESSION_RESULT, "false"));
 
         responseMaxSizeLimit =
                 Integer.parseInt(serverProperties.getProperty(CONFIG_RESPONSE_MAX_SIZE_LIMIT, "50000"));
@@ -298,16 +290,6 @@ public class ServerConfiguration {
     public boolean isFlatteningEnabled() {
 
         return flattening;
-    }
-
-    /**
-     * Gets the boolean value for undefined filter expressions.
-     *
-     * @return the boolean
-     */
-    public boolean evaluateUndefinedFilterExprSuccessfully() {
-
-        return undefFilterExprResult;
     }
 
     /**

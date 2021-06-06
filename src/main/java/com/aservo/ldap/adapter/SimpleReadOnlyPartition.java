@@ -18,6 +18,7 @@
 package com.aservo.ldap.adapter;
 
 import com.aservo.ldap.adapter.util.exception.InternalServerException;
+import com.aservo.ldap.adapter.util.exception.UnsupportedQueryExpressionException;
 import java.io.IOException;
 import java.io.OutputStream;
 import javax.naming.OperationNotSupportedException;
@@ -150,6 +151,12 @@ public abstract class SimpleReadOnlyPartition
                     cursor = new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager);
                     break;
             }
+
+        } catch (UnsupportedQueryExpressionException e) {
+
+            logger.debug("The partition caught an exception because of an unsupported filter expression.", e);
+
+            throw e;
 
         } catch (Exception e) {
 

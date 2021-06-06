@@ -26,7 +26,7 @@ import com.aservo.ldap.adapter.api.database.result.SingleOptResult;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.api.query.FilterNode;
+import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.sql.impl.DatabaseService;
 import com.aservo.ldap.adapter.util.ServerConfiguration;
@@ -217,7 +217,7 @@ public class CachedWithPersistenceDirectoryBackend
             factory
                     .queryById("refresh_materialized_view_for_transitive_user_memberships")
                     .execute(IgnoredResult.class);
-            
+
             logger.debug("Finished materialized views refresh.");
 
             return result;
@@ -580,27 +580,27 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
-    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
+    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
+        // TODO: Transform expression to plain SQL and use factory.query(String clause) to improve performance.
 
         return factory
                 .queryById("find_all_groups")
                 .execute(IndexedSeqResult.class)
                 .transform(this::mapGroupEntity)
                 .stream()
-                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
+    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        // TODO: Transform filterNode to plain SQL and use factory.query(String clause) to improve performance.
+        // TODO: Transform expression to plain SQL and use factory.query(String clause) to improve performance.
 
         return factory
                 .queryById("find_all_users")
@@ -608,7 +608,7 @@ public class CachedWithPersistenceDirectoryBackend
                 .execute(IndexedSeqResult.class)
                 .transform(this::mapUserEntity)
                 .stream()
-                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
                 .collect(Collectors.toList());
     }
 

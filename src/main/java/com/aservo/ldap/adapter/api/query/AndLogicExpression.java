@@ -20,10 +20,12 @@ package com.aservo.ldap.adapter.api.query;
 import java.util.List;
 
 
-public class AndLogicExpression
+public final class AndLogicExpression
         extends LogicExpression {
 
-    public AndLogicExpression(List<FilterNode> children) {
+    public static boolean EMPTY_SEQ_BOOLEAN = true;
+
+    public AndLogicExpression(List<QueryExpression> children) {
 
         super(children);
     }

@@ -18,19 +18,37 @@
 package com.aservo.ldap.adapter.api.query;
 
 
-public class EqualOperator
-        extends BinaryOperator {
+public final class EqualOperator
+        extends BinaryOperator<EqualOperator> {
+
+    private final String value;
+
+    public EqualOperator(String attribute, String value, boolean negated, boolean ignoreCase) {
+
+        super(attribute, negated, ignoreCase);
+        this.value = value;
+    }
 
     public EqualOperator(String attribute, String value) {
 
-        super(attribute, value);
+        this(attribute, value, false, true);
+    }
+
+    public String getValue() {
+
+        return value;
+    }
+
+    public EqualOperator negate() {
+
+        return new EqualOperator(getAttribute(), getValue(), !isNegated(), isIgnoreCase());
     }
 
     public boolean check(String value) {
 
-        if (value == null)
-            return false;
+        if (isIgnoreCase())
+            return getValue().equalsIgnoreCase(value) != isNegated();
 
-        return value.equalsIgnoreCase(getValue());
+        return getValue().equals(value) != isNegated();
     }
 }

@@ -20,7 +20,7 @@ package com.aservo.ldap.adapter.backend;
 import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.api.query.FilterNode;
+import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.backend.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.backend.exception.SecurityProblemException;
@@ -191,34 +191,34 @@ public class JsonDirectoryBackend
         return user;
     }
 
-    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
+    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
 
         logger.info("Call: getGroups");
 
         return groupList.stream()
-                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
 
-        return getGroups(filterNode, filterMatcher).subList(startIndex, startIndex + maxResults);
+        return getGroups(expression, filterMatcher).subList(startIndex, startIndex + maxResults);
     }
 
-    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher) {
+    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
 
         logger.info("Call: getUsers");
 
         return userList.stream()
-                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, filterNode)).orElse(true))
+                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
 
-        return getUsers(filterNode, filterMatcher).subList(startIndex, startIndex + maxResults);
+        return getUsers(expression, filterMatcher).subList(startIndex, startIndex + maxResults);
     }
 
     public List<UserEntity> getDirectUsersOfGroup(String id)

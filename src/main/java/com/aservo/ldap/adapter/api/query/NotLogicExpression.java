@@ -20,10 +20,12 @@ package com.aservo.ldap.adapter.api.query;
 import java.util.List;
 
 
-public class NotLogicExpression
+public final class NotLogicExpression
         extends LogicExpression {
 
-    public NotLogicExpression(List<FilterNode> children) {
+    public static boolean EMPTY_SEQ_BOOLEAN = true;
+
+    public NotLogicExpression(List<QueryExpression> children) {
 
         super(children);
     }

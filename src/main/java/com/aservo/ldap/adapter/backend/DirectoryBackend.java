@@ -20,8 +20,8 @@ package com.aservo.ldap.adapter.backend;
 import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.api.query.FilterNode;
-import com.aservo.ldap.adapter.api.query.NullNode;
+import com.aservo.ldap.adapter.api.query.BooleanValue;
+import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
@@ -87,7 +87,7 @@ public interface DirectoryBackend {
      */
     default List<GroupEntity> getAllGroups() {
 
-        return getGroups(new NullNode(), Optional.empty());
+        return getGroups(BooleanValue.trueValue(), Optional.empty());
     }
 
     /**
@@ -97,7 +97,7 @@ public interface DirectoryBackend {
      */
     default List<GroupEntity> getAllGroups(int startIndex, int maxResults) {
 
-        return getGroups(new NullNode(), Optional.empty(), startIndex, maxResults);
+        return getGroups(BooleanValue.trueValue(), Optional.empty(), startIndex, maxResults);
     }
 
     /**
@@ -107,7 +107,7 @@ public interface DirectoryBackend {
      */
     default List<UserEntity> getAllUsers() {
 
-        return getUsers(new NullNode(), Optional.empty());
+        return getUsers(BooleanValue.trueValue(), Optional.empty());
     }
 
     /**
@@ -117,49 +117,49 @@ public interface DirectoryBackend {
      */
     default List<UserEntity> getAllUsers(int startIndex, int maxResults) {
 
-        return getUsers(new NullNode(), Optional.empty(), startIndex, maxResults);
+        return getUsers(BooleanValue.trueValue(), Optional.empty(), startIndex, maxResults);
     }
 
     /**
      * Gets groups by filter expression.
      *
-     * @param filterNode    the filter expression node
+     * @param expression    the filter expression node
      * @param filterMatcher the optional filter matcher
      * @return the filtered groups
      */
-    List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher);
+    List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher);
 
     /**
      * Gets users by filter expression.
      *
-     * @param filterNode    the filter expression node
+     * @param expression    the filter expression node
      * @param filterMatcher the optional filter matcher
      * @param startIndex    the start index
      * @param maxResults    the maximum results
      * @return the filtered users
      */
-    List<GroupEntity> getGroups(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
+    List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher,
                                 int startIndex, int maxResults);
 
     /**
      * Gets users by filter expression.
      *
-     * @param filterNode    the filter expression node
+     * @param expression    the filter expression node
      * @param filterMatcher the optional filter matcher
      * @return the filtered users
      */
-    List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher);
+    List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher);
 
     /**
      * Gets users by filter expression.
      *
-     * @param filterNode    the filter expression node
+     * @param expression    the filter expression node
      * @param filterMatcher the optional filter matcher
      * @param startIndex    the start index
      * @param maxResults    the maximum results
      * @return the filtered users
      */
-    List<UserEntity> getUsers(FilterNode filterNode, Optional<FilterMatcher> filterMatcher,
+    List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher,
                               int startIndex, int maxResults);
 
     /**

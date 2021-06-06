@@ -273,7 +273,7 @@ public class CachedSessionDirectoryBackend
     private void updateDirectUserRelationships() {
 
         logger.debug("[Thread ID {}] - updateDirectUserRelationships", Thread.currentThread().getId());
-        
+
         if (!initDirectUserRelationships) {
 
             initDirectUserRelationships = true;

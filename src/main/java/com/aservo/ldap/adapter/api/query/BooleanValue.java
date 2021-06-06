@@ -17,11 +17,28 @@
 
 package com.aservo.ldap.adapter.api.query;
 
+
 import java.util.Objects;
 
+public final class BooleanValue
+        implements QueryExpression {
 
-public class NullNode
-        implements FilterNode {
+    private final boolean value;
+
+    public BooleanValue(boolean value) {
+
+        this.value = value;
+    }
+
+    public boolean getValue() {
+
+        return value;
+    }
+
+    public BooleanValue negate() {
+
+        return new BooleanValue(!value);
+    }
 
     @Override
     public boolean equals(Object that) {
@@ -35,12 +52,22 @@ public class NullNode
         if (this.getClass() != that.getClass())
             return false;
 
-        return true;
+        return this.getValue() == ((BooleanValue) that).getValue();
     }
 
     @Override
     public int hashCode() {
 
-        return Objects.hash(this.getClass().getSimpleName());
+        return Objects.hash(this.getClass().getSimpleName(), value);
+    }
+
+    public static BooleanValue trueValue() {
+
+        return new BooleanValue(true);
+    }
+
+    public static BooleanValue falseValue() {
+
+        return new BooleanValue(false);
     }
 }

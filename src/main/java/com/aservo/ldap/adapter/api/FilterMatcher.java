@@ -31,44 +31,40 @@ public abstract class FilterMatcher {
      * Make a match between entry and filter expression.
      *
      * @param entity     the entry
-     * @param filterNode the filter expression
+     * @param expression the filter expression
      * @return the boolean
      */
-    public boolean matchEntity(Entity entity, FilterNode filterNode) {
+    public boolean matchEntity(Entity entity, QueryExpression expression) {
 
-        if (filterNode instanceof NullNode) {
+        if (expression instanceof BooleanValue) {
 
-            return true;
+            return ((BooleanValue) expression).getValue();
 
-        } else if (filterNode instanceof UndefinedNode) {
+        } else if (expression instanceof AndLogicExpression) {
 
-            return evaluateUndefinedFilterExprSuccessfully();
-
-        } else if (filterNode instanceof AndLogicExpression) {
-
-            return ((AndLogicExpression) filterNode).getChildren().stream()
+            return ((AndLogicExpression) expression).getChildren().stream()
                     .allMatch(x -> matchEntity(entity, x));
 
-        } else if (filterNode instanceof OrLogicExpression) {
+        } else if (expression instanceof OrLogicExpression) {
 
-            return ((OrLogicExpression) filterNode).getChildren().stream()
+            return ((OrLogicExpression) expression).getChildren().stream()
                     .anyMatch(x -> matchEntity(entity, x));
 
-        } else if (filterNode instanceof NotLogicExpression) {
+        } else if (expression instanceof NotLogicExpression) {
 
-            return ((NotLogicExpression) filterNode).getChildren().stream()
+            return ((NotLogicExpression) expression).getChildren().stream()
                     .noneMatch(x -> matchEntity(entity, x));
 
-        } else if (filterNode instanceof Operator) {
+        } else if (expression instanceof OperatorExpression) {
 
-            return processOperator(entity, ((Operator) filterNode));
+            return processOperator(entity, ((OperatorExpression) expression));
 
         } else
-            throw new IllegalArgumentException("Cannot process unsupported filter expression " +
-                    filterNode.getClass().getName());
+            throw new IllegalArgumentException("Cannot process unexpected filter expression " +
+                    expression.getClass().getName());
     }
 
-    private boolean processOperator(Entity entity, Operator expression) {
+    private boolean processOperator(Entity entity, OperatorExpression expression) {
 
         switch (LdapUtils.normalizeAttribute(expression.getAttribute())) {
 
@@ -188,13 +184,7 @@ public abstract class FilterMatcher {
 
                         EqualOperator expr = (EqualOperator) expression;
 
-                        return isGroupMember((GroupEntity) entity, expr.getValue(), false);
-
-                    } else if (expression instanceof NotEqualOperator) {
-
-                        NotEqualOperator expr = (NotEqualOperator) expression;
-
-                        return isGroupMember((GroupEntity) entity, expr.getValue(), true);
+                        return isGroupMember((GroupEntity) entity, expr.getValue(), expr.isNegated());
                     }
                 }
 
@@ -208,13 +198,7 @@ public abstract class FilterMatcher {
 
                         EqualOperator expr = (EqualOperator) expression;
 
-                        return isMemberOfGroup((GroupEntity) entity, expr.getValue(), false);
-
-                    } else if (expression instanceof NotEqualOperator) {
-
-                        NotEqualOperator expr = (NotEqualOperator) expression;
-
-                        return isMemberOfGroup((GroupEntity) entity, expr.getValue(), true);
+                        return isMemberOfGroup((GroupEntity) entity, expr.getValue(), expr.isNegated());
                     }
                 }
 
@@ -224,13 +208,7 @@ public abstract class FilterMatcher {
 
                         EqualOperator expr = (EqualOperator) expression;
 
-                        return isMemberOfGroup((UserEntity) entity, expr.getValue(), false);
-
-                    } else if (expression instanceof NotEqualOperator) {
-
-                        NotEqualOperator expr = (NotEqualOperator) expression;
-
-                        return isMemberOfGroup((UserEntity) entity, expr.getValue(), true);
+                        return isMemberOfGroup((UserEntity) entity, expr.getValue(), expr.isNegated());
                     }
                 }
 
@@ -242,8 +220,6 @@ public abstract class FilterMatcher {
 
         return false;
     }
-
-    protected abstract boolean evaluateUndefinedFilterExprSuccessfully();
 
     protected abstract boolean isGroupMember(GroupEntity entity, String dn, boolean negated);
 

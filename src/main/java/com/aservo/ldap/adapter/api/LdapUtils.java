@@ -21,19 +21,23 @@ import com.aservo.ldap.adapter.api.entity.Entity;
 import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.api.query.UndefinedNode;
 import com.aservo.ldap.adapter.api.query.*;
 import com.aservo.ldap.adapter.backend.DirectoryBackend;
 import com.aservo.ldap.adapter.backend.exception.EntityNotFoundException;
+import com.aservo.ldap.adapter.util.exception.UnsupportedQueryExpressionException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
 import org.apache.directory.api.ldap.model.filter.*;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
+import org.apache.directory.api.ldap.model.schema.normalizers.NoOpNormalizer;
 import org.jetbrains.annotations.Nullable;
 
 
@@ -379,15 +383,15 @@ public class LdapUtils {
      * Creates an internal filter from ApacheDS filter.
      *
      * @param node the filter expression of ApacheDS
-     * @return the internal filter expression
+     * @return the internal query expression
      */
-    public static FilterNode createInternalFilterNode(ExprNode node) {
+    public static QueryExpression createQueryExpression(ExprNode node) {
 
         if (node instanceof AndNode) {
 
             return new AndLogicExpression(
                     ((AndNode) node).getChildren().stream()
-                            .map(LdapUtils::createInternalFilterNode)
+                            .map(LdapUtils::createQueryExpression)
                             .collect(Collectors.toList())
             );
 
@@ -395,7 +399,7 @@ public class LdapUtils {
 
             return new OrLogicExpression(
                     ((OrNode) node).getChildren().stream()
-                            .map(LdapUtils::createInternalFilterNode)
+                            .map(LdapUtils::createQueryExpression)
                             .collect(Collectors.toList())
             );
 
@@ -403,75 +407,180 @@ public class LdapUtils {
 
             return new NotLogicExpression(
                     ((NotNode) node).getChildren().stream()
-                            .map(LdapUtils::createInternalFilterNode)
+                            .map(LdapUtils::createQueryExpression)
                             .collect(Collectors.toList())
             );
 
         } else if (node instanceof EqualityNode) {
 
-            return new EqualOperator(((EqualityNode) node).getAttribute(), ((EqualityNode) node).getValue().toString());
+            EqualityNode n = (EqualityNode) node;
+
+            return new EqualOperator(n.getAttribute(), n.getValue().toString());
 
         } else if (node instanceof PresenceNode) {
 
-            return new PresenceOperator(((PresenceNode) node).getAttribute());
+            PresenceNode n = (PresenceNode) node;
+
+            return new PresenceOperator(n.getAttribute());
+
+        } else if (node instanceof SubstringNode) {
+
+            SubstringNode n = (SubstringNode) node;
+            Pattern pattern;
+
+            try {
+
+                pattern = n.getRegex(new NoOpNormalizer());
+
+            } catch (LdapException e) {
+
+                throw new RuntimeException(e);
+            }
+
+            List<String> any = n.getAny();
+
+            if (any == null)
+                any = new ArrayList<>();
+
+            return new WildcardOperator(n.getAttribute(), pattern, n.getInitial(), n.getFinal(), any);
 
         } else if (node instanceof ObjectClassNode) {
 
-            return new NullNode();
+            return BooleanValue.trueValue();
 
         } else {
 
-            return new UndefinedNode();
+            throw new UnsupportedQueryExpressionException("Cannot evaluate unsupported operator.");
         }
     }
 
     /**
-     * Remove null values from internal filter expression.
+     * Remove all unnecessary boolean values from query expression.
      *
-     * @param filterNode the filter expression
-     * @return the transformed filter expression
+     * @param expression the query expression
+     * @return the transformed query expression
      */
-    public static FilterNode removeNotExpressions(FilterNode filterNode) {
+    public static QueryExpression removeValueExpressions(QueryExpression expression) {
 
-        if (filterNode instanceof AndLogicExpression) {
+        if (expression instanceof AndLogicExpression) {
 
-            if (((AndLogicExpression) filterNode).getChildren().size() == 1) {
+            // Use logic of allMatch method
+            // https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html#allMatch-java.util.function.Predicate-
 
-                FilterNode child = ((AndLogicExpression) filterNode).getChildren().get(0);
+            List<QueryExpression> childs =
+                    ((AndLogicExpression) expression).getChildren().stream()
+                            .map(LdapUtils::removeValueExpressions)
+                            .filter(x -> !(x instanceof BooleanValue && ((BooleanValue) x).getValue()))
+                            .collect(Collectors.toList());
+
+            if (childs.isEmpty())
+                return new BooleanValue(AndLogicExpression.EMPTY_SEQ_BOOLEAN);
+
+            if (childs.size() == 1)
+                return removeValueExpressions(childs.get(0));
+
+            if (childs.stream().anyMatch(x -> x instanceof BooleanValue && !((BooleanValue) x).getValue()))
+                return BooleanValue.falseValue();
+
+            return new AndLogicExpression(childs);
+
+        } else if (expression instanceof OrLogicExpression) {
+
+            // Use logic of anyMatch method
+            // https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html#anyMatch-java.util.function.Predicate-
+
+            List<QueryExpression> childs =
+                    ((OrLogicExpression) expression).getChildren().stream()
+                            .map(LdapUtils::removeValueExpressions)
+                            .filter(x -> !(x instanceof BooleanValue && !((BooleanValue) x).getValue()))
+                            .collect(Collectors.toList());
+
+            if (childs.isEmpty())
+                return new BooleanValue(OrLogicExpression.EMPTY_SEQ_BOOLEAN);
+
+            if (childs.size() == 1)
+                return removeValueExpressions(childs.get(0));
+
+            if (childs.stream().anyMatch(x -> x instanceof BooleanValue && ((BooleanValue) x).getValue()))
+                return BooleanValue.trueValue();
+
+            return new OrLogicExpression(childs);
+
+        } else if (expression instanceof NotLogicExpression) {
+
+            // Use logic of noneMatch method
+            // https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html#noneMatch-java.util.function.Predicate-
+
+            List<QueryExpression> childs =
+                    ((NotLogicExpression) expression).getChildren().stream()
+                            .map(LdapUtils::removeValueExpressions)
+                            .filter(x -> !(x instanceof BooleanValue && !((BooleanValue) x).getValue()))
+                            .collect(Collectors.toList());
+
+            if (childs.isEmpty())
+                return new BooleanValue(NotLogicExpression.EMPTY_SEQ_BOOLEAN);
+
+            if (childs.size() == 1)
+                return removeValueExpressions(childs.get(0));
+
+            if (childs.stream().anyMatch(x -> x instanceof BooleanValue && ((BooleanValue) x).getValue()))
+                return BooleanValue.falseValue();
+
+            return new NotLogicExpression(childs);
+
+        } else {
+
+            return expression;
+        }
+    }
+
+    /**
+     * Remove all not-expressions values from query expression.
+     *
+     * @param expression the query expression
+     * @return the transformed query expression
+     */
+    public static QueryExpression removeNotExpressions(QueryExpression expression) {
+
+        if (expression instanceof AndLogicExpression) {
+
+            if (((AndLogicExpression) expression).getChildren().size() == 1) {
+
+                QueryExpression child = ((AndLogicExpression) expression).getChildren().get(0);
 
                 return removeNotExpressions(child);
 
             } else {
 
                 return new AndLogicExpression(
-                        ((AndLogicExpression) filterNode).getChildren().stream()
+                        ((AndLogicExpression) expression).getChildren().stream()
                                 .map(LdapUtils::removeNotExpressions)
                                 .collect(Collectors.toList())
                 );
             }
 
-        } else if (filterNode instanceof OrLogicExpression) {
+        } else if (expression instanceof OrLogicExpression) {
 
-            if (((OrLogicExpression) filterNode).getChildren().size() == 1) {
+            if (((OrLogicExpression) expression).getChildren().size() == 1) {
 
-                FilterNode child = ((OrLogicExpression) filterNode).getChildren().get(0);
+                QueryExpression child = ((OrLogicExpression) expression).getChildren().get(0);
 
                 return removeNotExpressions(child);
 
             } else {
 
                 return new OrLogicExpression(
-                        ((OrLogicExpression) filterNode).getChildren().stream()
+                        ((OrLogicExpression) expression).getChildren().stream()
                                 .map(LdapUtils::removeNotExpressions)
                                 .collect(Collectors.toList())
                 );
             }
 
-        } else if (filterNode instanceof NotLogicExpression) {
+        } else if (expression instanceof NotLogicExpression) {
 
-            if (((NotLogicExpression) filterNode).getChildren().size() == 1) {
+            if (((NotLogicExpression) expression).getChildren().size() == 1) {
 
-                FilterNode child = ((NotLogicExpression) filterNode).getChildren().get(0);
+                QueryExpression child = ((NotLogicExpression) expression).getChildren().get(0);
 
                 if (child instanceof AndLogicExpression) {
 
@@ -491,35 +600,17 @@ public class LdapUtils {
 
                 } else if (child instanceof NotLogicExpression) {
 
-                    return removeNotExpressions(new AndLogicExpression(
+                    return removeNotExpressions(new OrLogicExpression(
                             ((NotLogicExpression) child).getChildren()
                     ));
 
-                } else if (child instanceof EqualOperator) {
+                } else if (child instanceof BooleanValue) {
 
-                    return removeNotExpressions(new NotEqualOperator(
-                            ((EqualOperator) child).getAttribute(),
-                            ((EqualOperator) child).getValue()
-                    ));
+                    return ((BooleanValue) child).negate();
 
-                } else if (child instanceof NotEqualOperator) {
+                } else if (child instanceof OperatorExpression) {
 
-                    return removeNotExpressions(new EqualOperator(
-                            ((NotEqualOperator) child).getAttribute(),
-                            ((NotEqualOperator) child).getValue()
-                    ));
-
-                } else if (child instanceof PresenceOperator) {
-
-                    return removeNotExpressions(new NoPresenceOperator(
-                            ((PresenceOperator) child).getAttribute()
-                    ));
-
-                } else if (child instanceof NoPresenceOperator) {
-
-                    return removeNotExpressions(new PresenceOperator(
-                            ((NoPresenceOperator) child).getAttribute()
-                    ));
+                    return ((OperatorExpression) child).negate();
 
                 } else {
 
@@ -528,8 +619,8 @@ public class LdapUtils {
 
             } else {
 
-                return removeNotExpressions(new OrLogicExpression(
-                        ((NotLogicExpression) filterNode).getChildren().stream()
+                return removeNotExpressions(new AndLogicExpression(
+                        ((NotLogicExpression) expression).getChildren().stream()
                                 .map(x -> new NotLogicExpression(Collections.singletonList(x)))
                                 .collect(Collectors.toList())
                 ));
@@ -537,7 +628,7 @@ public class LdapUtils {
 
         } else {
 
-            return filterNode;
+            return expression;
         }
     }
 
