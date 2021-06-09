@@ -83,13 +83,23 @@ public class CachedWithPersistenceDirectoryBackend
      */
     public static final String CONFIG_DB_ISO_LEVEL = "database.jdbc.connection.isolation-level";
     /**
+     * The constant CONFIG_APPLY_NATIVE_SQL.
+     */
+    public static final String CONFIG_APPLY_NATIVE_SQL = "persistence.apply-native-sql";
+    /**
+     * The constant CONFIG_USE_MATERIALIZED_VIEWS.
+     */
+    public static final String CONFIG_USE_MATERIALIZED_VIEWS = "persistence.use-materialized-views";
+    /**
      * The constant CONFIG_PASS_ACTIVE_USERS_ONLY.
      */
-    public static final String CONFIG_PASS_ACTIVE_USERS_ONLY = "pass-active-users-only";
+    public static final String CONFIG_PASS_ACTIVE_USERS_ONLY = "persistence.pass-active-users-only";
 
     private final Logger logger = LoggerFactory.getLogger(CachedWithPersistenceDirectoryBackend.class);
     private final Map<Long, QueryDefFactory> queryDefFactories = Collections.synchronizedMap(new HashMap<>());
     private final DatabaseService dbService;
+    private final boolean applyNativeSql;
+    private final boolean useMaterializedViews;
     private final boolean activeUsersOnly;
 
     /**
@@ -114,6 +124,8 @@ public class CachedWithPersistenceDirectoryBackend
         String maxOpenPreparedStatementsValue = properties.getProperty(CONFIG_DB_MAX_OPEN_STMT);
         String isolationLevelValue = properties.getProperty(CONFIG_DB_ISO_LEVEL);
 
+        applyNativeSql = Boolean.parseBoolean(properties.getProperty(CONFIG_APPLY_NATIVE_SQL, "false"));
+        useMaterializedViews = Boolean.parseBoolean(properties.getProperty(CONFIG_USE_MATERIALIZED_VIEWS, "false"));
         activeUsersOnly = Boolean.parseBoolean(properties.getProperty(CONFIG_PASS_ACTIVE_USERS_ONLY, "true"));
 
         if (driver == null)
@@ -167,7 +179,7 @@ public class CachedWithPersistenceDirectoryBackend
             throw new IllegalArgumentException("Expect valid isolation level.");
 
         dbService = new DatabaseService(logger, driver, url, user, password, minIdle, maxIdle, maxTotal,
-                maxOpenPreparedStatements, isolationLevel);
+                maxOpenPreparedStatements, isolationLevel, applyNativeSql);
     }
 
     @Override
@@ -207,19 +219,22 @@ public class CachedWithPersistenceDirectoryBackend
 
             T result = block.get();
 
-            QueryDefFactory factory = getCurrentQueryDefFactory();
+            if (useMaterializedViews) {
 
-            logger.debug("Starting materialized views refresh.");
+                QueryDefFactory factory = getCurrentQueryDefFactory();
 
-            factory
-                    .queryById("refresh_materialized_view_for_transitive_group_memberships")
-                    .execute(IgnoredResult.class);
+                logger.debug("Starting materialized views refresh.");
 
-            factory
-                    .queryById("refresh_materialized_view_for_transitive_user_memberships")
-                    .execute(IgnoredResult.class);
+                factory
+                        .queryById("refresh_materialized_view_for_transitive_group_memberships")
+                        .execute(IgnoredResult.class);
 
-            logger.debug("Finished materialized views refresh.");
+                factory
+                        .queryById("refresh_materialized_view_for_transitive_user_memberships")
+                        .execute(IgnoredResult.class);
+
+                logger.debug("Finished materialized views refresh.");
+            }
 
             return result;
         });
@@ -525,13 +540,26 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_all_transitive_group_memberships")
-                .execute(IndexedSeqResult.class)
-                .transform(row -> Pair.of(
-                        row.apply("parent_group_id", String.class),
-                        row.apply("member_group_id", String.class)
-                ));
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_all_transitive_group_memberships")
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> Pair.of(
+                            row.apply("parent_group_id", String.class),
+                            row.apply("member_group_id", String.class)
+                    ));
+
+        } else {
+
+            return factory
+                    .queryById("find_all_transitive_group_memberships_non_materialized")
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> Pair.of(
+                            row.apply("parent_group_id", String.class),
+                            row.apply("member_group_id", String.class)
+                    ));
+        }
     }
 
     @Override
@@ -539,14 +567,28 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_all_transitive_user_memberships")
-                .on("active_only", activeUsersOnly)
-                .execute(IndexedSeqResult.class)
-                .transform(row -> Pair.of(
-                        row.apply("parent_group_id", String.class),
-                        row.apply("member_user_id", String.class)
-                ));
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_all_transitive_user_memberships")
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> Pair.of(
+                            row.apply("parent_group_id", String.class),
+                            row.apply("member_user_id", String.class)
+                    ));
+
+        } else {
+
+            return factory
+                    .queryById("find_all_transitive_user_memberships_non_materialized")
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> Pair.of(
+                            row.apply("parent_group_id", String.class),
+                            row.apply("member_user_id", String.class)
+                    ));
+        }
     }
 
     @Override
@@ -725,12 +767,24 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_transitive_users_of_group")
-                .on("group_id", id)
-                .on("active_only", activeUsersOnly)
-                .execute(IndexedSeqResult.class)
-                .transform(this::mapUserEntity);
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_transitive_users_of_group")
+                    .on("group_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapUserEntity);
+
+        } else {
+
+            return factory
+                    .queryById("find_transitive_users_of_group_non_materialized")
+                    .on("group_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapUserEntity);
+        }
     }
 
     @Override
@@ -739,12 +793,24 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_transitive_groups_of_user")
-                .on("user_id", id)
-                .on("active_only", activeUsersOnly)
-                .execute(IndexedSeqResult.class)
-                .transform(this::mapGroupEntity);
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_transitive_groups_of_user")
+                    .on("user_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapGroupEntity);
+
+        } else {
+
+            return factory
+                    .queryById("find_transitive_groups_of_user_non_materialized")
+                    .on("user_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapGroupEntity);
+        }
     }
 
     @Override
@@ -753,11 +819,22 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_transitive_child_groups_of_group")
-                .on("group_id", id)
-                .execute(IndexedSeqResult.class)
-                .transform(this::mapGroupEntity);
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_transitive_child_groups_of_group")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapGroupEntity);
+
+        } else {
+
+            return factory
+                    .queryById("find_transitive_child_groups_of_group_non_materialized")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapGroupEntity);
+        }
     }
 
     @Override
@@ -766,11 +843,22 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_transitive_parent_groups_of_group")
-                .on("group_id", id)
-                .execute(IndexedSeqResult.class)
-                .transform(this::mapGroupEntity);
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_transitive_parent_groups_of_group")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapGroupEntity);
+
+        } else {
+
+            return factory
+                    .queryById("find_transitive_parent_groups_of_group_non_materialized")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(this::mapGroupEntity);
+        }
     }
 
     @Override
@@ -779,12 +867,24 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_transitive_users_of_group")
-                .on("group_id", id)
-                .on("active_only", activeUsersOnly)
-                .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("username", String.class));
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_transitive_users_of_group")
+                    .on("group_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("username", String.class));
+
+        } else {
+
+            return factory
+                    .queryById("find_transitive_users_of_group_non_materialized")
+                    .on("group_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("username", String.class));
+        }
     }
 
     @Override
@@ -793,12 +893,24 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_transitive_groups_of_user")
-                .on("user_id", id)
-                .on("active_only", activeUsersOnly)
-                .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("name", String.class));
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_transitive_groups_of_user")
+                    .on("user_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("name", String.class));
+
+        } else {
+
+            return factory
+                    .queryById("find_transitive_groups_of_user_non_materialized")
+                    .on("user_id", id)
+                    .on("active_only", activeUsersOnly)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("name", String.class));
+        }
     }
 
     @Override
@@ -807,11 +919,22 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_transitive_child_groups_of_group")
-                .on("group_id", id)
-                .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("name", String.class));
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_transitive_child_groups_of_group")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("name", String.class));
+
+        } else {
+
+            return factory
+                    .queryById("find_transitive_child_groups_of_group_non_materialized")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("name", String.class));
+        }
     }
 
     @Override
@@ -820,11 +943,22 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
-                .queryById("find_transitive_parent_groups_of_group")
-                .on("group_id", id)
-                .execute(IndexedSeqResult.class)
-                .transform(row -> row.apply("name", String.class));
+        if (useMaterializedViews) {
+
+            return factory
+                    .queryById("find_transitive_parent_groups_of_group")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("name", String.class));
+
+        } else {
+
+            return factory
+                    .queryById("find_transitive_parent_groups_of_group_non_materialized")
+                    .on("group_id", id)
+                    .execute(IndexedSeqResult.class)
+                    .transform(row -> row.apply("name", String.class));
+        }
     }
 
     @Override

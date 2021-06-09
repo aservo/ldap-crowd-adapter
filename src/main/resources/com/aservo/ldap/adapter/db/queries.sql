@@ -125,9 +125,25 @@ inner join _User u
   on u.id = m.member_user_id
 where m.parent_group_id = :group_id and (u.active or :active_only = false)
 
+--[ID: find_transitive_users_of_group_non_materialized]--
+select u.*
+from _User_Membership_Transitive_Non_Materialized m
+inner join _User u
+  on u.id = m.member_user_id
+where m.parent_group_id = :group_id and (u.active or :active_only = false)
+
 --[ID: find_transitive_groups_of_user]--
 select g.*
 from _User_Membership_Transitive m
+inner join _Group g
+  on g.id = m.parent_group_id
+inner join _User u
+  on u.id = m.member_user_id
+where m.member_user_id = :user_id and (u.active or :active_only = false)
+
+--[ID: find_transitive_groups_of_user_non_materialized]--
+select g.*
+from _User_Membership_Transitive_Non_Materialized m
 inner join _Group g
   on g.id = m.parent_group_id
 inner join _User u
@@ -155,9 +171,23 @@ inner join _Group g
   on g.id = m.member_group_id
 where m.parent_group_id = :group_id
 
+--[ID: find_transitive_child_groups_of_group_non_materialized]--
+select g.*
+from _Group_Membership_Transitive_Non_Materialized m
+inner join _Group g
+  on g.id = m.member_group_id
+where m.parent_group_id = :group_id
+
 --[ID: find_transitive_parent_groups_of_group]--
 select g.*
 from _Group_Membership_Transitive m
+inner join _Group g
+  on g.id = m.parent_group_id
+where m.member_group_id = :group_id
+
+--[ID: find_transitive_parent_groups_of_group_non_materialized]--
+select g.*
+from _Group_Membership_Transitive_Non_Materialized m
 inner join _Group g
   on g.id = m.parent_group_id
 where m.member_group_id = :group_id
@@ -177,9 +207,20 @@ where u.active or :active_only = false
 select m.*
 from _Group_Membership_Transitive m
 
+--[ID: find_all_transitive_group_memberships_non_materialized]--
+select m.*
+from _Group_Membership_Transitive_Non_Materialized m
+
 --[ID: find_all_transitive_user_memberships]--
 select m.*
 from _User_Membership_Transitive m
+inner join _User u
+  on u.id = m.member_user_id
+where u.active or :active_only = false
+
+--[ID: find_all_transitive_user_memberships_non_materialized]--
+select m.*
+from _User_Membership_Transitive_Non_Materialized m
 inner join _User u
   on u.id = m.member_user_id
 where u.active or :active_only = false

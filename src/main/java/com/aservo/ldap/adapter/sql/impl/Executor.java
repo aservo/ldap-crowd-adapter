@@ -54,7 +54,7 @@ public class Executor {
     private final Connection connection;
     private final Map<String, String> clauses;
 
-    private static final String NATIVE_SQL_INDICATOR = "NATIVE_SQL:";
+    public static final String NATIVE_SQL_INDICATOR = "NATIVE_SQL:";
 
     public Executor(Logger logger, Connection connection, String resourcePath) {
 

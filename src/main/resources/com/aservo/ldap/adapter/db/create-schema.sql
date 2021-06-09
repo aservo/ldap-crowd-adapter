@@ -63,19 +63,27 @@ create view _User_Membership_Transitive_Non_Materialized (parent_group_id, membe
   )
   select p.group_id, p.member_user_id
   from ParentRelationship p;
-  
+
 NATIVE_SQL:create materialized view _Group_Membership_Transitive (parent_group_id, member_group_id) as
   select * from _Group_Membership_Transitive_Non_Materialized;
 
-create index _Group_Membership_Transitive_parent_group_id on _Group_Membership_Transitive (parent_group_id);
-create index _Group_Membership_Transitive_member_group_id on _Group_Membership_Transitive (member_group_id);
-create unique index _Group_Membership_Transitive_parent_group_id_member_group_id 
+NATIVE_SQL:create index _Group_Membership_Transitive_parent_group_id
+  on _Group_Membership_Transitive (parent_group_id);
+
+NATIVE_SQL:create index _Group_Membership_Transitive_member_group_id
+  on _Group_Membership_Transitive (member_group_id);
+
+NATIVE_SQL:create unique index _Group_Membership_Transitive_parent_group_id_member_group_id
   on _Group_Membership_Transitive (parent_group_id, member_group_id);
 
 NATIVE_SQL:create materialized view _User_Membership_Transitive (parent_group_id, member_user_id) as
   select * from _User_Membership_Transitive_Non_Materialized;
-  
-create index _User_Membership_Transitive_parent_group_id on _User_Membership_Transitive (parent_group_id);
-create index _User_Membership_Transitive_member_user_id on _User_Membership_Transitive (member_user_id);
-create unique index _User_Membership_Transitive_parent_group_id_member_user_id
+
+NATIVE_SQL:create index _User_Membership_Transitive_parent_group_id
+  on _User_Membership_Transitive (parent_group_id);
+
+NATIVE_SQL:create index _User_Membership_Transitive_member_user_id
+  on _User_Membership_Transitive (member_user_id);
+
+NATIVE_SQL:create unique index _User_Membership_Transitive_parent_group_id_member_user_id
   on _User_Membership_Transitive (parent_group_id, member_user_id);

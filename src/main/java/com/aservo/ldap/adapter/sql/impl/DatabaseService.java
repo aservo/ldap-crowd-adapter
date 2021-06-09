@@ -51,6 +51,8 @@ public class DatabaseService
     private final Logger logger;
     private final BasicDataSource dataSource;
     private boolean updatedSchema = false;
+    private final boolean applyNativeSql;
+
     private static final String QUERIES_CLAUSES = "com/aservo/ldap/adapter/db/queries.sql";
     private static final String VERSIONING_SCHEMA_CLAUSES = "com/aservo/ldap/adapter/db/versioning-schema.sql";
     private static final String CREATE_SCHEMA_CLAUSES = "com/aservo/ldap/adapter/db/create-schema.sql";
@@ -69,9 +71,11 @@ public class DatabaseService
      * @param maxTotal                  the maximum number of total connections used for connection pooling
      * @param maxOpenPreparedStatements the maximum number of open prepared statements
      * @param isolationLevel            the isolation level used for transactions
+     * @param applyNativeSql            the flag to enable or disable native SQL for batch processing
      */
     public DatabaseService(Logger logger, String driver, String url, String user, String password, int minIdle,
-                           int maxIdle, int maxTotal, int maxOpenPreparedStatements, int isolationLevel) {
+                           int maxIdle, int maxTotal, int maxOpenPreparedStatements, int isolationLevel,
+                           boolean applyNativeSql) {
 
         this.logger = logger;
 
@@ -86,6 +90,8 @@ public class DatabaseService
         dataSource.setMaxTotal(maxTotal);
         dataSource.setMaxOpenPreparedStatements(maxOpenPreparedStatements);
         dataSource.setDefaultTransactionIsolation(isolationLevel);
+
+        this.applyNativeSql = applyNativeSql;
 
         System.setProperty("org.jooq.no-logo", "true");
     }
@@ -274,6 +280,7 @@ public class DatabaseService
             Arrays.stream(result.split(";"))
                     .map(String::trim)
                     .filter(x -> !x.isEmpty())
+                    .filter(x -> !(x.startsWith(Executor.NATIVE_SQL_INDICATOR) && !applyNativeSql))
                     .forEach(queryClause -> {
 
                         factory

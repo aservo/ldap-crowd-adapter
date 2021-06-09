@@ -198,8 +198,16 @@ if [ -n "$BACKEND_JDBC_ISO_LEVEL" ]; then
   JAVA_OPTS="-Ddatabase.jdbc.connection.isolation-level=$BACKEND_JDBC_ISO_LEVEL $JAVA_OPTS"
 fi
 
+if [ -n "$BACKEND_APPLY_NATIVE_SQL" ]; then
+  JAVA_OPTS="-Dpersistence.apply-native-sql=$BACKEND_APPLY_NATIVE_SQL $JAVA_OPTS"
+fi
+
+if [ -n "$BACKEND_USE_MATERIALIZED_VIEWS" ]; then
+  JAVA_OPTS="-Dpersistence.use-materialized-views=$BACKEND_USE_MATERIALIZED_VIEWS $JAVA_OPTS"
+fi
+
 if [ -n "$BACKEND_PASS_ACTIVE_USERS_ONLY" ]; then
-  JAVA_OPTS="-Dpass-active-users-only=$BACKEND_PASS_ACTIVE_USERS_ONLY $JAVA_OPTS"
+  JAVA_OPTS="-Dpersistence.pass-active-users-only=$BACKEND_PASS_ACTIVE_USERS_ONLY $JAVA_OPTS"
 fi
 
 # wait for database
