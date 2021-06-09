@@ -22,6 +22,8 @@ import com.aservo.ldap.adapter.api.database.QueryDefFactory;
 import com.aservo.ldap.adapter.api.database.Row;
 import com.aservo.ldap.adapter.api.database.exception.UncheckedSQLException;
 import com.aservo.ldap.adapter.api.database.result.*;
+import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -38,6 +40,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jooq.Query;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 
@@ -77,6 +80,7 @@ public class Executor {
         Query query = null;
         String sql = null;
         long start = System.currentTimeMillis();
+        boolean nonStreamed = true;
 
         String trimmedClause = clause.trim();
 
@@ -99,8 +103,9 @@ public class Executor {
                 findBinding(query, parameters);
 
                 sql = query.getSQL();
-
             }
+
+            Query finalQuery = query;
 
             logger.debug("[Thread ID {}] - Apply dialect specific SQL statement:\n{}",
                     Thread.currentThread().getId(), sql);
@@ -130,10 +135,12 @@ public class Executor {
                 } else {
 
                     List<Pair<String, JDBCType>> metaData = getMetaData(statement);
-                    List<LinkedHashMap<String, Object>> rows = getValues(statement, metaData);
+                    Iterator<LinkedHashMap<String, Object>> iter = getValues(statement, metaData);
                     List<String> columnNames = metaData.stream().map(Pair::getLeft).collect(Collectors.toList());
 
                     if (clazz == SingleResult.class) {
+
+                        List<LinkedHashMap<String, Object>> rows = Lists.newArrayList(iter);
 
                         if (rows.size() != 1)
                             throw new IllegalArgumentException(
@@ -159,6 +166,8 @@ public class Executor {
 
                     } else if (clazz == SingleOptResult.class) {
 
+                        List<LinkedHashMap<String, Object>> rows = Lists.newArrayList(iter);
+
                         if (rows.size() > 1)
                             throw new IllegalArgumentException(
                                     "Expect set of rows with cardinality of 0 or 1 but " +
@@ -183,6 +192,8 @@ public class Executor {
 
                     } else if (clazz == IndexedSeqResult.class) {
 
+                        List<LinkedHashMap<String, Object>> rows = Lists.newArrayList(iter);
+
                         concreteResult =
                                 new IndexedSeqResult() {
 
@@ -201,6 +212,8 @@ public class Executor {
                                 };
 
                     } else if (clazz == IndexedNonEmptySeqResult.class) {
+
+                        List<LinkedHashMap<String, Object>> rows = Lists.newArrayList(iter);
 
                         if (rows.isEmpty())
                             throw new IllegalArgumentException(
@@ -224,6 +237,58 @@ public class Executor {
                                     }
                                 };
 
+                    } else if (clazz == IteratorResult.class) {
+
+                        concreteResult =
+                                new IteratorResult() {
+
+                                    public List<String> getColumns() {
+
+                                        return new ArrayList<>(columnNames);
+                                    }
+
+                                    public <R> ClosableIterator<R> transform(Function<Row, R> f) {
+
+                                        return new ClosableIterator<R>() {
+
+                                            boolean closed = false;
+
+                                            public boolean hasNext() {
+
+                                                return iter.hasNext();
+                                            }
+
+                                            public R next() {
+
+                                                return f.apply(new RowImpl(iter.next()));
+                                            }
+
+                                            public void close()
+                                                    throws IOException {
+
+                                                if (!closed) {
+
+                                                    try {
+
+                                                        statement.close();
+
+                                                        if (finalQuery != null)
+                                                            finalQuery.close();
+
+                                                    } catch (SQLException | DataAccessException e) {
+
+                                                        throw new IOException("Could not close prepared statement", e);
+                                                    }
+
+                                                    closed = true;
+                                                }
+                                            }
+                                        };
+                                    }
+                                };
+
+                        nonStreamed = false;
+
                     } else
                         throw new IllegalArgumentException("Unsupported type of result class.");
                 }
@@ -232,18 +297,24 @@ public class Executor {
 
             } finally {
 
-                statement.close();
+                if (nonStreamed) {
+
+                    statement.close();
+                }
             }
 
         } finally {
 
-            if (query != null)
-                query.close();
+            if (nonStreamed) {
 
-            long end = System.currentTimeMillis();
+                if (query != null)
+                    query.close();
 
-            logger.debug("[Thread ID {}] - A prepared statement was performed in {} ms.",
-                    Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);
+                long end = System.currentTimeMillis();
+
+                logger.debug("[Thread ID {}] - A prepared statement was performed in {} ms.",
+                        Thread.currentThread().getId(), end - start == 0 ? 1 : end - start);
+            }
         }
     }
 
@@ -352,86 +423,99 @@ public class Executor {
                             ") at key " + key + ".");
     }
 
-    private List<LinkedHashMap<String, Object>> getValues(PreparedStatement statement,
-                                                          List<Pair<String, JDBCType>> metaData)
+    private Iterator<LinkedHashMap<String, Object>> getValues(PreparedStatement statement,
+                                                              List<Pair<String, JDBCType>> metaData)
             throws SQLException {
 
         ResultSet result = statement.getResultSet();
-        List<LinkedHashMap<String, Object>> buffer = new ArrayList<>();
 
-        if (result != null) {
+        return new Iterator<LinkedHashMap<String, Object>>() {
 
-            while (result.next()) {
+            boolean hasMore = result != null && result.next();
 
-                LinkedHashMap<String, Object> mapping = new LinkedHashMap<>();
+            public boolean hasNext() {
 
-                for (Pair<String, JDBCType> column : metaData) {
-
-                    if (column.getRight() == JDBCType.NULL)
-                        mapping.put(column.getKey(), null);
-                    else if (column.getValue() == JDBCType.BIT)
-                        mapping.put(column.getKey(), result.getBoolean(column.getKey()));
-                    else if (column.getValue() == JDBCType.BOOLEAN)
-                        mapping.put(column.getKey(), result.getBoolean(column.getKey()));
-                    else if (column.getValue() == JDBCType.TINYINT)
-                        mapping.put(column.getKey(), result.getByte(column.getKey()));
-                    else if (column.getValue() == JDBCType.SMALLINT)
-                        mapping.put(column.getKey(), result.getShort(column.getKey()));
-                    else if (column.getValue() == JDBCType.INTEGER)
-                        mapping.put(column.getKey(), result.getInt(column.getKey()));
-                    else if (column.getValue() == JDBCType.BIGINT)
-                        mapping.put(column.getKey(), result.getLong(column.getKey()));
-                    else if (column.getValue() == JDBCType.REAL)
-                        mapping.put(column.getKey(), result.getFloat(column.getKey()));
-                    else if (column.getValue() == JDBCType.FLOAT)
-                        mapping.put(column.getKey(), result.getDouble(column.getKey()));
-                    else if (column.getValue() == JDBCType.DOUBLE)
-                        mapping.put(column.getKey(), result.getDouble(column.getKey()));
-                    else if (column.getValue() == JDBCType.NUMERIC)
-                        mapping.put(column.getKey(), result.getBigDecimal(column.getKey()));
-                    else if (column.getValue() == JDBCType.DECIMAL)
-                        mapping.put(column.getKey(), result.getBigDecimal(column.getKey()));
-                    else if (column.getValue() == JDBCType.DATE)
-                        mapping.put(column.getKey(), result.getDate(column.getKey()).toLocalDate());
-                    else if (column.getValue() == JDBCType.TIME)
-                        mapping.put(column.getKey(), result.getTime(column.getKey()).toLocalTime());
-                    else if (column.getValue() == JDBCType.TIMESTAMP)
-                        mapping.put(column.getKey(), result.getTimestamp(column.getKey()).toLocalDateTime());
-                    else if (column.getValue() == JDBCType.BINARY)
-                        mapping.put(column.getKey(), toByteList(result.getBytes(column.getKey())));
-                    else if (column.getValue() == JDBCType.VARBINARY)
-                        mapping.put(column.getKey(), toByteList(result.getBytes(column.getKey())));
-                    else if (column.getValue() == JDBCType.LONGVARBINARY)
-                        mapping.put(column.getKey(), toByteList(result.getBytes(column.getKey())));
-                    else if (column.getValue() == JDBCType.BLOB)
-                        mapping.put(column.getKey(), result.getBytes(column.getKey()));
-                    else if (column.getValue() == JDBCType.CHAR)
-                        mapping.put(column.getKey(), result.getString(column.getKey()));
-                    else if (column.getValue() == JDBCType.VARCHAR)
-                        mapping.put(column.getKey(), result.getString(column.getKey()));
-                    else if (column.getValue() == JDBCType.LONGVARCHAR)
-                        mapping.put(column.getKey(), result.getString(column.getKey()));
-                    else if (column.getValue() == JDBCType.CLOB)
-                        mapping.put(column.getKey(), result.getString(column.getKey()));
-                    else if (column.getValue() == JDBCType.NCHAR)
-                        mapping.put(column.getKey(), result.getString(column.getKey()));
-                    else if (column.getValue() == JDBCType.NVARCHAR)
-                        mapping.put(column.getKey(), result.getString(column.getKey()));
-                    else if (column.getValue() == JDBCType.LONGNVARCHAR)
-                        mapping.put(column.getKey(), result.getString(column.getKey()));
-                    else if (column.getValue() == JDBCType.NCLOB)
-                        mapping.put(column.getKey(), result.getString(column.getKey()));
-                    else
-                        throw new IllegalArgumentException(
-                                "Cannot set unsupported JDBC type " + column.getValue().getName() +
-                                        " for column " + column.getKey() + ".");
-                }
-
-                buffer.add(mapping);
+                return hasMore;
             }
-        }
 
-        return buffer;
+            public LinkedHashMap<String, Object> next() {
+
+                try {
+
+                    LinkedHashMap<String, Object> mapping = new LinkedHashMap<>();
+
+                    for (Pair<String, JDBCType> column : metaData) {
+
+                        if (column.getRight() == JDBCType.NULL)
+                            mapping.put(column.getKey(), null);
+                        else if (column.getValue() == JDBCType.BIT)
+                            mapping.put(column.getKey(), result.getBoolean(column.getKey()));
+                        else if (column.getValue() == JDBCType.BOOLEAN)
+                            mapping.put(column.getKey(), result.getBoolean(column.getKey()));
+                        else if (column.getValue() == JDBCType.TINYINT)
+                            mapping.put(column.getKey(), result.getByte(column.getKey()));
+                        else if (column.getValue() == JDBCType.SMALLINT)
+                            mapping.put(column.getKey(), result.getShort(column.getKey()));
+                        else if (column.getValue() == JDBCType.INTEGER)
+                            mapping.put(column.getKey(), result.getInt(column.getKey()));
+                        else if (column.getValue() == JDBCType.BIGINT)
+                            mapping.put(column.getKey(), result.getLong(column.getKey()));
+                        else if (column.getValue() == JDBCType.REAL)
+                            mapping.put(column.getKey(), result.getFloat(column.getKey()));
+                        else if (column.getValue() == JDBCType.FLOAT)
+                            mapping.put(column.getKey(), result.getDouble(column.getKey()));
+                        else if (column.getValue() == JDBCType.DOUBLE)
+                            mapping.put(column.getKey(), result.getDouble(column.getKey()));
+                        else if (column.getValue() == JDBCType.NUMERIC)
+                            mapping.put(column.getKey(), result.getBigDecimal(column.getKey()));
+                        else if (column.getValue() == JDBCType.DECIMAL)
+                            mapping.put(column.getKey(), result.getBigDecimal(column.getKey()));
+                        else if (column.getValue() == JDBCType.DATE)
+                            mapping.put(column.getKey(), result.getDate(column.getKey()).toLocalDate());
+                        else if (column.getValue() == JDBCType.TIME)
+                            mapping.put(column.getKey(), result.getTime(column.getKey()).toLocalTime());
+                        else if (column.getValue() == JDBCType.TIMESTAMP)
+                            mapping.put(column.getKey(), result.getTimestamp(column.getKey()).toLocalDateTime());
+                        else if (column.getValue() == JDBCType.BINARY)
+                            mapping.put(column.getKey(), toByteList(result.getBytes(column.getKey())));
+                        else if (column.getValue() == JDBCType.VARBINARY)
+                            mapping.put(column.getKey(), toByteList(result.getBytes(column.getKey())));
+                        else if (column.getValue() == JDBCType.LONGVARBINARY)
+                            mapping.put(column.getKey(), toByteList(result.getBytes(column.getKey())));
+                        else if (column.getValue() == JDBCType.BLOB)
+                            mapping.put(column.getKey(), result.getBytes(column.getKey()));
+                        else if (column.getValue() == JDBCType.CHAR)
+                            mapping.put(column.getKey(), result.getString(column.getKey()));
+                        else if (column.getValue() == JDBCType.VARCHAR)
+                            mapping.put(column.getKey(), result.getString(column.getKey()));
+                        else if (column.getValue() == JDBCType.LONGVARCHAR)
+                            mapping.put(column.getKey(), result.getString(column.getKey()));
+                        else if (column.getValue() == JDBCType.CLOB)
+                            mapping.put(column.getKey(), result.getString(column.getKey()));
+                        else if (column.getValue() == JDBCType.NCHAR)
+                            mapping.put(column.getKey(), result.getString(column.getKey()));
+                        else if (column.getValue() == JDBCType.NVARCHAR)
+                            mapping.put(column.getKey(), result.getString(column.getKey()));
+                        else if (column.getValue() == JDBCType.LONGNVARCHAR)
+                            mapping.put(column.getKey(), result.getString(column.getKey()));
+                        else if (column.getValue() == JDBCType.NCLOB)
+                            mapping.put(column.getKey(), result.getString(column.getKey()));
+                        else
+                            throw new IllegalArgumentException(
+                                    "Cannot set unsupported JDBC type " + column.getValue().getName() +
+                                            " for column " + column.getKey() + ".");
+                    }
+
+                    hasMore = result.next();
+
+                    return mapping;
+
+                } catch (SQLException e) {
+
+                    throw new UncheckedSQLException(e);
+                }
+            }
+        };
     }
 
     private List<Pair<String, JDBCType>> getMetaData(PreparedStatement statement)
