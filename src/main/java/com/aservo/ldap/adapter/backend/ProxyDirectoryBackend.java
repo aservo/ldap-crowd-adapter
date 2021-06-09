@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.backend;
 
+import com.aservo.ldap.adapter.ServerConfiguration;
 import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
@@ -24,7 +25,6 @@ import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;

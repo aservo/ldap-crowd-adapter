@@ -30,7 +30,6 @@ import com.aservo.ldap.adapter.api.entity.*;
 import com.aservo.ldap.adapter.api.query.AndLogicExpression;
 import com.aservo.ldap.adapter.api.query.EqualOperator;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;

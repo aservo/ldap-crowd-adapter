@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.util;
+package com.aservo.ldap.adapter;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

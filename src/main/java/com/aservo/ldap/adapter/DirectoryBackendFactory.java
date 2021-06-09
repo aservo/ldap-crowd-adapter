@@ -19,7 +19,6 @@ package com.aservo.ldap.adapter;
 
 import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;

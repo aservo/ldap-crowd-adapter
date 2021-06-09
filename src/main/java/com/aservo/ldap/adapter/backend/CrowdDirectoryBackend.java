@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.backend;
 
+import com.aservo.ldap.adapter.ServerConfiguration;
 import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.LdapUtils;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
@@ -30,7 +31,6 @@ import com.aservo.ldap.adapter.api.query.AndLogicExpression;
 import com.aservo.ldap.adapter.api.query.EqualOperator;
 import com.aservo.ldap.adapter.api.query.OrLogicExpression;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.atlassian.crowd.embedded.api.SearchRestriction;
 import com.atlassian.crowd.exception.*;
 import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;

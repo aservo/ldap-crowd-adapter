@@ -17,7 +17,6 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;

@@ -22,7 +22,6 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;

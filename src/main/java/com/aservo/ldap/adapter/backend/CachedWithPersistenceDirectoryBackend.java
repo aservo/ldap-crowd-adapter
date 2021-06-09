@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.backend;
 
+import com.aservo.ldap.adapter.ServerConfiguration;
 import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.database.QueryDefFactory;
 import com.aservo.ldap.adapter.api.database.Row;
@@ -30,7 +31,6 @@ import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.sql.impl.DatabaseService;
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 import java.sql.Connection;
 import java.util.*;
 import java.util.function.Supplier;

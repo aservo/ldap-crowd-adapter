@@ -17,9 +17,9 @@
 
 package com.aservo.ldap.adapter.backend;
 
+import com.aservo.ldap.adapter.ServerConfiguration;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.entity.MembershipEntity;
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 import com.google.common.collect.Lists;
 import com.google.gson.*;
 import java.io.IOException;

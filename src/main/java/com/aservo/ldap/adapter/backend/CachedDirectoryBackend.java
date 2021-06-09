@@ -17,8 +17,8 @@
 
 package com.aservo.ldap.adapter.backend;
 
+import com.aservo.ldap.adapter.ServerConfiguration;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
-import com.aservo.ldap.adapter.util.ServerConfiguration;
 
 
 public abstract class CachedDirectoryBackend
