@@ -525,8 +525,6 @@ public class CachedWithPersistenceDirectoryBackend
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        Map<String, Set<String>> relationships = new HashMap<>();
-
         return factory
                 .queryById("find_all_transitive_group_memberships")
                 .execute(IndexedSeqResult.class)
