@@ -28,7 +28,7 @@ import com.aservo.ldap.adapter.api.directory.exception.DirectoryAccessFailureExc
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.util.exception.InternalServerException;
+import com.aservo.ldap.adapter.api.exception.InternalServerException;
 import java.nio.charset.StandardCharsets;
 import javax.naming.AuthenticationException;
 import org.apache.directory.api.ldap.model.constants.AuthenticationLevel;

@@ -17,8 +17,8 @@
 
 package com.aservo.ldap.adapter;
 
-import com.aservo.ldap.adapter.util.exception.InternalServerException;
-import com.aservo.ldap.adapter.util.exception.UnsupportedQueryExpressionException;
+import com.aservo.ldap.adapter.api.exception.InternalServerException;
+import com.aservo.ldap.adapter.api.exception.UnsupportedQueryExpressionException;
 import java.io.IOException;
 import java.io.OutputStream;
 import javax.naming.OperationNotSupportedException;

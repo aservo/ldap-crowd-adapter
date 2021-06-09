@@ -15,50 +15,52 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.util.exception;
+package com.aservo.ldap.adapter.api.exception;
+
+import org.apache.directory.api.ldap.model.exception.LdapException;
 
 
 /**
- * The exception type for unsupported query expression.
+ * The exception type for internal server errors.
  */
-public class UnsupportedQueryExpressionException
-        extends UnsupportedOperationException {
+public class InternalServerException
+        extends LdapException {
 
     /**
-     * Instantiates a new unsupported query expression exception.
+     * Instantiates a new internal server failure exception.
      */
-    public UnsupportedQueryExpressionException() {
+    public InternalServerException() {
 
         super();
     }
 
     /**
-     * Instantiates a new unsupported query expression exception.
+     * Instantiates a new internal server failure exception.
      *
      * @param message the message
      */
-    public UnsupportedQueryExpressionException(String message) {
+    public InternalServerException(String message) {
 
         super(message);
     }
 
     /**
-     * Instantiates a new unsupported query expression exception.
+     * Instantiates a new internal server failure exception.
      *
      * @param message   the message
      * @param throwable the throwable
      */
-    public UnsupportedQueryExpressionException(String message, Throwable throwable) {
+    public InternalServerException(String message, Throwable throwable) {
 
         super(message, throwable);
     }
 
     /**
-     * Instantiates a new unsupported query expression exception.
+     * Instantiates a new internal server failure exception.
      *
      * @param throwable the throwable
      */
-    public UnsupportedQueryExpressionException(Throwable throwable) {
+    public InternalServerException(Throwable throwable) {
 
         super(throwable);
     }
