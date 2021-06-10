@@ -199,13 +199,13 @@ public class CachedWithPersistenceDirectoryBackend
     @Override
     public <T> T withReadAccess(Supplier<T> block) {
 
-        return processTransaction(block);
+        return processTransaction(true, block);
     }
 
     @Override
     public void withReadAccess(Runnable block) {
 
-        processTransaction(() -> {
+        withReadAccess(() -> {
 
             block.run();
             return null;
@@ -215,7 +215,7 @@ public class CachedWithPersistenceDirectoryBackend
     @Override
     public <T> T withWriteAccess(Supplier<T> block) {
 
-        return processTransaction(() -> {
+        return processTransaction(false, () -> {
 
             T result = block.get();
 
@@ -1017,7 +1017,7 @@ public class CachedWithPersistenceDirectoryBackend
         }
     }
 
-    private <T> T processTransaction(Supplier<T> block) {
+    private <T> T processTransaction(boolean readOnly, Supplier<T> block) {
 
         return dbService.withTransaction(factory -> {
 
@@ -1030,7 +1030,10 @@ public class CachedWithPersistenceDirectoryBackend
 
             try {
 
-                result = super.withReadAccess(block);
+                if (readOnly)
+                    result = super.withReadAccess(block);
+                else
+                    result = super.withWriteAccess(block);
 
             } finally {
 
