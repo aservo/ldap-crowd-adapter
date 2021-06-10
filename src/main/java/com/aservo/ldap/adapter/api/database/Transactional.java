@@ -40,4 +40,11 @@ public interface Transactional {
      * @param block the code block
      */
     void withTransaction(Consumer<QueryDefFactory> block);
+
+    /**
+     * Creates a closeable transaction for undefined lifetime.
+     *
+     * @return the closeable transaction
+     */
+    CloseableTransaction getCloseableTransaction();
 }

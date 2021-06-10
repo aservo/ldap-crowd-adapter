@@ -15,12 +15,30 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.api.iterator;
+package com.aservo.ldap.adapter.api.database.util;
 
-import com.aservo.ldap.adapter.api.database.util.UncheckedCloseable;
-import java.util.Iterator;
+import com.aservo.ldap.adapter.api.database.exception.UncheckedSQLException;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.sql.SQLException;
 
 
-public interface ClosableIterator<T>
-        extends Iterator<T>, UncheckedCloseable {
+public interface UncheckedCloseable
+        extends Closeable {
+
+    default void closeUnchecked() {
+
+        try {
+
+            close();
+
+        } catch (IOException e) {
+
+            if (e.getCause() instanceof SQLException)
+                throw new UncheckedSQLException(e);
+
+            throw new UncheckedIOException(e);
+        }
+    }
 }

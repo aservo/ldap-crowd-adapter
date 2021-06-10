@@ -198,6 +198,10 @@ if [ -n "$BACKEND_JDBC_ISO_LEVEL" ]; then
   JAVA_OPTS="-Ddatabase.jdbc.connection.isolation-level=$BACKEND_JDBC_ISO_LEVEL $JAVA_OPTS"
 fi
 
+if [ -n "$BACKEND_TRANSACTION_TIMEOUT" ]; then
+  JAVA_OPTS="-Dpersistence.transaction-timeout=$BACKEND_TRANSACTION_TIMEOUT $JAVA_OPTS"
+fi
+
 if [ -n "$BACKEND_APPLY_NATIVE_SQL" ]; then
   JAVA_OPTS="-Dpersistence.apply-native-sql=$BACKEND_APPLY_NATIVE_SQL $JAVA_OPTS"
 fi

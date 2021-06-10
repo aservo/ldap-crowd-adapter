@@ -19,6 +19,7 @@ package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
 import com.aservo.ldap.adapter.api.FilterMatcher;
+import com.aservo.ldap.adapter.api.database.CloseableTransaction;
 import com.aservo.ldap.adapter.api.database.QueryDefFactory;
 import com.aservo.ldap.adapter.api.database.Row;
 import com.aservo.ldap.adapter.api.database.result.IgnoredResult;
@@ -31,8 +32,14 @@ import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.sql.impl.DatabaseService;
+import java.io.IOException;
 import java.sql.Connection;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
@@ -83,6 +90,10 @@ public class CachedWithPersistenceDirectoryBackend
      */
     public static final String CONFIG_DB_ISO_LEVEL = "database.jdbc.connection.isolation-level";
     /**
+     * The constant CONFIG_TRANSACTION_TIMEOUT.
+     */
+    public static final String CONFIG_TRANSACTION_TIMEOUT = "persistence.transaction-timeout";
+    /**
      * The constant CONFIG_APPLY_NATIVE_SQL.
      */
     public static final String CONFIG_APPLY_NATIVE_SQL = "persistence.apply-native-sql";
@@ -97,7 +108,10 @@ public class CachedWithPersistenceDirectoryBackend
 
     private final Logger logger = LoggerFactory.getLogger(CachedWithPersistenceDirectoryBackend.class);
     private final Map<Long, QueryDefFactory> queryDefFactories = Collections.synchronizedMap(new HashMap<>());
+    private final Map<Long, CloseableTransactionWrapper> closeableTransactions = Collections.synchronizedMap(new HashMap<>());
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final DatabaseService dbService;
+    private final int transactionTimeout;
     private final boolean applyNativeSql;
     private final boolean useMaterializedViews;
     private final boolean activeUsersOnly;
@@ -123,6 +137,12 @@ public class CachedWithPersistenceDirectoryBackend
         String maxTotalValue = properties.getProperty(CONFIG_DB_MAX_TOTAL);
         String maxOpenPreparedStatementsValue = properties.getProperty(CONFIG_DB_MAX_OPEN_STMT);
         String isolationLevelValue = properties.getProperty(CONFIG_DB_ISO_LEVEL);
+        String transactionTimeoutValue = properties.getProperty(CONFIG_TRANSACTION_TIMEOUT);
+
+        if (transactionTimeoutValue == null)
+            throw new IllegalArgumentException("Missing value for " + CONFIG_TRANSACTION_TIMEOUT);
+
+        transactionTimeout = Integer.parseInt(transactionTimeoutValue);
 
         applyNativeSql = Boolean.parseBoolean(properties.getProperty(CONFIG_APPLY_NATIVE_SQL, "false"));
         useMaterializedViews = Boolean.parseBoolean(properties.getProperty(CONFIG_USE_MATERIALIZED_VIEWS, "false"));
@@ -187,6 +207,7 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.startup();
         dbService.startup();
+        scheduler.scheduleAtFixedRate(this::clearCloseableTransaction, 3, 4, TimeUnit.SECONDS);
     }
 
     @Override
@@ -1044,6 +1065,40 @@ public class CachedWithPersistenceDirectoryBackend
         });
     }
 
+    private void clearCloseableTransaction() {
+
+        (new HashMap<>(closeableTransactions)).forEach((id, transaction) -> {
+
+            if (System.currentTimeMillis() - transaction.timestamp > transactionTimeout) {
+
+                try {
+
+                    transaction.closeUnchecked(new TimeoutException("A transaction was terminated after timeout."));
+
+                } catch (Exception e) {
+
+                    logger.warn("A transaction cleanup was performed.", e);
+
+                } finally {
+
+                    closeableTransactions.remove(id);
+                }
+            }
+        });
+    }
+
+    private CloseableTransaction getCloseableTransaction() {
+
+        long id = Thread.currentThread().getId();
+
+        if (closeableTransactions.containsKey(id))
+            closeableTransactions.get(id).counter.incrementAndGet();
+        else
+            closeableTransactions.put(id, new CloseableTransactionWrapper(dbService.getCloseableTransaction()));
+
+        return closeableTransactions.get(id);
+    }
+
     private QueryDefFactory getCurrentQueryDefFactory() {
 
         return queryDefFactories.get(Thread.currentThread().getId());
@@ -1065,5 +1120,36 @@ public class CachedWithPersistenceDirectoryBackend
                 row.apply("display_name", String.class),
                 row.apply("email", String.class),
                 row.apply("active", Boolean.class));
+    }
+
+    private static class CloseableTransactionWrapper
+            implements CloseableTransaction {
+
+        private final CloseableTransaction transaction;
+
+        public final AtomicInteger counter = new AtomicInteger(1);
+        public final long timestamp = System.currentTimeMillis();
+
+        public CloseableTransactionWrapper(CloseableTransaction transaction) {
+
+            this.transaction = transaction;
+        }
+
+        public QueryDefFactory getQueryDefFactory() {
+
+            return transaction.getQueryDefFactory();
+        }
+
+        public void close(Exception cause)
+                throws IOException {
+
+            transaction.close(cause);
+        }
+
+        public void close()
+                throws IOException {
+
+            transaction.close();
+        }
     }
 }

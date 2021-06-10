@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.sql.impl;
 
+import com.aservo.ldap.adapter.api.database.CloseableTransaction;
 import com.aservo.ldap.adapter.api.database.QueryDefFactory;
 import com.aservo.ldap.adapter.api.database.Transactional;
 import com.aservo.ldap.adapter.api.database.exception.UncheckedSQLException;
@@ -189,7 +190,7 @@ public class DatabaseService
 
             } catch (SQLException e) {
 
-                logger.error("Cannot close database connection", e);
+                logger.error("Cannot close database connection.", e);
             }
         }
 
@@ -208,6 +209,100 @@ public class DatabaseService
             block.accept(x);
             return null;
         });
+    }
+
+    public CloseableTransaction getCloseableTransaction() {
+
+        Connection connection;
+
+        try {
+
+            connection = dataSource.getConnection();
+
+        } catch (SQLException e) {
+
+            throw new UncheckedSQLException("Could not create connection from pool.", e);
+        }
+
+        Executor executor = new Executor(logger, connection, QUERIES_CLAUSES);
+
+        try {
+
+            executor.getConnection().setAutoCommit(false);
+
+        } catch (SQLException e) {
+
+            try {
+
+                executor.getConnection().close();
+
+            } catch (SQLException e2) {
+
+                logger.error("Cannot close database connection.", e2);
+            }
+
+            throw new UncheckedSQLException("Could not trigger transactional processing.", e);
+        }
+
+        return new CloseableTransaction() {
+
+            public QueryDefFactory getQueryDefFactory() {
+
+                return executor.newQueryDefFactory();
+            }
+
+            public void close()
+                    throws IOException {
+
+                try {
+
+                    executor.getConnection().commit();
+
+                } catch (SQLException e) {
+
+                    throw new UncheckedSQLException(e);
+
+                } finally {
+
+                    try {
+
+                        executor.getConnection().close();
+
+                    } catch (SQLException e) {
+
+                        logger.error("Cannot close database connection.", e);
+                    }
+                }
+            }
+
+            public void close(Exception cause)
+                    throws IOException {
+
+                logger.warn("Rollback transaction with internal error.", cause);
+
+                try {
+
+                    executor.getConnection().rollback();
+
+                } catch (SQLException e) {
+
+                    throw new UncheckedSQLException(e);
+
+                } finally {
+
+                    try {
+
+                        executor.getConnection().close();
+
+                    } catch (SQLException e) {
+
+                        logger.error("Cannot close database connection.", e);
+                    }
+                }
+
+                throw new IOException(cause);
+            }
+        };
     }
 
     private void performSchemaEvolution(QueryDefFactory factory) {
