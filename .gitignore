@@ -21,6 +21,8 @@ Thumbs.db
 # Build tool / IDE
 #
 
+*.iml
+
 .idea/
 .vscode/
 .bsp/
