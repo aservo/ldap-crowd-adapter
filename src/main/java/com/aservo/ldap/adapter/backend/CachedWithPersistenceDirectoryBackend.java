@@ -18,20 +18,21 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
-import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.database.CloseableTransaction;
 import com.aservo.ldap.adapter.api.database.QueryDefFactory;
 import com.aservo.ldap.adapter.api.database.Row;
+import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
 import com.aservo.ldap.adapter.api.database.result.IgnoredResult;
 import com.aservo.ldap.adapter.api.database.result.IndexedSeqResult;
+import com.aservo.ldap.adapter.api.database.result.IteratorResult;
 import com.aservo.ldap.adapter.api.database.result.SingleOptResult;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.api.entity.GroupEntity;
-import com.aservo.ldap.adapter.api.entity.MembershipEntity;
-import com.aservo.ldap.adapter.api.entity.UserEntity;
+import com.aservo.ldap.adapter.api.entity.*;
+import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.sql.impl.DatabaseService;
+import com.aservo.ldap.adapter.sql.impl.QueryGenerator;
 import java.io.IOException;
 import java.sql.Connection;
 import java.util.*;
@@ -40,9 +41,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -528,6 +530,20 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
+    public ClosableIterator<Entity> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+                                                       EntityType entityType) {
+
+        QueryGenerator generator =
+                new QueryGenerator(schemaManager, getId(), config.isFlatteningEnabled(), activeUsersOnly,
+                        useMaterializedViews);
+
+        return mapEntityRows(entityType, generator.generate(entityType, getCloseableTransaction().getQueryDefFactory(),
+                expression)
+                .execute(IteratorResult.class)
+                .transform(Function.identity()));
+    }
+
+    @Override
     public List<Pair<String, String>> getAllDirectGroupRelationships() {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
@@ -642,36 +658,26 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
-    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
+    public List<GroupEntity> getAllGroups() {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
-
-        // TODO: Transform expression to plain SQL and use factory.query(String clause) to improve performance.
 
         return factory
                 .queryById("find_all_groups")
                 .execute(IndexedSeqResult.class)
-                .transform(this::mapGroupEntity)
-                .stream()
-                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
-                .collect(Collectors.toList());
+                .transform(this::mapGroupEntity);
     }
 
     @Override
-    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
+    public List<UserEntity> getAllUsers() {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
-
-        // TODO: Transform expression to plain SQL and use factory.query(String clause) to improve performance.
 
         return factory
                 .queryById("find_all_users")
                 .on("active_only", activeUsersOnly)
                 .execute(IndexedSeqResult.class)
-                .transform(this::mapUserEntity)
-                .stream()
-                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
-                .collect(Collectors.toList());
+                .transform(this::mapUserEntity);
     }
 
     @Override
@@ -982,62 +988,6 @@ public class CachedWithPersistenceDirectoryBackend
         }
     }
 
-    @Override
-    public boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
-
-        try {
-
-            return getDirectChildGroupsOfGroup(groupId2).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
-
-    @Override
-    public boolean isUserDirectGroupMember(String userId, String groupId) {
-
-        try {
-
-            return getDirectUsersOfGroup(groupId).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
-
-    @Override
-    public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2) {
-
-        try {
-
-            return getTransitiveChildGroupsOfGroup(groupId2).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
-
-    @Override
-    public boolean isUserTransitiveGroupMember(String userId, String groupId) {
-
-        try {
-
-            return getTransitiveUsersOfGroup(groupId).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
-
     private <T> T processTransaction(boolean readOnly, Supplier<T> block) {
 
         return dbService.withTransaction(factory -> {
@@ -1102,6 +1052,168 @@ public class CachedWithPersistenceDirectoryBackend
     private QueryDefFactory getCurrentQueryDefFactory() {
 
         return queryDefFactories.get(Thread.currentThread().getId());
+    }
+
+    private ClosableIterator<Entity> mapEntityRows(EntityType type, ClosableIterator<Row> rows) {
+
+        long id = Thread.currentThread().getId();
+
+        return new ClosableIterator<Entity>() {
+
+            private Entity lastEntity;
+
+            public boolean hasNext() {
+
+                return rows.hasNext();
+            }
+
+            public Entity next() {
+
+                Entity currentEntity;
+
+                if (type == EntityType.GROUP) {
+
+                    if (lastEntity == null) {
+
+                        Row row = rows.next();
+                        lastEntity = mapGroupEntity(row);
+                        putGroupRelationships((GroupEntity) lastEntity, row);
+                    }
+
+                    currentEntity = lastEntity;
+
+                    while (rows.hasNext()) {
+
+                        Row row = rows.next();
+
+                        if (lastEntity.getId().equals(row.apply("id", String.class))) {
+
+                            putGroupRelationships((GroupEntity) currentEntity, row);
+
+                        } else {
+
+                            lastEntity = mapGroupEntity(row);
+                            putGroupRelationships((GroupEntity) lastEntity, row);
+                            break;
+                        }
+                    }
+
+                } else if (type == EntityType.USER) {
+
+                    if (lastEntity == null) {
+
+                        Row row = rows.next();
+                        lastEntity = mapUserEntity(row);
+                        putUserRelationships((UserEntity) lastEntity, row);
+                    }
+
+                    currentEntity = lastEntity;
+
+                    while (rows.hasNext()) {
+
+                        Row row = rows.next();
+
+                        if (lastEntity.getId().equals(row.apply("id", String.class))) {
+
+                            putUserRelationships((UserEntity) currentEntity, row);
+
+                        } else {
+
+                            lastEntity = mapUserEntity(row);
+                            putUserRelationships((UserEntity) lastEntity, row);
+                            break;
+                        }
+                    }
+
+                } else
+                    throw new IllegalArgumentException("Expect supported entity type.");
+
+                return currentEntity;
+            }
+
+            public void close()
+                    throws IOException {
+
+                CloseableTransactionWrapper transaction = closeableTransactions.get(id);
+                int count = transaction.counter.decrementAndGet();
+
+                rows.close();
+
+                if (count == 0) {
+
+                    logger.debug("[Thread ID {}] - Close async transaction.", id);
+
+                    try {
+
+                        transaction.close();
+
+                    } finally {
+
+                        closeableTransactions.remove(id);
+                    }
+                }
+            }
+
+            private void putGroupRelationships(GroupEntity entity, Row row) {
+
+                String memberOfNames = null;
+                String memberNamesGroup = null;
+                String memberNamesUser = null;
+
+                try {
+
+                    memberOfNames = row.apply("parent_group_name", String.class);
+
+                } catch (UnknownColumnException e) {
+
+                    logger.debug("Cannot find column parent_group_name in group result.");
+                }
+
+                try {
+
+                    memberNamesGroup = row.apply("member_group_name", String.class);
+
+                } catch (UnknownColumnException e) {
+
+                    logger.debug("Cannot find column member_group_name in group result.");
+                }
+
+                try {
+
+                    memberNamesUser = row.apply("member_user_username", String.class);
+
+                } catch (UnknownColumnException e) {
+
+                    logger.debug("Cannot find column member_user_username in group result.");
+                }
+
+                if (memberOfNames != null)
+                    ((Set<String>) entity.getMemberOfNames()).add(memberOfNames);
+
+                if (memberNamesGroup != null)
+                    ((Set<String>) entity.getMemberNamesGroup()).add(memberNamesGroup);
+
+                if (memberNamesUser != null)
+                    ((Set<String>) entity.getMemberNamesUser()).add(memberNamesUser);
+            }
+
+            private void putUserRelationships(UserEntity entity, Row row) {
+
+                String memberOfNames = null;
+
+                try {
+
+                    memberOfNames = row.apply("parent_group_name", String.class);
+
+                } catch (UnknownColumnException e) {
+
+                    logger.debug("Cannot find column parent_group_name in user result.");
+                }
+
+                if (memberOfNames != null)
+                    ((Set<String>) entity.getMemberOfNames()).add(memberOfNames);
+            }
+        };
     }
 
     private GroupEntity mapGroupEntity(Row row) {

@@ -18,13 +18,15 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
-import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
+import com.aservo.ldap.adapter.api.entity.Entity;
+import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
+import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -36,8 +38,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,6 +165,12 @@ public class JsonDirectoryBackend
         userList.clear();
     }
 
+    public ClosableIterator<Entity> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+                                                       EntityType entityType) {
+
+        throw new UnsupportedOperationException("Query generation not supported for JSON directory backend.");
+    }
+
     public GroupEntity getGroup(String id)
             throws EntityNotFoundException {
 
@@ -192,34 +200,30 @@ public class JsonDirectoryBackend
         return user;
     }
 
-    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
+    public List<GroupEntity> getAllGroups() {
 
         logger.info("Call: getGroups");
 
-        return groupList.stream()
-                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
-                .collect(Collectors.toList());
+        return new ArrayList<>(groupList);
     }
 
     @Override
-    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+    public List<GroupEntity> getAllGroups(int startIndex, int maxResults) {
 
-        return getGroups(expression, filterMatcher).subList(startIndex, startIndex + maxResults);
+        return getAllGroups().subList(startIndex, startIndex + maxResults);
     }
 
-    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
+    public List<UserEntity> getAllUsers() {
 
         logger.info("Call: getUsers");
 
-        return userList.stream()
-                .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
-                .collect(Collectors.toList());
+        return new ArrayList<>(userList);
     }
 
     @Override
-    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
+    public List<UserEntity> getAllUsers(int startIndex, int maxResults) {
 
-        return getUsers(expression, filterMatcher).subList(startIndex, startIndex + maxResults);
+        return getAllUsers().subList(startIndex, startIndex + maxResults);
     }
 
     public List<UserEntity> getDirectUsersOfGroup(String id)

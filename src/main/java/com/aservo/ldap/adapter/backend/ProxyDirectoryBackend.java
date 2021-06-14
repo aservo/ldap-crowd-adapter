@@ -18,17 +18,15 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
-import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.api.entity.GroupEntity;
-import com.aservo.ldap.adapter.api.entity.MembershipEntity;
-import com.aservo.ldap.adapter.api.entity.UserEntity;
+import com.aservo.ldap.adapter.api.entity.*;
+import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 
 
 public abstract class ProxyDirectoryBackend
@@ -164,6 +162,13 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
+    public ClosableIterator<Entity> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+                                                       EntityType entityType) {
+
+        return directoryBackend.runQueryExpression(schemaManager, expression, entityType);
+    }
+
+    @Override
     public List<Pair<String, String>> getAllDirectGroupRelationships() {
 
         return directoryBackend.getAllDirectGroupRelationships();
@@ -230,30 +235,6 @@ public abstract class ProxyDirectoryBackend
     public List<UserEntity> getAllUsers(int startIndex, int maxResults) {
 
         return directoryBackend.getAllUsers(startIndex, maxResults);
-    }
-
-    @Override
-    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
-
-        return directoryBackend.getGroups(expression, filterMatcher);
-    }
-
-    @Override
-    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
-
-        return directoryBackend.getGroups(expression, filterMatcher, startIndex, maxResults);
-    }
-
-    @Override
-    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
-
-        return directoryBackend.getUsers(expression, filterMatcher);
-    }
-
-    @Override
-    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher, int startIndex, int maxResults) {
-
-        return directoryBackend.getUsers(expression, filterMatcher, startIndex, maxResults);
     }
 
     @Override
@@ -366,30 +347,6 @@ public abstract class ProxyDirectoryBackend
             throws EntityNotFoundException {
 
         return directoryBackend.getTransitiveParentGroupNamesOfGroup(id);
-    }
-
-    @Override
-    public boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
-
-        return directoryBackend.isGroupDirectGroupMember(groupId1, groupId2);
-    }
-
-    @Override
-    public boolean isUserDirectGroupMember(String userId, String groupId) {
-
-        return directoryBackend.isUserDirectGroupMember(userId, groupId);
-    }
-
-    @Override
-    public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2) {
-
-        return directoryBackend.isGroupTransitiveGroupMember(groupId1, groupId2);
-    }
-
-    @Override
-    public boolean isUserTransitiveGroupMember(String userId, String groupId) {
-
-        return directoryBackend.isUserTransitiveGroupMember(userId, groupId);
     }
 
     @Override

@@ -18,6 +18,11 @@
 package com.aservo.ldap.adapter.api.entity;
 
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * The user entity.
  */
@@ -30,6 +35,31 @@ public class UserEntity
     private final String displayName;
     private final String email;
     private final boolean active;
+    private final Set<String> memberOfNames = new HashSet<>();
+
+    /**
+     * Instantiates a new User.
+     *
+     * @param username      the username
+     * @param lastName      the last name
+     * @param firstName     the first name
+     * @param displayName   the display name
+     * @param email         the email
+     * @param active        the active flag
+     * @param memberOfNames the names for memberOf attribute
+     */
+    public UserEntity(String username, String lastName, String firstName, String displayName, String email,
+                      boolean active, Collection<String> memberOfNames) {
+
+        super(username.toLowerCase());
+        this.username = username;
+        this.lastName = lastName;
+        this.firstName = firstName;
+        this.displayName = displayName;
+        this.email = email;
+        this.active = active;
+        this.memberOfNames.addAll(memberOfNames);
+    }
 
     /**
      * Instantiates a new User.
@@ -41,15 +71,10 @@ public class UserEntity
      * @param email       the email
      * @param active      the active flag
      */
-    public UserEntity(String username, String lastName, String firstName, String displayName, String email, boolean active) {
+    public UserEntity(String username, String lastName, String firstName, String displayName, String email,
+                      boolean active) {
 
-        super(username.toLowerCase());
-        this.username = username;
-        this.lastName = lastName;
-        this.firstName = firstName;
-        this.displayName = displayName;
-        this.email = email;
-        this.active = active;
+        this(username, lastName, firstName, displayName, email, active, Collections.emptySet());
     }
 
     /**
@@ -110,6 +135,16 @@ public class UserEntity
     public boolean isActive() {
 
         return active;
+    }
+
+    /**
+     * Gets names for memberOf attribute.
+     *
+     * @return the description
+     */
+    public Iterable<String> getMemberOfNames() {
+
+        return memberOfNames;
     }
 
     /**

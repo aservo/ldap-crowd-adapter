@@ -18,6 +18,10 @@
 package com.aservo.ldap.adapter.api.entity;
 
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * The group entity.
  */
@@ -27,6 +31,29 @@ public class GroupEntity
 
     private final String name;
     private final String description;
+    private final Set<String> memberOfNames = new HashSet<>();
+    private final Set<String> memberNamesGroup = new HashSet<>();
+    private final Set<String> memberNamesUser = new HashSet<>();
+
+    /**
+     * Instantiates a new Group.
+     *
+     * @param name             the name
+     * @param description      the description
+     * @param memberOfNames    the names for memberOf attribute
+     * @param memberNamesGroup the names for group member attribute
+     * @param memberNamesUser  the names for user member attribute
+     */
+    public GroupEntity(String name, String description, Collection<String> memberOfNames,
+                       Collection<String> memberNamesGroup, Collection<String> memberNamesUser) {
+
+        super(name.toLowerCase());
+        this.name = name;
+        this.description = description;
+        this.memberOfNames.addAll(memberOfNames);
+        this.memberNamesGroup.addAll(memberNamesGroup);
+        this.memberNamesUser.addAll(memberNamesUser);
+    }
 
     /**
      * Instantiates a new Group.
@@ -59,6 +86,36 @@ public class GroupEntity
     public String getDescription() {
 
         return description;
+    }
+
+    /**
+     * Gets names for memberOf attribute.
+     *
+     * @return the description
+     */
+    public Iterable<String> getMemberOfNames() {
+
+        return memberOfNames;
+    }
+
+    /**
+     * Gets names for group member attribute.
+     *
+     * @return the description
+     */
+    public Iterable<String> getMemberNamesGroup() {
+
+        return memberNamesGroup;
+    }
+
+    /**
+     * Gets names for user member attribute.
+     *
+     * @return the description
+     */
+    public Iterable<String> getMemberNamesUser() {
+
+        return memberNamesUser;
     }
 
     /**

@@ -227,50 +227,6 @@ public class CachedSessionDirectoryBackend
         return new ArrayList<>(transitiveParentGroupsOfGroup.get(id));
     }
 
-    @Override
-    public boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
-
-        updateDirectGroupRelationships();
-
-        if (!directChildGroupsOfGroup.containsKey(groupId2))
-            return false;
-
-        return directChildGroupsOfGroup.get(groupId2).contains(groupId1);
-    }
-
-    @Override
-    public boolean isUserDirectGroupMember(String userId, String groupId) {
-
-        updateDirectUserRelationships();
-
-        if (!directUsersOfGroup.containsKey(groupId))
-            return false;
-
-        return directUsersOfGroup.get(groupId).contains(userId);
-    }
-
-    @Override
-    public boolean isGroupTransitiveGroupMember(String groupId1, String groupId2) {
-
-        updateTransitiveGroupRelationships();
-
-        if (!transitiveChildGroupsOfGroup.containsKey(groupId2))
-            return false;
-
-        return transitiveChildGroupsOfGroup.get(groupId2).contains(groupId1);
-    }
-
-    @Override
-    public boolean isUserTransitiveGroupMember(String userId, String groupId) {
-
-        updateTransitiveUserRelationships();
-
-        if (!transitiveUsersOfGroup.containsKey(groupId))
-            return false;
-
-        return transitiveUsersOfGroup.get(groupId).contains(userId);
-    }
-
     private void updateDirectUserRelationships() {
 
         logger.debug("[Thread ID {}] - updateDirectUserRelationships", Thread.currentThread().getId());

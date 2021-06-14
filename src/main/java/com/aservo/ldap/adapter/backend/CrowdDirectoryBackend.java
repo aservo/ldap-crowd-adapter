@@ -18,15 +18,13 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
-import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.LdapUtils;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
-import com.aservo.ldap.adapter.api.entity.GroupEntity;
-import com.aservo.ldap.adapter.api.entity.MembershipEntity;
-import com.aservo.ldap.adapter.api.entity.UserEntity;
+import com.aservo.ldap.adapter.api.entity.*;
+import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
 import com.aservo.ldap.adapter.api.query.AndLogicExpression;
 import com.aservo.ldap.adapter.api.query.EqualOperator;
 import com.aservo.ldap.adapter.api.query.OrLogicExpression;
@@ -39,16 +37,15 @@ import com.atlassian.crowd.model.group.Membership;
 import com.atlassian.crowd.model.user.User;
 import com.atlassian.crowd.search.query.entity.restriction.*;
 import com.atlassian.crowd.search.query.entity.restriction.constants.GroupTermKeys;
-import com.atlassian.crowd.search.query.entity.restriction.constants.UserTermKeys;
 import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,6 +107,12 @@ public class CrowdDirectoryBackend
     public void shutdown() {
 
         crowdClient.shutdown();
+    }
+
+    public ClosableIterator<Entity> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+                                                       EntityType entityType) {
+
+        throw new UnsupportedOperationException("Query generation not supported for Crowd directory backend.");
     }
 
     public GroupEntity getGroup(String id)
@@ -188,24 +191,19 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
+    public List<GroupEntity> getAllGroups() {
 
-        return getGroups(expression, filterMatcher, 0, Integer.MAX_VALUE);
+        return getAllGroups(0, Integer.MAX_VALUE);
     }
 
-    public List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher,
-                                       int startIndex, int maxResults) {
+    public List<GroupEntity> getAllGroups(int startIndex, int maxResults) {
 
         logger.info("Backend call: getGroups({}, {})", startIndex, maxResults);
 
-        SearchRestriction restriction =
-                removeNullRestrictions(createGroupSearchRestriction(LdapUtils.removeNotExpressions(expression)));
-
         try {
 
-            return crowdClient.searchGroups(restriction, startIndex, maxResults).stream()
+            return crowdClient.searchGroups(NullRestrictionImpl.INSTANCE, startIndex, maxResults).stream()
                     .map(this::createGroupEntity)
-                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
                     .collect(Collectors.toList());
 
         } catch (ApplicationPermissionException |
@@ -219,24 +217,19 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher) {
+    public List<UserEntity> getAllUsers() {
 
-        return getUsers(expression, filterMatcher, 0, Integer.MAX_VALUE);
+        return getAllUsers(0, Integer.MAX_VALUE);
     }
 
-    public List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher,
-                                     int startIndex, int maxResults) {
+    public List<UserEntity> getAllUsers(int startIndex, int maxResults) {
 
         logger.info("Backend call: getUsers({}, {})", startIndex, maxResults);
 
-        SearchRestriction restriction =
-                removeNullRestrictions(createUserSearchRestriction(LdapUtils.removeNotExpressions(expression)));
-
         try {
 
-            return crowdClient.searchUsers(restriction, startIndex, maxResults).stream()
+            return crowdClient.searchUsers(NullRestrictionImpl.INSTANCE, startIndex, maxResults).stream()
                     .map(this::createUserEntity)
-                    .filter(x -> filterMatcher.map(y -> y.matchEntity(x, expression)).orElse(true))
                     .collect(Collectors.toList());
 
         } catch (ApplicationPermissionException |
@@ -650,46 +643,6 @@ public class CrowdDirectoryBackend
         }
     }
 
-    @Override
-    public boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
-
-        logger.info("Backend call: isGroupDirectGroupMember; ID1={} ID2={}", groupId1, groupId2);
-
-        try {
-
-            return crowdClient.isGroupDirectGroupMember(groupId1, groupId2);
-
-        } catch (ApplicationPermissionException |
-                InvalidAuthenticationException e) {
-
-            throw new SecurityProblemException(e);
-
-        } catch (OperationFailedException e) {
-
-            throw new DirectoryAccessFailureException(e);
-        }
-    }
-
-    @Override
-    public boolean isUserDirectGroupMember(String userId, String groupId) {
-
-        logger.info("Backend call: isGroupDirectGroupMember; ID1={} ID2={}", userId, groupId);
-
-        try {
-
-            return crowdClient.isUserDirectGroupMember(userId, groupId);
-
-        } catch (ApplicationPermissionException |
-                InvalidAuthenticationException e) {
-
-            throw new SecurityProblemException(e);
-
-        } catch (OperationFailedException e) {
-
-            throw new DirectoryAccessFailureException(e);
-        }
-    }
-
     public Iterable<MembershipEntity> getMemberships() {
 
         logger.info("Backend call: getMemberships");
@@ -802,99 +755,5 @@ public class CrowdDirectoryBackend
         }
 
         return NullRestrictionImpl.INSTANCE;
-    }
-
-    private SearchRestriction createUserSearchRestriction(QueryExpression expression) {
-
-        if (expression instanceof AndLogicExpression) {
-
-            return new BooleanRestrictionImpl(
-                    BooleanRestriction.BooleanLogic.AND,
-                    ((AndLogicExpression) expression).getChildren().stream()
-                            .map(this::createUserSearchRestriction)
-                            .collect(Collectors.toList())
-            );
-
-        } else if (expression instanceof OrLogicExpression) {
-
-            return new BooleanRestrictionImpl(
-                    BooleanRestriction.BooleanLogic.OR,
-                    ((OrLogicExpression) expression).getChildren().stream()
-                            .map(this::createUserSearchRestriction)
-                            .collect(Collectors.toList())
-            );
-
-        } else if (expression instanceof EqualOperator) {
-
-            switch (LdapUtils.normalizeAttribute(((EqualOperator) expression).getAttribute())) {
-
-                case SchemaConstants.UID_AT_OID:
-                case SchemaConstants.CN_AT_OID:
-
-                    return new TermRestriction<>(
-                            UserTermKeys.USERNAME,
-                            MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) expression).getValue()
-                    );
-
-                case SchemaConstants.SN_AT_OID:
-
-                    return new TermRestriction<>(
-                            UserTermKeys.LAST_NAME,
-                            MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) expression).getValue()
-                    );
-
-                case SchemaConstants.GN_AT_OID:
-
-                    return new TermRestriction<>(
-                            UserTermKeys.FIRST_NAME,
-                            MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) expression).getValue()
-                    );
-
-                case SchemaConstants.DISPLAY_NAME_AT_OID:
-
-                    return new TermRestriction<>(
-                            UserTermKeys.DISPLAY_NAME,
-                            MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) expression).getValue()
-                    );
-
-                case SchemaConstants.MAIL_AT_OID:
-
-                    return new TermRestriction<>(
-                            UserTermKeys.EMAIL,
-                            MatchMode.EXACTLY_MATCHES,
-                            ((EqualOperator) expression).getValue()
-                    );
-
-                default:
-                    break;
-            }
-        }
-
-        return NullRestrictionImpl.INSTANCE;
-    }
-
-    private SearchRestriction removeNullRestrictions(SearchRestriction restriction) {
-
-        if (restriction instanceof BooleanRestriction) {
-
-            List<SearchRestriction> sr =
-                    ((BooleanRestriction) restriction).getRestrictions().stream()
-                            .map(this::removeNullRestrictions)
-                            .filter(x -> !(x instanceof NullRestriction))
-                            .collect(Collectors.toList());
-
-            if (sr.size() == 0)
-                return NullRestrictionImpl.INSTANCE;
-            else if (sr.size() == 1)
-                return removeNullRestrictions(sr.get(0));
-            else
-                return new BooleanRestrictionImpl(((BooleanRestriction) restriction).getBooleanLogic(), sr);
-        }
-
-        return restriction;
     }
 }

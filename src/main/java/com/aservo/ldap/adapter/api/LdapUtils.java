@@ -17,15 +17,10 @@
 
 package com.aservo.ldap.adapter.api;
 
-import com.aservo.ldap.adapter.api.entity.Entity;
-import com.aservo.ldap.adapter.api.entity.EntityType;
-import com.aservo.ldap.adapter.api.entity.GroupEntity;
-import com.aservo.ldap.adapter.api.entity.UserEntity;
+import com.aservo.ldap.adapter.api.entity.*;
 import com.aservo.ldap.adapter.api.exception.UnsupportedQueryExpressionException;
 import com.aservo.ldap.adapter.api.query.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
@@ -36,6 +31,7 @@ import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.ldap.model.schema.normalizers.NoOpNormalizer;
+import org.apache.directory.server.core.api.interceptor.context.FilteringOperationContext;
 import org.jetbrains.annotations.Nullable;
 
 
@@ -304,11 +300,11 @@ public class LdapUtils {
             if (childs.isEmpty())
                 return new BooleanValue(AndLogicExpression.EMPTY_SEQ_BOOLEAN);
 
-            if (childs.size() == 1)
-                return removeValueExpressions(childs.get(0));
-
             if (childs.stream().anyMatch(x -> x instanceof BooleanValue && !((BooleanValue) x).getValue()))
                 return BooleanValue.falseValue();
+
+            if (childs.size() == 1)
+                return childs.get(0);
 
             return new AndLogicExpression(childs);
 
@@ -326,11 +322,11 @@ public class LdapUtils {
             if (childs.isEmpty())
                 return new BooleanValue(OrLogicExpression.EMPTY_SEQ_BOOLEAN);
 
-            if (childs.size() == 1)
-                return removeValueExpressions(childs.get(0));
-
             if (childs.stream().anyMatch(x -> x instanceof BooleanValue && ((BooleanValue) x).getValue()))
                 return BooleanValue.trueValue();
+
+            if (childs.size() == 1)
+                return childs.get(0);
 
             return new OrLogicExpression(childs);
 
@@ -347,9 +343,6 @@ public class LdapUtils {
 
             if (childs.isEmpty())
                 return new BooleanValue(NotLogicExpression.EMPTY_SEQ_BOOLEAN);
-
-            if (childs.size() == 1)
-                return removeValueExpressions(childs.get(0));
 
             if (childs.stream().anyMatch(x -> x instanceof BooleanValue && ((BooleanValue) x).getValue()))
                 return BooleanValue.falseValue();
@@ -458,6 +451,315 @@ public class LdapUtils {
 
             return expression;
         }
+    }
+
+    /**
+     * Prepare a domain entity related query expression for a final execution.
+     *
+     * @param expression the query expression
+     * @param entity     the entity
+     * @return the boolean
+     */
+    public static QueryExpression preEvaluateExpression(QueryExpression expression, DomainEntity entity) {
+
+        if (expression instanceof AndLogicExpression) {
+
+            return new AndLogicExpression(((AndLogicExpression) expression).getChildren().stream()
+                    .map(x -> preEvaluateExpression(x, entity))
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof OrLogicExpression) {
+
+            return new OrLogicExpression(((OrLogicExpression) expression).getChildren().stream()
+                    .map(x -> preEvaluateExpression(x, entity))
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof NotLogicExpression) {
+
+            return new NotLogicExpression(((NotLogicExpression) expression).getChildren().stream()
+                    .map(x -> preEvaluateExpression(x, entity))
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof OperatorExpression) {
+
+            OperatorExpression operator = (OperatorExpression) expression;
+
+            switch (LdapUtils.normalizeAttribute(operator.getAttribute())) {
+
+                case SchemaConstants.OBJECT_CLASS_AT_OID:
+
+                    return new BooleanValue(operator.check(SchemaConstants.DOMAIN_OC) ||
+                            operator.check(SchemaConstants.TOP_OC));
+
+                case SchemaConstants.DC_AT:
+
+                    return new BooleanValue(operator.check(entity.getId()));
+
+                case SchemaConstants.DESCRIPTION_AT_OID:
+
+                    return new BooleanValue(operator.check(entity.getDescription()));
+
+                default:
+
+                    if (operator instanceof PresenceOperator)
+                        return new BooleanValue(operator.isNegated());
+
+                    return BooleanValue.falseValue();
+            }
+
+        } else {
+
+            return expression;
+        }
+    }
+
+    /**
+     * Prepare an unit entity related query expression for a final execution.
+     *
+     * @param expression the query expression
+     * @param entity     the entity
+     * @return the boolean
+     */
+    public static QueryExpression preEvaluateExpression(QueryExpression expression, UnitEntity entity) {
+
+        if (expression instanceof AndLogicExpression) {
+
+            return new AndLogicExpression(((AndLogicExpression) expression).getChildren().stream()
+                    .map(x -> preEvaluateExpression(x, entity))
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof OrLogicExpression) {
+
+            return new OrLogicExpression(((OrLogicExpression) expression).getChildren().stream()
+                    .map(x -> preEvaluateExpression(x, entity))
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof NotLogicExpression) {
+
+            return new NotLogicExpression(((NotLogicExpression) expression).getChildren().stream()
+                    .map(x -> preEvaluateExpression(x, entity))
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof OperatorExpression) {
+
+            OperatorExpression operator = (OperatorExpression) expression;
+
+            switch (LdapUtils.normalizeAttribute(operator.getAttribute())) {
+
+                case SchemaConstants.OBJECT_CLASS_AT_OID:
+
+                    return new BooleanValue(operator.check(SchemaConstants.ORGANIZATIONAL_UNIT_OC) ||
+                            operator.check(SchemaConstants.TOP_OC));
+
+                case SchemaConstants.OU_AT_OID:
+
+                    return new BooleanValue(operator.check(entity.getId()));
+
+                case SchemaConstants.DESCRIPTION_AT_OID:
+
+                    return new BooleanValue(operator.check(entity.getDescription()));
+
+                default:
+
+                    if (operator instanceof PresenceOperator)
+                        return new BooleanValue(operator.isNegated());
+
+                    return BooleanValue.falseValue();
+            }
+
+        } else {
+
+            return expression;
+        }
+    }
+
+    /**
+     * EPrepare a group related query expression for a final execution.
+     *
+     * @param expression the query expression
+     * @return the boolean
+     */
+    public static QueryExpression preEvaluateExpressionForGroup(QueryExpression expression) {
+
+        if (expression instanceof AndLogicExpression) {
+
+            return new AndLogicExpression(((AndLogicExpression) expression).getChildren().stream()
+                    .map(LdapUtils::preEvaluateExpressionForGroup)
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof OrLogicExpression) {
+
+            return new OrLogicExpression(((OrLogicExpression) expression).getChildren().stream()
+                    .map(LdapUtils::preEvaluateExpressionForGroup)
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof NotLogicExpression) {
+
+            return new NotLogicExpression(((NotLogicExpression) expression).getChildren().stream()
+                    .map(LdapUtils::preEvaluateExpressionForGroup)
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof OperatorExpression) {
+
+            OperatorExpression operator = (OperatorExpression) expression;
+
+            switch (LdapUtils.normalizeAttribute(operator.getAttribute())) {
+
+                case SchemaConstants.OBJECT_CLASS_AT_OID:
+
+                    return new BooleanValue(operator.check(SchemaConstants.GROUP_OF_NAMES_OC) ||
+                            operator.check(SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC) ||
+                            operator.check(SchemaConstants.TOP_OC));
+
+                case SchemaConstants.OU_AT_OID:
+
+                    return new BooleanValue(operator.check(LdapUtils.OU_GROUPS));
+
+                case SchemaConstants.CN_AT_OID:
+                case SchemaConstants.DESCRIPTION_AT_OID:
+
+                    if (operator instanceof PresenceOperator)
+                        return new BooleanValue(!operator.isNegated());
+
+                    return operator;
+
+                case SchemaConstants.MEMBER_AT_OID:
+                case SchemaConstants.UNIQUE_MEMBER_AT_OID:
+                case LdapUtils.MEMBER_OF_AT_OID:
+
+                    return operator;
+
+                default:
+
+                    if (operator instanceof PresenceOperator)
+                        return new BooleanValue(operator.isNegated());
+
+                    return BooleanValue.falseValue();
+            }
+
+        } else {
+
+            return expression;
+        }
+    }
+
+    /**
+     * Prepare an user related query expression for a final execution.
+     *
+     * @param expression the query expression
+     * @return the boolean
+     */
+    public static QueryExpression preEvaluateExpressionForUser(QueryExpression expression) {
+
+        if (expression instanceof AndLogicExpression) {
+
+            return new AndLogicExpression(((AndLogicExpression) expression).getChildren().stream()
+                    .map(LdapUtils::preEvaluateExpressionForUser)
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof OrLogicExpression) {
+
+            return new OrLogicExpression(((OrLogicExpression) expression).getChildren().stream()
+                    .map(LdapUtils::preEvaluateExpressionForUser)
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof NotLogicExpression) {
+
+            return new NotLogicExpression(((NotLogicExpression) expression).getChildren().stream()
+                    .map(LdapUtils::preEvaluateExpressionForUser)
+                    .collect(Collectors.toList()));
+
+        } else if (expression instanceof OperatorExpression) {
+
+            OperatorExpression operator = (OperatorExpression) expression;
+
+            switch (LdapUtils.normalizeAttribute(operator.getAttribute())) {
+
+                case SchemaConstants.OBJECT_CLASS_AT_OID:
+
+                    return new BooleanValue(operator.check(SchemaConstants.INET_ORG_PERSON_OC) ||
+                            operator.check(SchemaConstants.ORGANIZATIONAL_PERSON_OC) ||
+                            operator.check(SchemaConstants.PERSON_OC) ||
+                            operator.check(SchemaConstants.TOP_OC));
+
+                case SchemaConstants.OU_AT_OID:
+
+                    return new BooleanValue(operator.check(LdapUtils.OU_USERS));
+
+                case SchemaConstants.UID_AT_OID:
+                case SchemaConstants.CN_AT_OID:
+                case SchemaConstants.SN_AT_OID:
+                case SchemaConstants.GN_AT_OID:
+                case SchemaConstants.DISPLAY_NAME_AT_OID:
+                case SchemaConstants.MAIL_AT_OID:
+
+                    if (operator instanceof PresenceOperator)
+                        return new BooleanValue(!operator.isNegated());
+
+                    return operator;
+
+                case LdapUtils.MEMBER_OF_AT_OID:
+
+                    return operator;
+
+                default:
+
+                    if (operator instanceof PresenceOperator)
+                        return new BooleanValue(operator.isNegated());
+
+                    return BooleanValue.falseValue();
+            }
+
+        } else {
+
+            return expression;
+        }
+    }
+
+    /**
+     * Evaluate a query expression to a boolean value.
+     *
+     * @param expression the query expression
+     * @return the boolean
+     */
+    public static boolean evaluateExpression(QueryExpression expression) {
+
+        if (expression instanceof AndLogicExpression) {
+
+            return ((AndLogicExpression) expression).getChildren().stream()
+                    .allMatch(LdapUtils::evaluateExpression);
+
+        } else if (expression instanceof OrLogicExpression) {
+
+            return ((OrLogicExpression) expression).getChildren().stream()
+                    .anyMatch(LdapUtils::evaluateExpression);
+
+        } else if (expression instanceof NotLogicExpression) {
+
+            return ((NotLogicExpression) expression).getChildren().stream()
+                    .noneMatch(LdapUtils::evaluateExpression);
+
+        } else if (expression instanceof BooleanValue) {
+
+            return ((BooleanValue) expression).getValue();
+
+        } else
+            throw new IllegalArgumentException("Expression is not ready with element " +
+                    expression.getClass().getSimpleName());
+    }
+
+    /**
+     * Normalizes LDAP attributes.
+     * Function is used for attributes of incoming queries.
+     *
+     * @param context the filtering operation context
+     * @return the normalized attributes
+     */
+    public static Set<String> getAttributes(FilteringOperationContext context) {
+
+        return Arrays.stream(context.getReturningAttributesString())
+                .map(LdapUtils::normalizeAttribute)
+                .collect(Collectors.toSet());
     }
 
     /**

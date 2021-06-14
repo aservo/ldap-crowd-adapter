@@ -17,14 +17,15 @@
 
 package com.aservo.ldap.adapter.api.directory;
 
-import com.aservo.ldap.adapter.api.FilterMatcher;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
+import com.aservo.ldap.adapter.api.entity.Entity;
+import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.api.query.BooleanValue;
+import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import java.util.List;
-import java.util.Optional;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 
 
 /**
@@ -48,6 +49,17 @@ public interface DirectoryBackend {
      * Shutdown method.
      */
     void shutdown();
+
+    /**
+     * Runs a query expression.
+     *
+     * @param schemaManager the schema manager
+     * @param expression    the query expression
+     * @param entityType    the entity type
+     * @return the query generator
+     */
+    ClosableIterator<Entity> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+                                                EntityType entityType);
 
     /**
      * Gets group info.
@@ -85,82 +97,28 @@ public interface DirectoryBackend {
      *
      * @return the groups
      */
-    default List<GroupEntity> getAllGroups() {
-
-        return getGroups(BooleanValue.trueValue(), Optional.empty());
-    }
+    List<GroupEntity> getAllGroups();
 
     /**
      * Gets all groups.
      *
      * @return the groups
      */
-    default List<GroupEntity> getAllGroups(int startIndex, int maxResults) {
-
-        return getGroups(BooleanValue.trueValue(), Optional.empty(), startIndex, maxResults);
-    }
+    List<GroupEntity> getAllGroups(int startIndex, int maxResults);
 
     /**
      * Gets all users.
      *
      * @return the users
      */
-    default List<UserEntity> getAllUsers() {
-
-        return getUsers(BooleanValue.trueValue(), Optional.empty());
-    }
+    List<UserEntity> getAllUsers();
 
     /**
      * Gets all users.
      *
      * @return the users
      */
-    default List<UserEntity> getAllUsers(int startIndex, int maxResults) {
-
-        return getUsers(BooleanValue.trueValue(), Optional.empty(), startIndex, maxResults);
-    }
-
-    /**
-     * Gets groups by filter expression.
-     *
-     * @param expression    the filter expression node
-     * @param filterMatcher the optional filter matcher
-     * @return the filtered groups
-     */
-    List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher);
-
-    /**
-     * Gets users by filter expression.
-     *
-     * @param expression    the filter expression node
-     * @param filterMatcher the optional filter matcher
-     * @param startIndex    the start index
-     * @param maxResults    the maximum results
-     * @return the filtered users
-     */
-    List<GroupEntity> getGroups(QueryExpression expression, Optional<FilterMatcher> filterMatcher,
-                                int startIndex, int maxResults);
-
-    /**
-     * Gets users by filter expression.
-     *
-     * @param expression    the filter expression node
-     * @param filterMatcher the optional filter matcher
-     * @return the filtered users
-     */
-    List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher);
-
-    /**
-     * Gets users by filter expression.
-     *
-     * @param expression    the filter expression node
-     * @param filterMatcher the optional filter matcher
-     * @param startIndex    the start index
-     * @param maxResults    the maximum results
-     * @return the filtered users
-     */
-    List<UserEntity> getUsers(QueryExpression expression, Optional<FilterMatcher> filterMatcher,
-                              int startIndex, int maxResults);
+    List<UserEntity> getAllUsers(int startIndex, int maxResults);
 
     /**
      * Gets direct users of group.
@@ -321,84 +279,4 @@ public interface DirectoryBackend {
      */
     List<String> getTransitiveParentGroupNamesOfGroup(String id)
             throws EntityNotFoundException;
-
-    /**
-     * Indicates whether the group is direct group member.
-     *
-     * @param groupId1 the group ID of child group
-     * @param groupId2 the group ID of parent group
-     * @return the boolean
-     */
-    default boolean isGroupDirectGroupMember(String groupId1, String groupId2) {
-
-        try {
-
-            return getDirectChildGroupsOfGroup(groupId2).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
-
-    /**
-     * Indicates whether the user is direct group member.
-     *
-     * @param userId  the user ID
-     * @param groupId the group ID
-     * @return the boolean
-     */
-    default boolean isUserDirectGroupMember(String userId, String groupId) {
-
-        try {
-
-            return getDirectUsersOfGroup(groupId).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
-
-    /**
-     * Indicates whether the group is transitive group member.
-     *
-     * @param groupId1 the group ID of child group
-     * @param groupId2 the group ID of parent group
-     * @return the boolean
-     */
-    default boolean isGroupTransitiveGroupMember(String groupId1, String groupId2) {
-
-        try {
-
-            return getTransitiveChildGroupsOfGroup(groupId2).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(groupId1));
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
-
-    /**
-     * Indicates whether the user is transitive group member.
-     *
-     * @param userId  the user ID
-     * @param groupId the group ID
-     * @return the boolean
-     */
-    default boolean isUserTransitiveGroupMember(String userId, String groupId) {
-
-        try {
-
-            return getTransitiveUsersOfGroup(groupId).stream()
-                    .anyMatch(x -> x.getId().equalsIgnoreCase(userId));
-
-        } catch (EntityNotFoundException e) {
-
-            return false;
-        }
-    }
 }
