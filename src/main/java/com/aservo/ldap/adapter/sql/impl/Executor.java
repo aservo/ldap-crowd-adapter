@@ -17,13 +17,14 @@
 
 package com.aservo.ldap.adapter.sql.impl;
 
+import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
+import com.aservo.ldap.adapter.api.cursor.MappableCursor;
 import com.aservo.ldap.adapter.api.database.QueryDef;
 import com.aservo.ldap.adapter.api.database.QueryDefFactory;
 import com.aservo.ldap.adapter.api.database.Row;
 import com.aservo.ldap.adapter.api.database.exception.UncheckedSQLException;
 import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
 import com.aservo.ldap.adapter.api.database.result.*;
-import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +40,6 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jooq.Query;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
@@ -135,13 +135,13 @@ public class Executor {
 
                 } else {
 
-                    List<Pair<String, JDBCType>> metaData = getMetaData(statement);
-                    Iterator<LinkedHashMap<String, Object>> iter = getValues(statement, metaData);
-                    List<String> columnNames = metaData.stream().map(Pair::getLeft).collect(Collectors.toList());
+                    LinkedHashMap<String, JDBCType> metadata = getMetadata(statement);
+                    List<String> columnNames = new ArrayList<>(metadata.keySet());
+                    MappableCursor<Row> cursor = getRowCursor(statement, metadata);
 
                     if (clazz == SingleResult.class) {
 
-                        List<LinkedHashMap<String, Object>> rows = Lists.newArrayList(iter);
+                        List<Row> rows = Lists.newArrayList(cursor.iterator(x -> new RowProxyImpl(x, columnNames)));
 
                         if (rows.size() != 1)
                             throw new IllegalArgumentException(
@@ -153,21 +153,18 @@ public class Executor {
 
                                     public List<String> getColumns() {
 
-                                        return new ArrayList<>(columnNames);
+                                        return columnNames;
                                     }
 
                                     public <R> R transform(Function<Row, R> f) {
 
-                                        return rows.stream()
-                                                .map(RowImpl::new)
-                                                .map(f)
-                                                .findFirst().get();
+                                        return rows.stream().map(f).findAny().get();
                                     }
                                 };
 
                     } else if (clazz == SingleOptResult.class) {
 
-                        List<LinkedHashMap<String, Object>> rows = Lists.newArrayList(iter);
+                        List<Row> rows = Lists.newArrayList(cursor.iterator(x -> new RowProxyImpl(x, columnNames)));
 
                         if (rows.size() > 1)
                             throw new IllegalArgumentException(
@@ -179,42 +176,36 @@ public class Executor {
 
                                     public List<String> getColumns() {
 
-                                        return new ArrayList<>(columnNames);
+                                        return columnNames;
                                     }
 
                                     public <R> Optional<R> transform(Function<Row, R> f) {
 
-                                        return rows.stream()
-                                                .map(RowImpl::new)
-                                                .map(f)
-                                                .findFirst();
+                                        return rows.stream().map(f).findAny();
                                     }
                                 };
 
                     } else if (clazz == IndexedSeqResult.class) {
 
-                        List<LinkedHashMap<String, Object>> rows = Lists.newArrayList(iter);
+                        List<Row> rows = Lists.newArrayList(cursor.iterator(x -> new RowProxyImpl(x, columnNames)));
 
                         concreteResult =
                                 new IndexedSeqResult() {
 
                                     public List<String> getColumns() {
 
-                                        return new ArrayList<>(columnNames);
+                                        return columnNames;
                                     }
 
                                     public <R> List<R> transform(Function<Row, R> f) {
 
-                                        return rows.stream()
-                                                .map(RowImpl::new)
-                                                .map(f)
-                                                .collect(Collectors.toList());
+                                        return rows.stream().map(f).collect(Collectors.toList());
                                     }
                                 };
 
                     } else if (clazz == IndexedNonEmptySeqResult.class) {
 
-                        List<LinkedHashMap<String, Object>> rows = Lists.newArrayList(iter);
+                        List<Row> rows = Lists.newArrayList(cursor.iterator(x -> new RowProxyImpl(x, columnNames)));
 
                         if (rows.isEmpty())
                             throw new IllegalArgumentException(
@@ -226,15 +217,12 @@ public class Executor {
 
                                     public List<String> getColumns() {
 
-                                        return new ArrayList<>(columnNames);
+                                        return columnNames;
                                     }
 
                                     public <R> List<R> transform(Function<Row, R> f) {
 
-                                        return rows.stream()
-                                                .map(RowImpl::new)
-                                                .map(f)
-                                                .collect(Collectors.toList());
+                                        return rows.stream().map(f).collect(Collectors.toList());
                                     }
                                 };
 
@@ -245,10 +233,12 @@ public class Executor {
 
                                     public List<String> getColumns() {
 
-                                        return new ArrayList<>(columnNames);
+                                        return columnNames;
                                     }
 
                                     public <R> ClosableIterator<R> transform(Function<Row, R> f) {
+
+                                        ClosableIterator<R> iterator = cursor.iterator(f);
 
                                         return new ClosableIterator<R>() {
 
@@ -256,12 +246,12 @@ public class Executor {
 
                                             public boolean hasNext() {
 
-                                                return iter.hasNext();
+                                                return iterator.hasNext();
                                             }
 
                                             public R next() {
 
-                                                return f.apply(new RowImpl(iter.next()));
+                                                return iterator.next();
                                             }
 
                                             public void close()
@@ -272,6 +262,7 @@ public class Executor {
                                                     try {
 
                                                         statement.close();
+                                                        iterator.close();
 
                                                         if (finalQuery != null)
                                                             finalQuery.close();
@@ -424,112 +415,123 @@ public class Executor {
                             ") at key " + key + ".");
     }
 
-    private Iterator<LinkedHashMap<String, Object>> getValues(PreparedStatement statement,
-                                                              List<Pair<String, JDBCType>> metaData)
+    private Object getColumnValue(String columnName, ResultSet resultSet, Map<String, JDBCType> metadata)
             throws SQLException {
 
-        ResultSet result = statement.getResultSet();
+        Object result;
+        String lowerColumnName = columnName.toLowerCase();
+        JDBCType jdbcType = metadata.get(lowerColumnName);
 
-        return new Iterator<LinkedHashMap<String, Object>>() {
+        if (jdbcType == null)
+            throw new UnknownColumnException("Cannot find column " + lowerColumnName + " in current row.");
 
-            boolean hasMore = result != null && result.next();
+        if (jdbcType == JDBCType.NULL)
+            result = null;
+        else if (jdbcType == JDBCType.BIT)
+            result = resultSet.getBoolean(lowerColumnName);
+        else if (jdbcType == JDBCType.BOOLEAN)
+            result = resultSet.getBoolean(lowerColumnName);
+        else if (jdbcType == JDBCType.TINYINT)
+            result = resultSet.getByte(lowerColumnName);
+        else if (jdbcType == JDBCType.SMALLINT)
+            result = resultSet.getShort(lowerColumnName);
+        else if (jdbcType == JDBCType.INTEGER)
+            result = resultSet.getInt(lowerColumnName);
+        else if (jdbcType == JDBCType.BIGINT)
+            result = resultSet.getLong(lowerColumnName);
+        else if (jdbcType == JDBCType.REAL)
+            result = resultSet.getFloat(lowerColumnName);
+        else if (jdbcType == JDBCType.FLOAT)
+            result = resultSet.getDouble(lowerColumnName);
+        else if (jdbcType == JDBCType.DOUBLE)
+            result = resultSet.getDouble(lowerColumnName);
+        else if (jdbcType == JDBCType.NUMERIC)
+            result = resultSet.getBigDecimal(lowerColumnName);
+        else if (jdbcType == JDBCType.DECIMAL)
+            result = resultSet.getBigDecimal(lowerColumnName);
+        else if (jdbcType == JDBCType.DATE)
+            result = resultSet.getDate(lowerColumnName).toLocalDate();
+        else if (jdbcType == JDBCType.TIME)
+            result = resultSet.getTime(lowerColumnName).toLocalTime();
+        else if (jdbcType == JDBCType.TIMESTAMP)
+            result = resultSet.getTimestamp(lowerColumnName).toLocalDateTime();
+        else if (jdbcType == JDBCType.BINARY)
+            result = toByteList(resultSet.getBytes(lowerColumnName));
+        else if (jdbcType == JDBCType.VARBINARY)
+            result = toByteList(resultSet.getBytes(lowerColumnName));
+        else if (jdbcType == JDBCType.LONGVARBINARY)
+            result = toByteList(resultSet.getBytes(lowerColumnName));
+        else if (jdbcType == JDBCType.BLOB)
+            result = resultSet.getBytes(lowerColumnName);
+        else if (jdbcType == JDBCType.CHAR)
+            result = resultSet.getString(lowerColumnName);
+        else if (jdbcType == JDBCType.VARCHAR)
+            result = resultSet.getString(lowerColumnName);
+        else if (jdbcType == JDBCType.LONGVARCHAR)
+            result = resultSet.getString(lowerColumnName);
+        else if (jdbcType == JDBCType.CLOB)
+            result = resultSet.getString(lowerColumnName);
+        else if (jdbcType == JDBCType.NCHAR)
+            result = resultSet.getString(lowerColumnName);
+        else if (jdbcType == JDBCType.NVARCHAR)
+            result = resultSet.getString(lowerColumnName);
+        else if (jdbcType == JDBCType.LONGNVARCHAR)
+            result = resultSet.getString(lowerColumnName);
+        else if (jdbcType == JDBCType.NCLOB)
+            result = resultSet.getString(lowerColumnName);
+        else
+            throw new IllegalArgumentException(
+                    "Cannot set unsupported JDBC type " + jdbcType.getName() +
+                            " for column " + lowerColumnName + ".");
 
-            public boolean hasNext() {
+        return result;
+    }
 
-                return hasMore;
-            }
+    private MappableCursor<Row> getRowCursor(PreparedStatement statement, Map<String, JDBCType> metadata)
+            throws SQLException {
 
-            public LinkedHashMap<String, Object> next() {
+        ResultSet resultSet = statement.getResultSet();
+        Row row = new RowImpl(resultSet, metadata);
+
+        return new MappableCursor<Row>() {
+
+            public boolean next() {
 
                 try {
 
-                    LinkedHashMap<String, Object> mapping = new LinkedHashMap<>();
-
-                    for (Pair<String, JDBCType> column : metaData) {
-
-                        if (column.getRight() == JDBCType.NULL)
-                            mapping.put(column.getKey(), null);
-                        else if (column.getValue() == JDBCType.BIT)
-                            mapping.put(column.getKey(), result.getBoolean(column.getKey()));
-                        else if (column.getValue() == JDBCType.BOOLEAN)
-                            mapping.put(column.getKey(), result.getBoolean(column.getKey()));
-                        else if (column.getValue() == JDBCType.TINYINT)
-                            mapping.put(column.getKey(), result.getByte(column.getKey()));
-                        else if (column.getValue() == JDBCType.SMALLINT)
-                            mapping.put(column.getKey(), result.getShort(column.getKey()));
-                        else if (column.getValue() == JDBCType.INTEGER)
-                            mapping.put(column.getKey(), result.getInt(column.getKey()));
-                        else if (column.getValue() == JDBCType.BIGINT)
-                            mapping.put(column.getKey(), result.getLong(column.getKey()));
-                        else if (column.getValue() == JDBCType.REAL)
-                            mapping.put(column.getKey(), result.getFloat(column.getKey()));
-                        else if (column.getValue() == JDBCType.FLOAT)
-                            mapping.put(column.getKey(), result.getDouble(column.getKey()));
-                        else if (column.getValue() == JDBCType.DOUBLE)
-                            mapping.put(column.getKey(), result.getDouble(column.getKey()));
-                        else if (column.getValue() == JDBCType.NUMERIC)
-                            mapping.put(column.getKey(), result.getBigDecimal(column.getKey()));
-                        else if (column.getValue() == JDBCType.DECIMAL)
-                            mapping.put(column.getKey(), result.getBigDecimal(column.getKey()));
-                        else if (column.getValue() == JDBCType.DATE)
-                            mapping.put(column.getKey(), result.getDate(column.getKey()).toLocalDate());
-                        else if (column.getValue() == JDBCType.TIME)
-                            mapping.put(column.getKey(), result.getTime(column.getKey()).toLocalTime());
-                        else if (column.getValue() == JDBCType.TIMESTAMP)
-                            mapping.put(column.getKey(), result.getTimestamp(column.getKey()).toLocalDateTime());
-                        else if (column.getValue() == JDBCType.BINARY)
-                            mapping.put(column.getKey(), toByteList(result.getBytes(column.getKey())));
-                        else if (column.getValue() == JDBCType.VARBINARY)
-                            mapping.put(column.getKey(), toByteList(result.getBytes(column.getKey())));
-                        else if (column.getValue() == JDBCType.LONGVARBINARY)
-                            mapping.put(column.getKey(), toByteList(result.getBytes(column.getKey())));
-                        else if (column.getValue() == JDBCType.BLOB)
-                            mapping.put(column.getKey(), result.getBytes(column.getKey()));
-                        else if (column.getValue() == JDBCType.CHAR)
-                            mapping.put(column.getKey(), result.getString(column.getKey()));
-                        else if (column.getValue() == JDBCType.VARCHAR)
-                            mapping.put(column.getKey(), result.getString(column.getKey()));
-                        else if (column.getValue() == JDBCType.LONGVARCHAR)
-                            mapping.put(column.getKey(), result.getString(column.getKey()));
-                        else if (column.getValue() == JDBCType.CLOB)
-                            mapping.put(column.getKey(), result.getString(column.getKey()));
-                        else if (column.getValue() == JDBCType.NCHAR)
-                            mapping.put(column.getKey(), result.getString(column.getKey()));
-                        else if (column.getValue() == JDBCType.NVARCHAR)
-                            mapping.put(column.getKey(), result.getString(column.getKey()));
-                        else if (column.getValue() == JDBCType.LONGNVARCHAR)
-                            mapping.put(column.getKey(), result.getString(column.getKey()));
-                        else if (column.getValue() == JDBCType.NCLOB)
-                            mapping.put(column.getKey(), result.getString(column.getKey()));
-                        else
-                            throw new IllegalArgumentException(
-                                    "Cannot set unsupported JDBC type " + column.getValue().getName() +
-                                            " for column " + column.getKey() + ".");
-                    }
-
-                    hasMore = result.next();
-
-                    return mapping;
+                    return resultSet.next();
 
                 } catch (SQLException e) {
 
                     throw new UncheckedSQLException(e);
                 }
             }
+
+            public Row get() {
+
+                return row;
+            }
         };
     }
 
-    private List<Pair<String, JDBCType>> getMetaData(PreparedStatement statement)
+    private LinkedHashMap<String, JDBCType> getMetadata(PreparedStatement statement)
             throws SQLException {
 
-        List<Pair<String, JDBCType>> result = new ArrayList<>();
-        ResultSetMetaData metaData = statement.getMetaData();
+        LinkedHashMap<String, JDBCType> result = new LinkedHashMap<>();
+        ResultSetMetaData metadata = statement.getMetaData();
 
-        if (metaData == null)
-            return Collections.emptyList();
+        if (metadata == null)
+            return result;
 
-        for (int i = 1; i <= metaData.getColumnCount(); i++)
-            result.add(Pair.of(metaData.getColumnLabel(i).toLowerCase(), JDBCType.valueOf(metaData.getColumnType(i))));
+        for (int i = 1; i <= metadata.getColumnCount(); i++) {
+
+            String lowerColumnName = metadata.getColumnLabel(i).toLowerCase();
+
+            if (result.containsKey(lowerColumnName))
+                throw new IllegalArgumentException("Expect unique column name for resulting rows.");
+
+            result.put(lowerColumnName, JDBCType.valueOf(metadata.getColumnType(i)));
+        }
 
         return result;
     }
@@ -639,49 +641,82 @@ public class Executor {
         return mapping;
     }
 
-    private static class RowImpl
+    private class RowImpl
             implements Row {
 
-        private final Map<String, Object> row;
+        private final ResultSet resultSet;
+        private final Map<String, JDBCType> metadata;
 
-        public RowImpl(Map<String, Object> row) {
+        public RowImpl(ResultSet resultSet, Map<String, JDBCType> metadata) {
 
-            this.row = row;
+            this.resultSet = resultSet;
+            this.metadata = metadata;
         }
 
-        public <T> T apply(String column, Class<T> clazz) {
+        public <T> T apply(String columnName, Class<T> clazz) {
 
-            Object entry =
-                    find(column)
-                            .orElseThrow(() -> new UnknownColumnException(
-                                    "Cannot find column " + column + "."))
-                            .orElse(null);
-
-            if (entry == null)
-                return null;
-
-            T result;
+            Object result;
 
             try {
 
-                result = (T) entry;
+                result = getColumnValue(columnName, resultSet, metadata);
+
+            } catch (SQLException e) {
+
+                throw new UncheckedSQLException(e);
+            }
+
+            if (result == null)
+                return null;
+
+            try {
+
+                return (T) result;
 
             } catch (ClassCastException e) {
 
                 throw new IllegalArgumentException(
-                        "Cannot perform a read conversion with column " + column +
+                        "Cannot perform a read conversion with column " + columnName +
                                 " and with type [" + clazz.getName() + "].", e);
             }
+        }
+    }
 
-            return result;
+    private class RowProxyImpl
+            implements Row {
+
+        private final Map<String, Object> underlying = new LinkedHashMap<>();
+
+        public RowProxyImpl(Row row, List<String> columnNames) {
+
+            columnNames.forEach(x -> {
+
+                underlying.put(x, row.apply(x, Object.class));
+            });
         }
 
-        private Optional<Optional<Object>> find(String column) {
+        public <T> T apply(String columnName, Class<T> clazz) {
 
-            return row.entrySet().stream()
-                    .filter(x -> x.getKey().equalsIgnoreCase(column))
-                    .map(x -> Optional.ofNullable(x.getValue()))
-                    .findAny();
+            String lowerColumnName = columnName;
+
+            if (!underlying.containsKey(lowerColumnName))
+                throw new UnknownColumnException("Cannot find column " + lowerColumnName + " in current row.");
+
+            Object result = underlying.get(lowerColumnName);
+
+            if (result == null)
+                return null;
+
+            try {
+
+                return (T) result;
+
+            } catch (ClassCastException e) {
+
+                throw new IllegalArgumentException(
+                        "Cannot perform a read conversion with column " + columnName +
+                                " and with type [" + clazz.getName() + "].", e);
+            }
         }
     }
 

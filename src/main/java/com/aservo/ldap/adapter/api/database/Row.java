@@ -26,9 +26,9 @@ public interface Row {
     /**
      * Returns the value of a column in this row.
      *
-     * @param column the column name
-     * @param clazz  the type expected for a column
+     * @param columnName the column name
+     * @param clazz      the type expected for a column
      * @return the value of a column
      */
-    <T> T apply(String column, Class<T> clazz);
+    <T> T apply(String columnName, Class<T> clazz);
 }

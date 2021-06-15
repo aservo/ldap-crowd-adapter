@@ -23,11 +23,11 @@
 package com.aservo.ldap.adapter;
 
 import com.aservo.ldap.adapter.api.LdapUtils;
+import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
+import com.aservo.ldap.adapter.api.cursor.ClosableIteratorJoin;
+import com.aservo.ldap.adapter.api.cursor.IterableEntryCursor;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.api.entity.*;
-import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
-import com.aservo.ldap.adapter.api.iterator.ClosableIteratorJoin;
-import com.aservo.ldap.adapter.api.iterator.IterableEntryCursor;
 import com.aservo.ldap.adapter.api.query.AndLogicExpression;
 import com.aservo.ldap.adapter.api.query.BooleanValue;
 import com.aservo.ldap.adapter.api.query.EqualOperator;

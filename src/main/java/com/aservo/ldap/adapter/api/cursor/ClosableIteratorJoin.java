@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.api.iterator;
+package com.aservo.ldap.adapter.api.cursor;
 
 import java.io.IOException;
 import java.util.*;

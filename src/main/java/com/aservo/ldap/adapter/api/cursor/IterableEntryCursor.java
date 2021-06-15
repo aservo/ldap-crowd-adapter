@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
-package com.aservo.ldap.adapter.api.iterator;
+package com.aservo.ldap.adapter.api.cursor;
 
 import com.aservo.ldap.adapter.backend.CrowdDirectoryBackend;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import org.apache.directory.api.ldap.model.cursor.AbstractCursor;
+import org.apache.directory.api.ldap.model.cursor.CursorClosedException;
 import org.apache.directory.api.ldap.model.cursor.CursorException;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
@@ -28,7 +30,8 @@ import org.slf4j.LoggerFactory;
 
 
 public class IterableEntryCursor
-        extends AbstractCursor<Entry> {
+        extends AbstractCursor<Entry>
+        implements Cursor<Entry> {
 
     private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
     private final ClosableIterator<Entry> entries;
@@ -107,19 +110,31 @@ public class IterableEntryCursor
     }
 
     @Override
-    public boolean next()
-            throws LdapException, CursorException {
+    public boolean next() {
 
-        this.checkNotClosed("next()");
+        try {
+
+            this.checkNotClosed("next()");
+
+        } catch (CursorClosedException e) {
+
+            throw new UncheckedIOException(new IOException(e));
+        }
 
         return entries.hasNext();
     }
 
     @Override
-    public Entry get()
-            throws CursorException {
+    public Entry get() {
 
-        this.checkNotClosed("get()");
+        try {
+
+            this.checkNotClosed("get()");
+
+        } catch (CursorClosedException e) {
+
+            throw new UncheckedIOException(new IOException(e));
+        }
 
         return entries.next();
     }

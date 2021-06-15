@@ -18,6 +18,7 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
+import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
 import com.aservo.ldap.adapter.api.database.CloseableTransaction;
 import com.aservo.ldap.adapter.api.database.QueryDefFactory;
 import com.aservo.ldap.adapter.api.database.Row;
@@ -29,7 +30,6 @@ import com.aservo.ldap.adapter.api.database.result.SingleOptResult;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.api.entity.*;
-import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.sql.impl.DatabaseService;
 import com.aservo.ldap.adapter.sql.impl.QueryGenerator;

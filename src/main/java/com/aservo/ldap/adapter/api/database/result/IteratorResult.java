@@ -17,8 +17,8 @@
 
 package com.aservo.ldap.adapter.api.database.result;
 
+import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
 import com.aservo.ldap.adapter.api.database.Row;
-import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
 import java.util.function.Function;
 
 
