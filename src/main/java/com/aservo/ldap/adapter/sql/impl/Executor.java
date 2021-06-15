@@ -21,6 +21,7 @@ import com.aservo.ldap.adapter.api.database.QueryDef;
 import com.aservo.ldap.adapter.api.database.QueryDefFactory;
 import com.aservo.ldap.adapter.api.database.Row;
 import com.aservo.ldap.adapter.api.database.exception.UncheckedSQLException;
+import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
 import com.aservo.ldap.adapter.api.database.result.*;
 import com.aservo.ldap.adapter.api.iterator.ClosableIterator;
 import com.google.common.collect.Lists;
@@ -652,7 +653,7 @@ public class Executor {
 
             Object entry =
                     find(column)
-                            .orElseThrow(() -> new IllegalArgumentException(
+                            .orElseThrow(() -> new UnknownColumnException(
                                     "Cannot find column " + column + "."))
                             .orElse(null);
 
