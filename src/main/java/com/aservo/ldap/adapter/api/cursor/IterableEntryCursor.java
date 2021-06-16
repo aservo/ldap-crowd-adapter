@@ -17,9 +17,9 @@
 
 package com.aservo.ldap.adapter.api.cursor;
 
+import com.aservo.ldap.adapter.api.exception.InternalServerException;
 import com.aservo.ldap.adapter.backend.CrowdDirectoryBackend;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import org.apache.directory.api.ldap.model.cursor.AbstractCursor;
 import org.apache.directory.api.ldap.model.cursor.CursorClosedException;
 import org.apache.directory.api.ldap.model.cursor.CursorException;
@@ -115,13 +115,14 @@ public class IterableEntryCursor
         try {
 
             this.checkNotClosed("next()");
+            return entries.hasNext();
 
-        } catch (CursorClosedException e) {
+        } catch (Exception e) {
 
-            throw new UncheckedIOException(new IOException(e));
+            logger.error("Caught an exception while accessing a cursor.", e);
+
+            throw new InternalServerException("A cursor has detected an internal server error.");
         }
-
-        return entries.hasNext();
     }
 
     @Override
@@ -130,12 +131,13 @@ public class IterableEntryCursor
         try {
 
             this.checkNotClosed("get()");
+            return entries.next();
 
         } catch (CursorClosedException e) {
 
-            throw new UncheckedIOException(new IOException(e));
-        }
+            logger.error("Caught an exception while accessing a cursor.", e);
 
-        return entries.next();
+            throw new InternalServerException("A cursor has detected an internal server error.");
+        }
     }
 }

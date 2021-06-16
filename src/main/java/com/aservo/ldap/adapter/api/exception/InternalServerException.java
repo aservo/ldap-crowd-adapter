@@ -17,14 +17,12 @@
 
 package com.aservo.ldap.adapter.api.exception;
 
-import org.apache.directory.api.ldap.model.exception.LdapException;
-
 
 /**
  * The exception type for internal server errors.
  */
 public class InternalServerException
-        extends LdapException {
+        extends RuntimeException {
 
     /**
      * Instantiates a new internal server failure exception.
