@@ -17,7 +17,9 @@
 
 package com.aservo.ldap.adapter.api;
 
-import com.aservo.ldap.adapter.api.entity.*;
+import com.aservo.ldap.adapter.api.entity.DomainEntity;
+import com.aservo.ldap.adapter.api.entity.EntityType;
+import com.aservo.ldap.adapter.api.entity.UnitEntity;
 import com.aservo.ldap.adapter.api.exception.UnsupportedQueryExpressionException;
 import com.aservo.ldap.adapter.api.query.*;
 import java.util.*;
@@ -124,26 +126,6 @@ public class LdapUtils {
 
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Creates a DN with suffix.
-     *
-     * @param schemaManager the schema manager
-     * @param entity        the entity
-     * @return the DN
-     */
-    public static Dn createDn(SchemaManager schemaManager, Entity entity, String dcId) {
-
-        String name = entity.getId();
-
-        if (entity instanceof GroupEntity)
-            name = ((GroupEntity) entity).getName();
-
-        if (entity instanceof UserEntity)
-            name = ((UserEntity) entity).getUsername();
-
-        return createDn(schemaManager, entity.getEntityType(), name, dcId);
     }
 
     /**

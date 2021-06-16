@@ -18,18 +18,20 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
-import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
+import com.aservo.ldap.adapter.api.cursor.MappableCursor;
 import com.aservo.ldap.adapter.api.database.CloseableTransaction;
 import com.aservo.ldap.adapter.api.database.QueryDefFactory;
 import com.aservo.ldap.adapter.api.database.Row;
-import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
+import com.aservo.ldap.adapter.api.database.result.CursorResult;
 import com.aservo.ldap.adapter.api.database.result.IgnoredResult;
 import com.aservo.ldap.adapter.api.database.result.IndexedSeqResult;
-import com.aservo.ldap.adapter.api.database.result.IteratorResult;
 import com.aservo.ldap.adapter.api.database.result.SingleOptResult;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.api.entity.*;
+import com.aservo.ldap.adapter.api.entity.EntityType;
+import com.aservo.ldap.adapter.api.entity.GroupEntity;
+import com.aservo.ldap.adapter.api.entity.MembershipEntity;
+import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.aservo.ldap.adapter.sql.impl.DatabaseService;
 import com.aservo.ldap.adapter.sql.impl.QueryGenerator;
@@ -530,16 +532,16 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
-    public ClosableIterator<Entity> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
-                                                       EntityType entityType) {
+    public MappableCursor<Row> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+                                                  EntityType entityType) {
 
         QueryGenerator generator =
                 new QueryGenerator(schemaManager, getId(), config.isFlatteningEnabled(), activeUsersOnly,
                         useMaterializedViews);
 
-        return mapEntityRows(entityType, generator.generate(entityType, getCloseableTransaction().getQueryDefFactory(),
+        return addCursorCleanup(generator.generate(entityType, getCloseableTransaction().getQueryDefFactory(),
                 expression)
-                .execute(IteratorResult.class)
+                .execute(CursorResult.class)
                 .transform(Function.identity()));
     }
 
@@ -1054,83 +1056,25 @@ public class CachedWithPersistenceDirectoryBackend
         return queryDefFactories.get(Thread.currentThread().getId());
     }
 
-    private ClosableIterator<Entity> mapEntityRows(EntityType type, ClosableIterator<Row> rows) {
+    private MappableCursor<Row> addCursorCleanup(MappableCursor<Row> rows) {
 
         long id = Thread.currentThread().getId();
 
-        return new ClosableIterator<Entity>() {
+        return new MappableCursor<Row>() {
 
-            private Entity lastEntity;
+            @Override
+            public boolean next() {
 
-            public boolean hasNext() {
-
-                return rows.hasNext();
+                return rows.next();
             }
 
-            public Entity next() {
+            @Override
+            public Row get() {
 
-                Entity currentEntity;
-
-                if (type == EntityType.GROUP) {
-
-                    if (lastEntity == null) {
-
-                        Row row = rows.next();
-                        lastEntity = mapGroupEntity(row);
-                        putGroupRelationships((GroupEntity) lastEntity, row);
-                    }
-
-                    currentEntity = lastEntity;
-
-                    while (rows.hasNext()) {
-
-                        Row row = rows.next();
-
-                        if (lastEntity.getId().equals(row.apply("id", String.class))) {
-
-                            putGroupRelationships((GroupEntity) currentEntity, row);
-
-                        } else {
-
-                            lastEntity = mapGroupEntity(row);
-                            putGroupRelationships((GroupEntity) lastEntity, row);
-                            break;
-                        }
-                    }
-
-                } else if (type == EntityType.USER) {
-
-                    if (lastEntity == null) {
-
-                        Row row = rows.next();
-                        lastEntity = mapUserEntity(row);
-                        putUserRelationships((UserEntity) lastEntity, row);
-                    }
-
-                    currentEntity = lastEntity;
-
-                    while (rows.hasNext()) {
-
-                        Row row = rows.next();
-
-                        if (lastEntity.getId().equals(row.apply("id", String.class))) {
-
-                            putUserRelationships((UserEntity) currentEntity, row);
-
-                        } else {
-
-                            lastEntity = mapUserEntity(row);
-                            putUserRelationships((UserEntity) lastEntity, row);
-                            break;
-                        }
-                    }
-
-                } else
-                    throw new IllegalArgumentException("Expect supported entity type.");
-
-                return currentEntity;
+                return rows.get();
             }
 
+            @Override
             public void close()
                     throws IOException {
 
@@ -1152,66 +1096,6 @@ public class CachedWithPersistenceDirectoryBackend
                         closeableTransactions.remove(id);
                     }
                 }
-            }
-
-            private void putGroupRelationships(GroupEntity entity, Row row) {
-
-                String memberOfNames = null;
-                String memberNamesGroup = null;
-                String memberNamesUser = null;
-
-                try {
-
-                    memberOfNames = row.apply("parent_group_name", String.class);
-
-                } catch (UnknownColumnException e) {
-
-                    logger.debug("Cannot find column parent_group_name in group result.");
-                }
-
-                try {
-
-                    memberNamesGroup = row.apply("member_group_name", String.class);
-
-                } catch (UnknownColumnException e) {
-
-                    logger.debug("Cannot find column member_group_name in group result.");
-                }
-
-                try {
-
-                    memberNamesUser = row.apply("member_user_username", String.class);
-
-                } catch (UnknownColumnException e) {
-
-                    logger.debug("Cannot find column member_user_username in group result.");
-                }
-
-                if (memberOfNames != null)
-                    ((Set<String>) entity.getMemberOfNames()).add(memberOfNames);
-
-                if (memberNamesGroup != null)
-                    ((Set<String>) entity.getMemberNamesGroup()).add(memberNamesGroup);
-
-                if (memberNamesUser != null)
-                    ((Set<String>) entity.getMemberNamesUser()).add(memberNamesUser);
-            }
-
-            private void putUserRelationships(UserEntity entity, Row row) {
-
-                String memberOfNames = null;
-
-                try {
-
-                    memberOfNames = row.apply("parent_group_name", String.class);
-
-                } catch (UnknownColumnException e) {
-
-                    logger.debug("Cannot find column parent_group_name in user result.");
-                }
-
-                if (memberOfNames != null)
-                    ((Set<String>) entity.getMemberOfNames()).add(memberOfNames);
             }
         };
     }

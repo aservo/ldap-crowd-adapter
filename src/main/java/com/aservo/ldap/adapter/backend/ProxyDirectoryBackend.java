@@ -18,10 +18,14 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
-import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
+import com.aservo.ldap.adapter.api.cursor.MappableCursor;
+import com.aservo.ldap.adapter.api.database.Row;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.api.entity.*;
+import com.aservo.ldap.adapter.api.entity.EntityType;
+import com.aservo.ldap.adapter.api.entity.GroupEntity;
+import com.aservo.ldap.adapter.api.entity.MembershipEntity;
+import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import java.util.List;
 import java.util.function.Supplier;
@@ -162,8 +166,8 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
-    public ClosableIterator<Entity> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
-                                                       EntityType entityType) {
+    public MappableCursor<Row> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+                                                  EntityType entityType) {
 
         return directoryBackend.runQueryExpression(schemaManager, expression, entityType);
     }

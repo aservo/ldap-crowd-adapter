@@ -17,6 +17,9 @@
 
 package com.aservo.ldap.adapter.api.entity;
 
+import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
+
+
 /**
  * The domain entity.
  */
@@ -56,5 +59,23 @@ public class DomainEntity
     public EntityType getEntityType() {
 
         return EntityType.DOMAIN;
+    }
+
+    protected Object findColumn(String columnName) {
+
+        switch (columnName) {
+
+            case ColumnNames.TYPE:
+                return getEntityType().toString();
+
+            case ColumnNames.ID:
+                return getId();
+
+            case ColumnNames.DESCRIPTION:
+                return getDescription();
+
+            default:
+                throw new UnknownColumnException("Cannot find column " + columnName + " for domain entity.");
+        }
     }
 }

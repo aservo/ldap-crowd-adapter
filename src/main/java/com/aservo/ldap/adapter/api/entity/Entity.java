@@ -17,13 +17,15 @@
 
 package com.aservo.ldap.adapter.api.entity;
 
+import com.aservo.ldap.adapter.api.database.Row;
 import java.util.Objects;
 
 
 /**
  * The parent class fo all entities.
  */
-public abstract class Entity {
+public abstract class Entity
+        implements Row {
 
     private final String id;
 
@@ -67,6 +69,27 @@ public abstract class Entity {
 
         return id;
     }
+
+    /**
+     * Gets an entity value by column name.
+     *
+     * @return the column value
+     */
+    public <T> T apply(String columnName, Class<T> clazz) {
+
+        try {
+
+            return (T) findColumn(columnName);
+
+        } catch (ClassCastException e) {
+
+            throw new IllegalArgumentException(
+                    "Cannot perform a cast for column " + columnName +
+                            " and with type [" + clazz.getName() + "].", e);
+        }
+    }
+
+    protected abstract Object findColumn(String columnName);
 
     /**
      * Gets the entity type.

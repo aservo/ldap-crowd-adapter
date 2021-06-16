@@ -17,11 +17,8 @@
 
 package com.aservo.ldap.adapter.api.entity;
 
+import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * The user entity.
@@ -35,31 +32,6 @@ public class UserEntity
     private final String displayName;
     private final String email;
     private final boolean active;
-    private final Set<String> memberOfNames = new HashSet<>();
-
-    /**
-     * Instantiates a new User.
-     *
-     * @param username      the username
-     * @param lastName      the last name
-     * @param firstName     the first name
-     * @param displayName   the display name
-     * @param email         the email
-     * @param active        the active flag
-     * @param memberOfNames the names for memberOf attribute
-     */
-    public UserEntity(String username, String lastName, String firstName, String displayName, String email,
-                      boolean active, Collection<String> memberOfNames) {
-
-        super(username.toLowerCase());
-        this.username = username;
-        this.lastName = lastName;
-        this.firstName = firstName;
-        this.displayName = displayName;
-        this.email = email;
-        this.active = active;
-        this.memberOfNames.addAll(memberOfNames);
-    }
 
     /**
      * Instantiates a new User.
@@ -74,7 +46,13 @@ public class UserEntity
     public UserEntity(String username, String lastName, String firstName, String displayName, String email,
                       boolean active) {
 
-        this(username, lastName, firstName, displayName, email, active, Collections.emptySet());
+        super(username.toLowerCase());
+        this.username = username;
+        this.lastName = lastName;
+        this.firstName = firstName;
+        this.displayName = displayName;
+        this.email = email;
+        this.active = active;
     }
 
     /**
@@ -138,16 +116,6 @@ public class UserEntity
     }
 
     /**
-     * Gets names for memberOf attribute.
-     *
-     * @return the description
-     */
-    public Iterable<String> getMemberOfNames() {
-
-        return memberOfNames;
-    }
-
-    /**
      * Gets the entity type.
      *
      * @return the entity type
@@ -155,5 +123,38 @@ public class UserEntity
     public EntityType getEntityType() {
 
         return EntityType.USER;
+    }
+
+    protected Object findColumn(String columnName) {
+
+        switch (columnName) {
+
+            case ColumnNames.TYPE:
+                return getEntityType().toString();
+
+            case ColumnNames.ID:
+                return getId();
+
+            case ColumnNames.USERNAME:
+                return getUsername();
+
+            case ColumnNames.LAST_NAME:
+                return getLastName();
+
+            case ColumnNames.FIRST_NAME:
+                return getFirstName();
+
+            case ColumnNames.DISPLAY_NAME:
+                return getDisplayName();
+
+            case ColumnNames.EMAIL:
+                return getEmail();
+
+            case ColumnNames.ACTIVE:
+                return isActive();
+
+            default:
+                throw new UnknownColumnException("Cannot find column " + columnName + " for user entity.");
+        }
     }
 }

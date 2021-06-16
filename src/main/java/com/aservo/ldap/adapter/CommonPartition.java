@@ -23,10 +23,10 @@
 package com.aservo.ldap.adapter;
 
 import com.aservo.ldap.adapter.api.LdapUtils;
-import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
-import com.aservo.ldap.adapter.api.cursor.ClosableIteratorJoin;
 import com.aservo.ldap.adapter.api.cursor.IterableEntryCursor;
-import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
+import com.aservo.ldap.adapter.api.cursor.MappableCursor;
+import com.aservo.ldap.adapter.api.database.Row;
+import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
 import com.aservo.ldap.adapter.api.entity.*;
 import com.aservo.ldap.adapter.api.query.AndLogicExpression;
 import com.aservo.ldap.adapter.api.query.BooleanValue;
@@ -113,9 +113,9 @@ public class CommonPartition
 
         QueryExpression expression = BooleanValue.trueValue();
         Set<String> attributes = LdapUtils.getAttributes(context);
-        ClosableIterator<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
 
-        if (!entries.hasNext()) {
+        if (!entries.next()) {
 
             entries.closeUnchecked();
             logger.debug("Could not find cached entry with DN={}", context.getDn().getName());
@@ -123,7 +123,7 @@ public class CommonPartition
             return null;
         }
 
-        Entry entry = entries.next();
+        Entry entry = entries.get();
 
         entries.closeUnchecked();
         logger.debug("Could find cached entry with DN={}", context.getDn().getName());
@@ -140,9 +140,9 @@ public class CommonPartition
 
         QueryExpression expression = BooleanValue.trueValue();
         Set<String> attributes = Collections.emptySet();
-        ClosableIterator<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
 
-        boolean exists = entries.hasNext();
+        boolean exists = entries.next();
 
         entries.closeUnchecked();
 
@@ -158,16 +158,16 @@ public class CommonPartition
 
         QueryExpression expression = LdapUtils.createQueryExpression(context.getFilter());
         Set<String> attributes = LdapUtils.getAttributes(context);
-        ClosableIterator<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
 
-        if (!entries.hasNext()) {
+        if (!entries.next()) {
 
             entries.closeUnchecked();
 
             return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, schemaManager);
         }
 
-        Entry entry = entries.next();
+        Entry entry = entries.get();
 
         entries.closeUnchecked();
 
@@ -183,7 +183,7 @@ public class CommonPartition
 
         QueryExpression expression = LdapUtils.createQueryExpression(context.getFilter());
         Set<String> attributes = LdapUtils.getAttributes(context);
-        ClosableIterator<Entry> entries = findEntries(expression, context.getDn(), attributes, true);
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, true);
 
         return new EntryFilteringCursorImpl(new IterableEntryCursor(entries), context, schemaManager);
     }
@@ -196,8 +196,8 @@ public class CommonPartition
         return findManyOnFirstLevel(context);
     }
 
-    private ClosableIterator<Entry> findEntries(QueryExpression expression, Dn queryDn, Set<String> attributes,
-                                                boolean multiple) {
+    private MappableCursor<Entry> findEntries(QueryExpression expression, Dn queryDn, Set<String> attributes,
+                                              boolean multiple) {
 
         Dn rootDn = LdapUtils.createDn(schemaManager, EntityType.DOMAIN, getId());
         Dn groupsDn = LdapUtils.createDn(schemaManager, EntityType.GROUP_UNIT, getId());
@@ -205,16 +205,16 @@ public class CommonPartition
 
         return directoryFactory.withSession(directory -> {
 
-            List<Iterator<Entity>> iterators = new ArrayList<>();
+            List<MappableCursor<Row>> cursors = new ArrayList<>();
 
             if (queryDn.equals(groupsDn)) {
 
                 if (LdapUtils.evaluateExpression(LdapUtils.preEvaluateExpression(expression, groupUnitEntity)))
-                    iterators.add(Collections.singleton((Entity) groupUnitEntity).iterator());
+                    cursors.add(MappableCursor.fromIterable(Collections.singleton(groupUnitEntity)));
 
                 if (multiple) {
 
-                    iterators.add(directory.runQueryExpression(schemaManager, expression, EntityType.GROUP));
+                    cursors.add(directory.runQueryExpression(schemaManager, expression, EntityType.GROUP));
                 }
 
             } else if (queryDn.getParent().equals(groupsDn)) {
@@ -225,16 +225,16 @@ public class CommonPartition
                 QueryExpression expr =
                         new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
 
-                iterators.add(directory.runQueryExpression(schemaManager, expr, EntityType.GROUP));
+                cursors.add(directory.runQueryExpression(schemaManager, expr, EntityType.GROUP));
 
             } else if (queryDn.equals(usersDn)) {
 
                 if (LdapUtils.evaluateExpression(LdapUtils.preEvaluateExpression(expression, userUnitEntity)))
-                    iterators.add(Collections.singleton((Entity) userUnitEntity).iterator());
+                    cursors.add(MappableCursor.fromIterable(Collections.singleton(userUnitEntity)));
 
                 if (multiple) {
 
-                    iterators.add(directory.runQueryExpression(schemaManager, expression, EntityType.USER));
+                    cursors.add(directory.runQueryExpression(schemaManager, expression, EntityType.USER));
                 }
 
             } else if (queryDn.getParent().equals(usersDn)) {
@@ -245,23 +245,23 @@ public class CommonPartition
                 QueryExpression expr =
                         new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
 
-                iterators.add(directory.runQueryExpression(schemaManager, expr, EntityType.USER));
+                cursors.add(directory.runQueryExpression(schemaManager, expr, EntityType.USER));
 
             } else if (queryDn.equals(rootDn)) {
 
                 if (LdapUtils.evaluateExpression(LdapUtils.preEvaluateExpression(expression, domainEntity)))
-                    iterators.add(Collections.singleton((Entity) domainEntity).iterator());
+                    cursors.add(MappableCursor.fromIterable(Collections.singleton(domainEntity)));
 
                 if (multiple) {
 
                     if (LdapUtils.evaluateExpression(LdapUtils.preEvaluateExpression(expression, groupUnitEntity)))
-                        iterators.add(Collections.singleton((Entity) groupUnitEntity).iterator());
+                        cursors.add(MappableCursor.fromIterable(Collections.singleton(groupUnitEntity)));
 
                     if (LdapUtils.evaluateExpression(LdapUtils.preEvaluateExpression(expression, userUnitEntity)))
-                        iterators.add(Collections.singleton((Entity) userUnitEntity).iterator());
+                        cursors.add(MappableCursor.fromIterable(Collections.singleton(userUnitEntity)));
 
-                    iterators.add(directory.runQueryExpression(schemaManager, expression, EntityType.GROUP));
-                    iterators.add(directory.runQueryExpression(schemaManager, expression, EntityType.USER));
+                    cursors.add(directory.runQueryExpression(schemaManager, expression, EntityType.GROUP));
+                    cursors.add(directory.runQueryExpression(schemaManager, expression, EntityType.USER));
                 }
 
             } else if (queryDn.getParent().equals(rootDn) && multiple) {
@@ -272,111 +272,127 @@ public class CommonPartition
                 QueryExpression expr =
                         new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
 
-                iterators.add(directory.runQueryExpression(schemaManager, expr, EntityType.GROUP));
-                iterators.add(directory.runQueryExpression(schemaManager, expr, EntityType.USER));
+                cursors.add(directory.runQueryExpression(schemaManager, expr, EntityType.GROUP));
+                cursors.add(directory.runQueryExpression(schemaManager, expr, EntityType.USER));
             }
 
-            return createEntries(new ClosableIteratorJoin<>(iterators), attributes);
+            return createEntries(MappableCursor.flatten(cursors), attributes);
         });
     }
 
-    private Entry createEntry(Entity entity, Set<String> attributes) {
+    private Entry createEntry(Row entity, Set<String> attributes) {
 
-        Dn queryDn = LdapUtils.createDn(schemaManager, entity, getId());
-        Entry entry;
+        EntityType entityType = EntityType.fromString(entity.apply(ColumnNames.TYPE, String.class));
 
-        if (entity instanceof DomainEntity) {
+        switch (entityType) {
 
-            // create root entry
-            // dn: dc=<domain>
-            // objectclass: top
-            // objectclass: domain
-            // description: <id> Domain
+            case DOMAIN: {
 
-            DomainEntity domain = (DomainEntity) entity;
-            entry = new DefaultEntry(schemaManager, queryDn);
+                // create root entry
+                // dn: dc=<domain>
+                // objectclass: top
+                // objectclass: domain
+                // description: <id> Domain
 
-            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
+                String id = entity.apply(ColumnNames.ID, String.class);
+                String description = entity.apply(ColumnNames.DESCRIPTION, String.class);
+                Dn dn = LdapUtils.createDn(schemaManager, entityType, id, getId());
+                Entry entry = new DefaultEntry(schemaManager, dn);
 
-                entry.put(SchemaConstants.OBJECT_CLASS_AT,
-                        SchemaConstants.TOP_OC,
-                        SchemaConstants.DOMAIN_OC);
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
+
+                    entry.put(SchemaConstants.OBJECT_CLASS_AT,
+                            SchemaConstants.TOP_OC,
+                            SchemaConstants.DOMAIN_OC);
+                }
+
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.DC_AT)) {
+
+                    entry.put(SchemaConstants.DC_AT, id);
+                }
+
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
+
+                    entry.put(SchemaConstants.DESCRIPTION_AT, description);
+                }
+
+                return entry;
             }
 
-            if (attributes.isEmpty() || attributes.contains(SchemaConstants.DC_AT)) {
+            case GROUP_UNIT: {
 
-                entry.put(SchemaConstants.DC_AT, domain.getId());
+                // create groups entry
+                // dn: ou=groups, dc=<domain>
+                // objectClass: top
+                // objectClass: organizationalUnit
+                // ou: groups
+                // description: <id> Groups
+
+                String id = entity.apply(ColumnNames.ID, String.class);
+                String description = entity.apply(ColumnNames.DESCRIPTION, String.class);
+                Dn dn = LdapUtils.createDn(schemaManager, entityType, id, getId());
+                Entry entry = new DefaultEntry(schemaManager, dn);
+
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
+
+                    entry.put(SchemaConstants.OBJECT_CLASS_AT,
+                            SchemaConstants.TOP_OC,
+                            SchemaConstants.ORGANIZATIONAL_UNIT_OC);
+                }
+
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.OU_AT_OID)) {
+
+                    entry.put(SchemaConstants.OU_AT, LdapUtils.OU_GROUPS);
+                }
+
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
+
+                    entry.put(SchemaConstants.DESCRIPTION_AT, description);
+                }
+
+                return entry;
             }
 
-            if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
+            case USER_UNIT: {
 
-                entry.put(SchemaConstants.DESCRIPTION_AT, domain.getDescription());
+                // create users entry
+                // dn: ou=users, dc=<domain>
+                // objectClass: top
+                // objectClass: organizationalUnit
+                // ou: users
+                // description: <id> Users
+
+                String id = entity.apply(ColumnNames.ID, String.class);
+                String description = entity.apply(ColumnNames.DESCRIPTION, String.class);
+                Dn dn = LdapUtils.createDn(schemaManager, entityType, id, getId());
+                Entry entry = new DefaultEntry(schemaManager, dn);
+
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
+
+                    entry.put(SchemaConstants.OBJECT_CLASS_AT,
+                            SchemaConstants.TOP_OC,
+                            SchemaConstants.ORGANIZATIONAL_UNIT_OC);
+                }
+
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.OU_AT_OID)) {
+
+                    entry.put(SchemaConstants.OU_AT, LdapUtils.OU_USERS);
+                }
+
+                if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
+
+                    entry.put(SchemaConstants.DESCRIPTION_AT, description);
+                }
+
+                return entry;
             }
 
-        } else if (entity instanceof GroupUnitEntity) {
+            case GROUP: {
 
-            // create groups entry
-            // dn: ou=groups, dc=<domain>
-            // objectClass: top
-            // objectClass: organizationalUnit
-            // ou: groups
-            // description: <id> Groups
-
-            GroupUnitEntity unit = (GroupUnitEntity) entity;
-            entry = new DefaultEntry(schemaManager, queryDn);
-
-            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
-
-                entry.put(SchemaConstants.OBJECT_CLASS_AT,
-                        SchemaConstants.TOP_OC,
-                        SchemaConstants.ORGANIZATIONAL_UNIT_OC);
-            }
-
-            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OU_AT_OID)) {
-
-                entry.put(SchemaConstants.OU_AT, LdapUtils.OU_GROUPS);
-            }
-
-            if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
-
-                entry.put(SchemaConstants.DESCRIPTION_AT, unit.getDescription());
-            }
-
-        } else if (entity instanceof UserUnitEntity) {
-
-            // create users entry
-            // dn: ou=users, dc=<domain>
-            // objectClass: top
-            // objectClass: organizationalUnit
-            // ou: users
-            // description: <id> Users
-
-            UserUnitEntity unit = (UserUnitEntity) entity;
-            entry = new DefaultEntry(schemaManager, queryDn);
-
-            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
-
-                entry.put(SchemaConstants.OBJECT_CLASS_AT,
-                        SchemaConstants.TOP_OC,
-                        SchemaConstants.ORGANIZATIONAL_UNIT_OC);
-            }
-
-            if (attributes.isEmpty() || attributes.contains(SchemaConstants.OU_AT_OID)) {
-
-                entry.put(SchemaConstants.OU_AT, LdapUtils.OU_USERS);
-            }
-
-            if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
-
-                entry.put(SchemaConstants.DESCRIPTION_AT, unit.getDescription());
-            }
-
-        } else if (entity instanceof GroupEntity) {
-
-            try {
-
-                GroupEntity group = (GroupEntity) entity;
-                entry = new DefaultEntry(schemaManager, queryDn);
+                String name = entity.apply(ColumnNames.NAME, String.class);
+                String description = entity.apply(ColumnNames.DESCRIPTION, String.class);
+                Dn dn = LdapUtils.createDn(schemaManager, entityType, name, getId());
+                Entry entry = new DefaultEntry(schemaManager, dn);
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
 
@@ -393,55 +409,28 @@ public class CommonPartition
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.CN_AT_OID)) {
 
-                    entry.put(SchemaConstants.CN_AT, group.getName());
+                    entry.put(SchemaConstants.CN_AT, name);
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.DESCRIPTION_AT_OID)) {
 
-                    if (group.getDescription() != null && !group.getDescription().isEmpty())
-                        entry.put(SchemaConstants.DESCRIPTION_AT, group.getDescription());
+                    if (description != null && !description.isEmpty())
+                        entry.put(SchemaConstants.DESCRIPTION_AT, description);
                 }
 
-                if (attributes.isEmpty() || attributes.contains(SchemaConstants.MEMBER_AT_OID)) {
-
-                    if (!serverConfig.isFlatteningEnabled()) {
-
-                        for (String name : group.getMemberNamesGroup())
-                            entry.add(SchemaConstants.MEMBER_AT,
-                                    LdapUtils.createDn(schemaManager, EntityType.GROUP, name, getId()).getName());
-                    }
-
-                    for (String name : group.getMemberNamesUser())
-                        entry.add(SchemaConstants.MEMBER_AT,
-                                LdapUtils.createDn(schemaManager, EntityType.USER, name, getId()).getName());
-                }
-
-                if (attributes.isEmpty() || attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
-
-                    if (!serverConfig.isFlatteningEnabled()) {
-
-                        for (String name : group.getMemberOfNames())
-                            entry.add(LdapUtils.MEMBER_OF_AT,
-                                    LdapUtils.createDn(schemaManager, EntityType.GROUP, name, getId()).getName());
-                    }
-                }
-
-            } catch (EntityNotFoundException e) {
-
-                logger.debug("Could not create group entry because some related entities are no longer available.", e);
-                return null;
-
-            } catch (LdapException e) {
-
-                throw new RuntimeException(e);
+                return entry;
             }
 
-        } else if (entity instanceof UserEntity) {
+            case USER: {
 
-            try {
-
-                UserEntity user = (UserEntity) entity;
-                entry = new DefaultEntry(schemaManager, queryDn);
+                String id = entity.apply(ColumnNames.ID, String.class);
+                String username = entity.apply(ColumnNames.USERNAME, String.class);
+                String lastName = entity.apply(ColumnNames.LAST_NAME, String.class);
+                String firstName = entity.apply(ColumnNames.FIRST_NAME, String.class);
+                String displayName = entity.apply(ColumnNames.DISPLAY_NAME, String.class);
+                String email = entity.apply(ColumnNames.EMAIL, String.class);
+                Dn dn = LdapUtils.createDn(schemaManager, entityType, username, getId());
+                Entry entry = new DefaultEntry(schemaManager, dn);
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.OBJECT_CLASS_AT_OID)) {
 
@@ -459,88 +448,234 @@ public class CommonPartition
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.UID_AT_OID)) {
 
-                    entry.put(SchemaConstants.UID_AT, user.getId());
+                    entry.put(SchemaConstants.UID_AT, id);
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.CN_AT_OID)) {
 
-                    entry.put(SchemaConstants.CN_AT, user.getUsername());
+                    entry.put(SchemaConstants.CN_AT, username);
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.SN_AT_OID)) {
 
-                    if (user.getLastName() != null && !user.getLastName().isEmpty()) {
+                    if (lastName != null && !lastName.isEmpty()) {
 
                         if (serverConfig.isAbbreviateSnAttribute())
-                            entry.put(SchemaConstants.SN_AT, user.getLastName());
+                            entry.put(SchemaConstants.SN_AT, lastName);
                         else
-                            entry.put(SchemaConstants.SURNAME_AT, user.getLastName());
+                            entry.put(SchemaConstants.SURNAME_AT, lastName);
                     }
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.GN_AT_OID)) {
 
-                    if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
+                    if (firstName != null && !firstName.isEmpty()) {
 
                         if (serverConfig.isAbbreviateGnAttribute())
-                            entry.put(SchemaConstants.GN_AT, user.getFirstName());
+                            entry.put(SchemaConstants.GN_AT, firstName);
                         else
-                            entry.put(SchemaConstants.GIVENNAME_AT, user.getFirstName());
+                            entry.put(SchemaConstants.GIVENNAME_AT, firstName);
                     }
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.DISPLAY_NAME_AT_OID)) {
 
-                    if (user.getDisplayName() != null && !user.getDisplayName().isEmpty())
-                        entry.put(SchemaConstants.DISPLAY_NAME_AT, user.getDisplayName());
+                    if (displayName != null && !displayName.isEmpty())
+                        entry.put(SchemaConstants.DISPLAY_NAME_AT, displayName);
                 }
 
                 if (attributes.isEmpty() || attributes.contains(SchemaConstants.MAIL_AT_OID)) {
 
-                    entry.put(SchemaConstants.MAIL_AT, user.getEmail());
+                    if (email != null && !email.isEmpty())
+                        entry.put(SchemaConstants.MAIL_AT, email);
                 }
 
-                if (attributes.isEmpty() || attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
-
-                    for (String name : user.getMemberOfNames())
-                        entry.add(LdapUtils.MEMBER_OF_AT,
-                                LdapUtils.createDn(schemaManager, EntityType.GROUP, name, getId()).getName());
-                }
-
-            } catch (EntityNotFoundException e) {
-
-                logger.debug("Could not create user entry because some related entities are no longer available.", e);
-                return null;
-
-            } catch (LdapException e) {
-
-                throw new RuntimeException(e);
+                return entry;
             }
 
-        } else
-            throw new IllegalArgumentException("Cannot create system entry for DN=" + queryDn);
-
-        return entry;
+            default:
+                throw new IllegalArgumentException("Cannot create entry for with unknown type " + entityType);
+        }
     }
 
-    private ClosableIterator<Entry> createEntries(ClosableIterator<Entity> entities, Set<String> attributes) {
+    private void addRelationshipToEntries(Entry entry, Row entity, Set<String> attributes) {
 
-        return new ClosableIterator<Entry>() {
+        EntityType entityType = EntityType.fromString(entity.apply(ColumnNames.TYPE, String.class));
 
-            public boolean hasNext() {
+        try {
 
-                return entities.hasNext();
+            switch (entityType) {
+
+                case GROUP: {
+
+                    if (attributes.isEmpty() || attributes.contains(SchemaConstants.MEMBER_AT_OID)) {
+
+                        if (!serverConfig.isFlatteningEnabled()) {
+
+                            String memberNameGroup = null;
+
+                            try {
+
+                                memberNameGroup = entity.apply("member_group_name", String.class);
+
+                            } catch (UnknownColumnException e) {
+
+                                logger.trace("Cannot find column member_group_name in group row.");
+                            }
+
+                            if (memberNameGroup != null) {
+
+                                Dn dn = LdapUtils.createDn(schemaManager, EntityType.GROUP, memberNameGroup, getId());
+
+                                entry.add(SchemaConstants.MEMBER_AT, dn.getName());
+                            }
+                        }
+
+                        {
+                            String memberNameUser = null;
+
+                            try {
+
+                                memberNameUser = entity.apply("member_user_username", String.class);
+
+                            } catch (UnknownColumnException e) {
+
+                                logger.trace("Cannot find column member_user_username in group row.");
+                            }
+
+                            if (memberNameUser != null) {
+
+                                Dn dn = LdapUtils.createDn(schemaManager, EntityType.USER, memberNameUser, getId());
+
+                                entry.add(SchemaConstants.MEMBER_AT, dn.getName());
+                            }
+                        }
+                    }
+
+                    if (attributes.isEmpty() || attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
+
+                        if (!serverConfig.isFlatteningEnabled()) {
+
+                            String memberOfName = null;
+
+                            try {
+
+                                memberOfName = entity.apply("parent_group_name", String.class);
+
+                            } catch (UnknownColumnException e) {
+
+                                logger.trace("Cannot find column parent_group_name in group row.");
+                            }
+
+                            if (memberOfName != null) {
+
+                                Dn dn = LdapUtils.createDn(schemaManager, EntityType.GROUP, memberOfName, getId());
+
+                                entry.add(LdapUtils.MEMBER_OF_AT, dn.getName());
+                            }
+                        }
+                    }
+
+                    break;
+                }
+
+                case USER: {
+
+                    if (attributes.isEmpty() || attributes.contains(LdapUtils.MEMBER_OF_AT_OID)) {
+
+                        String memberOfName = null;
+
+                        try {
+
+                            memberOfName = entity.apply("parent_group_name", String.class);
+
+                        } catch (UnknownColumnException e) {
+
+                            logger.trace("Cannot find column parent_group_name in user row.");
+                        }
+
+                        if (memberOfName != null) {
+
+                            Dn dn = LdapUtils.createDn(schemaManager, EntityType.GROUP, memberOfName, getId());
+
+                            entry.add(LdapUtils.MEMBER_OF_AT, dn.getName());
+                        }
+                    }
+
+                    break;
+                }
+
+                default:
+                    break;
             }
 
-            public Entry next() {
+        } catch (LdapException e) {
 
-                return createEntry(entities.next(), attributes);
+            throw new IllegalArgumentException("Cannot handle attributes correctly.", e);
+        }
+    }
+
+    private MappableCursor<Entry> createEntries(MappableCursor<Row> cursor, Set<String> attributes) {
+
+        return new MappableCursor<Entry>() {
+
+            private boolean initialized = false;
+            private String nextId;
+            private Entry nextEntry;
+            private Entry currentEntry;
+
+            @Override
+            public boolean next() {
+
+                if (!initialized) {
+
+                    initialized = true;
+
+                    if (cursor.next()) {
+
+                        nextId = cursor.get().apply(ColumnNames.ID, String.class);
+                        nextEntry = createEntry(cursor.get(), attributes);
+                        addRelationshipToEntries(nextEntry, cursor.get(), attributes);
+                    }
+                }
+
+                currentEntry = nextEntry;
+
+                while (cursor.next()) {
+
+                    if (cursor.get().apply(ColumnNames.ID, String.class).equals(nextId)) {
+
+                        addRelationshipToEntries(currentEntry, cursor.get(), attributes);
+
+                    } else {
+
+                        nextId = cursor.get().apply(ColumnNames.ID, String.class);
+                        nextEntry = createEntry(cursor.get(), attributes);
+                        addRelationshipToEntries(nextEntry, cursor.get(), attributes);
+                        break;
+                    }
+                }
+
+                if (currentEntry == nextEntry) {
+
+                    nextId = null;
+                    nextEntry = null;
+                }
+
+                return currentEntry != null;
             }
 
+            @Override
+            public Entry get() {
+
+                return currentEntry;
+            }
+
+            @Override
             public void close()
                     throws IOException {
 
-                entities.close();
+                cursor.close();
             }
         };
     }

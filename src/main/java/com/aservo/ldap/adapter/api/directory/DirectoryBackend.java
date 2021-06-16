@@ -17,9 +17,9 @@
 
 package com.aservo.ldap.adapter.api.directory;
 
-import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
+import com.aservo.ldap.adapter.api.cursor.MappableCursor;
+import com.aservo.ldap.adapter.api.database.Row;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.api.entity.Entity;
 import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
@@ -58,8 +58,8 @@ public interface DirectoryBackend {
      * @param entityType    the entity type
      * @return the query generator
      */
-    ClosableIterator<Entity> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
-                                                EntityType entityType);
+    MappableCursor<Row> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+                                           EntityType entityType);
 
     /**
      * Gets group info.

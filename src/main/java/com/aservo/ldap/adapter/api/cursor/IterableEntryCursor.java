@@ -34,9 +34,9 @@ public class IterableEntryCursor
         implements Cursor<Entry> {
 
     private final Logger logger = LoggerFactory.getLogger(CrowdDirectoryBackend.class);
-    private final ClosableIterator<Entry> entries;
+    private final Cursor<Entry> entries;
 
-    public IterableEntryCursor(ClosableIterator<Entry> entries) {
+    public IterableEntryCursor(Cursor<Entry> entries) {
 
         this.entries = entries;
     }
@@ -115,7 +115,7 @@ public class IterableEntryCursor
         try {
 
             this.checkNotClosed("next()");
-            return entries.hasNext();
+            return entries.next();
 
         } catch (Exception e) {
 
@@ -131,7 +131,7 @@ public class IterableEntryCursor
         try {
 
             this.checkNotClosed("get()");
-            return entries.next();
+            return entries.get();
 
         } catch (CursorClosedException e) {
 

@@ -17,7 +17,6 @@
 
 package com.aservo.ldap.adapter.sql.impl;
 
-import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
 import com.aservo.ldap.adapter.api.cursor.MappableCursor;
 import com.aservo.ldap.adapter.api.database.QueryDef;
 import com.aservo.ldap.adapter.api.database.QueryDefFactory;
@@ -226,32 +225,32 @@ public class Executor {
                                     }
                                 };
 
-                    } else if (clazz == IteratorResult.class) {
+                    } else if (clazz == CursorResult.class) {
 
                         concreteResult =
-                                new IteratorResult() {
+                                new CursorResult() {
 
                                     public List<String> getColumns() {
 
                                         return columnNames;
                                     }
 
-                                    public <R> ClosableIterator<R> transform(Function<Row, R> f) {
+                                    public <R> MappableCursor<R> transform(Function<Row, R> f) {
 
-                                        ClosableIterator<R> iterator = cursor.iterator(f);
+                                        MappableCursor<R> underlying = cursor.map(f);
 
-                                        return new ClosableIterator<R>() {
+                                        return new MappableCursor<R>() {
 
                                             boolean closed = false;
 
-                                            public boolean hasNext() {
+                                            public boolean next() {
 
-                                                return iterator.hasNext();
+                                                return underlying.next();
                                             }
 
-                                            public R next() {
+                                            public R get() {
 
-                                                return iterator.next();
+                                                return underlying.get();
                                             }
 
                                             public void close()
@@ -262,7 +261,7 @@ public class Executor {
                                                     try {
 
                                                         statement.close();
-                                                        iterator.close();
+                                                        underlying.close();
 
                                                         if (finalQuery != null)
                                                             finalQuery.close();

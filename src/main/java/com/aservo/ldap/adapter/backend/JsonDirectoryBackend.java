@@ -18,12 +18,12 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
-import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
+import com.aservo.ldap.adapter.api.cursor.MappableCursor;
+import com.aservo.ldap.adapter.api.database.Row;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.DirectoryAccessFailureException;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
-import com.aservo.ldap.adapter.api.entity.Entity;
 import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
@@ -165,8 +165,8 @@ public class JsonDirectoryBackend
         userList.clear();
     }
 
-    public ClosableIterator<Entity> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
-                                                       EntityType entityType) {
+    public MappableCursor<Row> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+                                                  EntityType entityType) {
 
         throw new UnsupportedOperationException("Query generation not supported for JSON directory backend.");
     }

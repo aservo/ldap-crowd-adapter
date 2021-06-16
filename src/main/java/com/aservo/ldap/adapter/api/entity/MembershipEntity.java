@@ -17,6 +17,7 @@
 
 package com.aservo.ldap.adapter.api.entity;
 
+import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -78,5 +79,11 @@ public class MembershipEntity
     public EntityType getEntityType() {
 
         return null;
+    }
+
+    @Override
+    protected Object findColumn(String columnName) {
+
+        throw new UnknownColumnException("The membership entity has no columns.");
     }
 }

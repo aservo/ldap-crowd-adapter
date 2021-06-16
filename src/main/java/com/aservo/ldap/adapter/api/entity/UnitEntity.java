@@ -17,6 +17,8 @@
 
 package com.aservo.ldap.adapter.api.entity;
 
+import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
+
 
 public abstract class UnitEntity
         extends Entity
@@ -44,5 +46,23 @@ public abstract class UnitEntity
     public String getDescription() {
 
         return description;
+    }
+
+    protected Object findColumn(String columnName) {
+
+        switch (columnName) {
+
+            case ColumnNames.TYPE:
+                return getEntityType().toString();
+
+            case ColumnNames.ID:
+                return getId();
+
+            case ColumnNames.DESCRIPTION:
+                return getDescription();
+
+            default:
+                throw new UnknownColumnException("Cannot find column " + columnName + " for unit entity.");
+        }
     }
 }

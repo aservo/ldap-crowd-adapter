@@ -23,5 +23,35 @@ package com.aservo.ldap.adapter.api.entity;
  */
 public enum EntityType {
 
-    DOMAIN, GROUP_UNIT, USER_UNIT, GROUP, USER;
+    DOMAIN("DOMAIN"),
+    GROUP_UNIT("GROUP_UNIT"),
+    USER_UNIT("USER_UNIT"),
+    GROUP("GROUP"),
+    USER("USER");
+
+    private final String name;
+
+    EntityType(String name) {
+
+        this.name = name;
+    }
+
+    public boolean equalsName(String name) {
+
+        return this.name.equalsIgnoreCase(name);
+    }
+
+    public String toString() {
+
+        return name;
+    }
+
+    public static EntityType fromString(String name) {
+
+        for (EntityType x : EntityType.values())
+            if (x.name.equalsIgnoreCase(name))
+                return x;
+
+        throw new IllegalArgumentException("Cannot create entity type from unexpected string.");
+    }
 }

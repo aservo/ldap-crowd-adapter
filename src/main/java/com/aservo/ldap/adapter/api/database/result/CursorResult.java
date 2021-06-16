@@ -17,7 +17,7 @@
 
 package com.aservo.ldap.adapter.api.database.result;
 
-import com.aservo.ldap.adapter.api.cursor.ClosableIterator;
+import com.aservo.ldap.adapter.api.cursor.MappableCursor;
 import com.aservo.ldap.adapter.api.database.Row;
 import java.util.function.Function;
 
@@ -25,7 +25,7 @@ import java.util.function.Function;
 /**
  * Result for a list of values.
  */
-public interface IteratorResult
+public interface CursorResult
         extends EnrichedResult {
 
     /**
@@ -34,5 +34,5 @@ public interface IteratorResult
      * @param f the function used to map a single row
      * @return the iterator for values of an expected type
      */
-    <T> ClosableIterator<T> transform(Function<Row, T> f);
+    <T> MappableCursor<T> transform(Function<Row, T> f);
 }
