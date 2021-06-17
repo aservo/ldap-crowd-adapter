@@ -18,6 +18,7 @@
 package com.aservo.ldap.adapter.api.query;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -36,7 +37,7 @@ public final class WildcardOperator
         this.pattern = pattern;
         this.initialSegment = initialSegment;
         this.finalSegment = finalSegment;
-        this.middleSegments = middleSegments;
+        this.middleSegments = new ArrayList<>(middleSegments);
     }
 
     public WildcardOperator(String attribute, Pattern pattern, String initialSegment, String finalSegment,

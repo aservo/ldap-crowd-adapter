@@ -740,7 +740,7 @@ public class Executor {
             if (this == that)
                 return true;
 
-            if (!(that instanceof QueryDefImpl))
+            if (this.getClass() != that.getClass())
                 return false;
 
             QueryDefImpl queryDef = (QueryDefImpl) that;
@@ -748,6 +748,12 @@ public class Executor {
             return byId == queryDef.byId &&
                     Objects.equals(clauseOrId, queryDef.clauseOrId) &&
                     Objects.equals(parameters, queryDef.parameters);
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(clauseOrId, parameters, byId);
         }
     }
 }
