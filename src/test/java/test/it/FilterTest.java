@@ -1,26 +1,30 @@
-package com.aservo.ldap.adapter.misc;
+package test.it;
 
 import com.aservo.ldap.adapter.api.LdapUtils;
+import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
+import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.helper.AbstractTest;
 import javax.naming.NamingEnumeration;
-import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
-import org.apache.directory.api.ldap.model.name.Rdn;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import test.api.AbstractServerTest;
+import test.configuration.server.JsonWithGroupNesting;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(unit-only)")
 public class FilterTest
-        extends AbstractTest {
+        extends AbstractServerTest {
 
     public FilterTest() {
 
-        super(BackendConfig.NORMAL);
+        super(new JsonWithGroupNesting(10935));
     }
 
     @Test
@@ -29,12 +33,14 @@ public class FilterTest
     public void test001()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "dc=json";
 
         String filter =
                 SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.TOP_OC;
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -42,26 +48,26 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        checkRootEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
 
         Assertions.assertTrue(results.hasMore());
-        checkGroupsEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
 
         Assertions.assertTrue(results.hasMore());
-        checkUsersEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
-        for (GroupEntity group : directoryBackend.getAllGroups()) {
+        for (GroupEntity group : directory.getAllGroups()) {
 
             Assertions.assertTrue(results.hasMore());
-            Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(group.getId(), getAndCheckGroupEntry(attributes, false));
+            String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP);
+            Assertions.assertEquals(group.getId(), id);
         }
 
-        for (UserEntity user : directoryBackend.getAllUsers()) {
+        for (UserEntity user : directory.getAllUsers()) {
 
             Assertions.assertTrue(results.hasMore());
-            Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(user.getId(), getAndCheckUserEntry(attributes, false));
+            String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
+            Assertions.assertEquals(user.getId(), id);
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -80,7 +86,7 @@ public class FilterTest
         String filter =
                 SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC;
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -88,7 +94,7 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        checkRootEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -106,7 +112,7 @@ public class FilterTest
         String filter =
                 SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC;
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -114,10 +120,10 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        checkGroupsEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
 
         Assertions.assertTrue(results.hasMore());
-        checkUsersEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -126,7 +132,7 @@ public class FilterTest
 
     @Test
     @Order(4)
-    @DisplayName("it should show group OU entry")
+    @DisplayName("it should handle and-expression correctly to get group OU entry")
     public void test004()
             throws Exception {
 
@@ -138,7 +144,7 @@ public class FilterTest
                         "(" + SchemaConstants.OU_AT + "=" + LdapUtils.OU_GROUPS + ")" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -146,7 +152,7 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        checkGroupsEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -155,7 +161,7 @@ public class FilterTest
 
     @Test
     @Order(5)
-    @DisplayName("it should show user OU entry")
+    @DisplayName("it should handle and-expression correctly to get users OU entry")
     public void test005()
             throws Exception {
 
@@ -167,7 +173,7 @@ public class FilterTest
                         "(" + SchemaConstants.OU_AT + "=" + LdapUtils.OU_USERS + ")" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -175,7 +181,7 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        checkUsersEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -184,7 +190,7 @@ public class FilterTest
 
     @Test
     @Order(6)
-    @DisplayName("it should list OU and DC entries")
+    @DisplayName("it should handle or-expression correctly to get all OU and DC entries")
     public void test006()
             throws Exception {
 
@@ -196,7 +202,7 @@ public class FilterTest
                         "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC + ")" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -204,13 +210,13 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        checkRootEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
 
         Assertions.assertTrue(results.hasMore());
-        checkGroupsEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
 
         Assertions.assertTrue(results.hasMore());
-        checkUsersEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -219,9 +225,11 @@ public class FilterTest
 
     @Test
     @Order(7)
-    @DisplayName("it should handle nested filter expressions")
+    @DisplayName("it should handle not-expression correctly to get user entries")
     public void test007()
             throws Exception {
+
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
 
         String base = "dc=json";
 
@@ -232,18 +240,18 @@ public class FilterTest
                         "(!(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.GROUP_OF_NAMES_OC + "))" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        for (UserEntity user : directoryBackend.getAllUsers()) {
+        for (UserEntity user : directory.getAllUsers()) {
 
             Assertions.assertTrue(results.hasMore());
-            Attributes attributes = ((SearchResult) results.next()).getAttributes();
-            Assertions.assertEquals(user.getId(), getAndCheckUserEntry(attributes, false));
+            String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
+            Assertions.assertEquals(user.getId(), id);
         }
 
         Assertions.assertFalse(results.hasMore());
@@ -251,18 +259,21 @@ public class FilterTest
         context.close();
     }
 
+    /*
     @Test
     @Order(8)
     @DisplayName("it should handle existence filter expressions correctly")
     public void test008()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "dc=json";
 
         String filter =
                 "(" + SchemaConstants.DESCRIPTION_AT + "=" + "*" + ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -296,12 +307,14 @@ public class FilterTest
     public void test009()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "dc=json";
 
         String filter =
                 "(" + SchemaConstants.MEMBER_AT + "=" + "cn=UserB,ou=users,dc=json" + ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -327,6 +340,8 @@ public class FilterTest
     public void test010()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "ou=groups,dc=json";
 
         // ['GroupB', 'GroupC', 'GroupD']
@@ -337,7 +352,7 @@ public class FilterTest
                         "(|(cn=GroupB)(cn=GroupC)(cn=GroupD)(cn=" + Rdn.escapeValue("GroupE+,") + "))" +
                         ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -364,4 +379,5 @@ public class FilterTest
 
         context.close();
     }
+    */
 }

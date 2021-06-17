@@ -47,6 +47,42 @@
       "user_members": [
         "UserE+,"
       ]
+    },
+    {
+      "name": "GroupF",
+      "description": "Description of GroupF.",
+      "group_members": [
+        "GroupF"
+      ],
+      "user_members": [
+        "UserF"
+      ]
+    },
+    {
+      "name": "GroupG",
+      "description": "Description of GroupG.",
+      "group_members": [
+        "GroupH"
+      ],
+      "user_members": [
+        "UserG"
+      ]
+    },
+    {
+      "name": "GroupH",
+      "description": "Description of GroupH.",
+      "group_members": [
+        "GroupG"
+      ],
+      "user_members": [
+        "UserH"
+      ]
+    },
+    {
+      "name": "GroupI",
+      "description": "Description of GroupI.",
+      "group_members": [],
+      "user_members": []
     }
   ],
   "users": [
@@ -93,6 +129,42 @@
       "display_name": "DisplayNameOfUserE+,",
       "email": "e.user@email.com",
       "password": "pw-user-e",
+      "active": true
+    },
+    {
+      "username": "UserF",
+      "first_name": "FirstNameOfUserF",
+      "last_name": "LastNameOfUserF",
+      "display_name": "DisplayNameOfUserF",
+      "email": "f.user@email.com",
+      "password": "pw-user-f",
+      "active": true
+    },
+    {
+      "username": "UserG",
+      "first_name": "FirstNameOfUserG",
+      "last_name": "LastNameOfUserG",
+      "display_name": "DisplayNameOfUserG",
+      "email": "g.user@email.com",
+      "password": "pw-user-g",
+      "active": true
+    },
+    {
+      "username": "UserH",
+      "first_name": "FirstNameOfUserH",
+      "last_name": "LastNameOfUserH",
+      "display_name": "DisplayNameOfUserH",
+      "email": "h.user@email.com",
+      "password": "pw-user-h",
+      "active": true
+    },
+    {
+      "username": "UserI",
+      "first_name": "FirstNameOfUserI",
+      "last_name": "LastNameOfUserI",
+      "display_name": "DisplayNameOfUserI",
+      "email": "i.user@email.com",
+      "password": "pw-user-i",
       "active": true
     }
   ]

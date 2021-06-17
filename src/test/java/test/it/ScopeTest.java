@@ -1,8 +1,9 @@
-package com.aservo.ldap.adapter.misc;
+package test.it;
 
+import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
+import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.helper.AbstractTest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -13,15 +14,20 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import test.api.AbstractServerTest;
+import test.configuration.server.JsonWithGroupFlattening;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(unit-only)")
 public class ScopeTest
-        extends AbstractTest {
+        extends AbstractServerTest {
 
     public ScopeTest() {
 
-        super(BackendConfig.NORMAL);
+        super(new JsonWithGroupFlattening(10934));
     }
 
     @Test
@@ -39,7 +45,8 @@ public class ScopeTest
 
                         Assertions.assertTrue(results.hasMore());
                         Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        Assertions.assertEquals(userName.toLowerCase(), getAndCheckGroupEntry(attributes, false));
+                        String id = assertCorrectEntry(attributes, EntityType.GROUP);
+                        Assertions.assertEquals(userName.toLowerCase(), id);
                         Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {
@@ -67,7 +74,7 @@ public class ScopeTest
 
             for (SearchControls sc : searchControlsList) {
 
-                InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+                InitialDirContext context = createContext("UserA", "pw-user-a");
 
                 consumer.accept(context.search(base, filter, sc));
 
@@ -91,7 +98,8 @@ public class ScopeTest
 
                         Assertions.assertTrue(results.hasMore());
                         Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        Assertions.assertEquals(userName.toLowerCase(), getAndCheckUserEntry(attributes, false));
+                        String id = assertCorrectEntry(attributes, EntityType.USER);
+                        Assertions.assertEquals(userName.toLowerCase(), id);
                         Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {
@@ -119,7 +127,7 @@ public class ScopeTest
 
             for (SearchControls sc : searchControlsList) {
 
-                InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+                InitialDirContext context = createContext("UserA", "pw-user-a");
 
                 consumer.accept(context.search(base, filter, sc));
 
@@ -137,7 +145,7 @@ public class ScopeTest
         String base = "dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.OBJECT_SCOPE);
@@ -145,7 +153,7 @@ public class ScopeTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        checkRootEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -161,7 +169,7 @@ public class ScopeTest
         String base = "ou=groups,dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.OBJECT_SCOPE);
@@ -169,7 +177,7 @@ public class ScopeTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        checkGroupsEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -185,7 +193,7 @@ public class ScopeTest
         String base = "ou=users,dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context = createContext("UserA", "pw-user-a");
 
         SearchControls sc = new SearchControls();
         sc.setSearchScope(SearchControls.OBJECT_SCOPE);
@@ -193,7 +201,7 @@ public class ScopeTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        checkUsersEntry(((SearchResult) results.next()).getAttributes());
+        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -206,11 +214,13 @@ public class ScopeTest
     public void test006()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context1 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
-        InitialDirContext context2 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context1 = createContext("UserA", "pw-user-a");
+        InitialDirContext context2 = createContext("UserA", "pw-user-a");
 
         SearchControls sc1 = new SearchControls();
         sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
@@ -221,37 +231,33 @@ public class ScopeTest
         NamingEnumeration results1 = context1.search(base, filter, sc1);
         NamingEnumeration results2 = context1.search(base, filter, sc2);
 
-        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
-        checkRootEntry(((SearchResult) results1.next()).getAttributes());
-        checkRootEntry(((SearchResult) results2.next()).getAttributes());
+        for (NamingEnumeration results : Arrays.asList(results1, results2)) {
 
-        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
-        checkGroupsEntry(((SearchResult) results1.next()).getAttributes());
-        checkGroupsEntry(((SearchResult) results2.next()).getAttributes());
+            Assertions.assertTrue(results.hasMore());
+            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
 
-        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
-        checkUsersEntry(((SearchResult) results1.next()).getAttributes());
-        checkUsersEntry(((SearchResult) results2.next()).getAttributes());
+            Assertions.assertTrue(results.hasMore());
+            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
 
-        for (GroupEntity entry : directoryBackend.getAllGroups()) {
+            Assertions.assertTrue(results.hasMore());
+            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
-            Assertions.assertTrue(results1.hasMore() && results2.hasMore());
-            Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
-            Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes1, false));
-            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes2, false));
+            for (GroupEntity entry : directory.getAllGroups()) {
+
+                Assertions.assertTrue(results.hasMore());
+                String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP);
+                Assertions.assertEquals(entry.getId(), id);
+            }
+
+            for (UserEntity entry : directory.getAllUsers()) {
+
+                Assertions.assertTrue(results.hasMore());
+                String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
+                Assertions.assertEquals(entry.getId(), id);
+            }
+
+            Assertions.assertFalse(results.hasMore());
         }
-
-        for (UserEntity entry : directoryBackend.getAllUsers()) {
-
-            Assertions.assertTrue(results1.hasMore() && results2.hasMore());
-            Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
-            Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes1, false));
-            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes2, false));
-        }
-
-        Assertions.assertFalse(results1.hasMore() || results2.hasMore());
 
         context1.close();
         context2.close();
@@ -263,11 +269,13 @@ public class ScopeTest
     public void test007()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "ou=groups,dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context1 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
-        InitialDirContext context2 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context1 = createContext("UserA", "pw-user-a");
+        InitialDirContext context2 = createContext("UserA", "pw-user-a");
 
         SearchControls sc1 = new SearchControls();
         sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
@@ -278,20 +286,20 @@ public class ScopeTest
         NamingEnumeration results1 = context1.search(base, filter, sc1);
         NamingEnumeration results2 = context1.search(base, filter, sc2);
 
-        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
-        checkGroupsEntry(((SearchResult) results1.next()).getAttributes());
-        checkGroupsEntry(((SearchResult) results2.next()).getAttributes());
+        for (NamingEnumeration results : Arrays.asList(results1, results2)) {
 
-        for (GroupEntity entry : directoryBackend.getAllGroups()) {
+            Assertions.assertTrue(results.hasMore());
+            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
 
-            Assertions.assertTrue(results1.hasMore() && results2.hasMore());
-            Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
-            Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes1, false));
-            Assertions.assertEquals(entry.getId(), getAndCheckGroupEntry(attributes2, false));
+            for (GroupEntity entry : directory.getAllGroups()) {
+
+                Assertions.assertTrue(results.hasMore());
+                String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP);
+                Assertions.assertEquals(entry.getId(), id);
+            }
+
+            Assertions.assertFalse(results.hasMore());
         }
-
-        Assertions.assertFalse(results1.hasMore() || results2.hasMore());
 
         context1.close();
         context2.close();
@@ -303,11 +311,13 @@ public class ScopeTest
     public void test008()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "ou=users,dc=json";
         String filter = "objectClass=*";
 
-        InitialDirContext context1 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
-        InitialDirContext context2 = createContext("UserA", "pw-user-a", MODE_NESTED_GROUPS_PORT);
+        InitialDirContext context1 = createContext("UserA", "pw-user-a");
+        InitialDirContext context2 = createContext("UserA", "pw-user-a");
 
         SearchControls sc1 = new SearchControls();
         sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
@@ -318,20 +328,20 @@ public class ScopeTest
         NamingEnumeration results1 = context1.search(base, filter, sc1);
         NamingEnumeration results2 = context1.search(base, filter, sc2);
 
-        Assertions.assertTrue(results1.hasMore() && results2.hasMore());
-        checkUsersEntry(((SearchResult) results1.next()).getAttributes());
-        checkUsersEntry(((SearchResult) results2.next()).getAttributes());
+        for (NamingEnumeration results : Arrays.asList(results1, results2)) {
 
-        for (UserEntity entry : directoryBackend.getAllUsers()) {
+            Assertions.assertTrue(results.hasMore());
+            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
-            Assertions.assertTrue(results1.hasMore() && results2.hasMore());
-            Attributes attributes1 = ((SearchResult) results1.next()).getAttributes();
-            Attributes attributes2 = ((SearchResult) results2.next()).getAttributes();
-            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes1, false));
-            Assertions.assertEquals(entry.getId(), getAndCheckUserEntry(attributes2, false));
+            for (UserEntity entry : directory.getAllUsers()) {
+
+                Assertions.assertTrue(results.hasMore());
+                String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
+                Assertions.assertEquals(entry.getId(), id);
+            }
+
+            Assertions.assertFalse(results.hasMore());
         }
-
-        Assertions.assertFalse(results1.hasMore() || results2.hasMore());
 
         context1.close();
         context2.close();

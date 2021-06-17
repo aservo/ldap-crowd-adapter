@@ -1,106 +1,118 @@
 package com.aservo.ldap.adapter.backend;
 
+import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
-import com.aservo.ldap.adapter.helper.AbstractTest;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import test.api.AbstractBackendTest;
+import test.configuration.backend.JsonBackend;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(it-only)|(it-offline-only)")
 public class JsonDirectoryBackendTest
-        extends AbstractTest {
+        extends AbstractBackendTest {
 
-    private final List<String> indices = Arrays.asList("A", "B", "C", "D", "E+,");
+    private final List<String> indices =
+            Arrays.asList("A", "B", "C", "D", "E+,", "F", "G", "H", "I");
 
     public JsonDirectoryBackendTest() {
 
-        super(BackendConfig.NORMAL);
+        super(new JsonBackend());
     }
 
     @Test
     @Order(1)
-    @DisplayName("it should be able to read entry info")
+    @DisplayName("it should be able to get entity attributes")
     public void test001()
             throws Exception {
+
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
 
         for (String index : indices) {
 
             Assertions.assertEquals(("Group" + index).toLowerCase(),
-                    directoryBackend.getGroup("Group" + index).getId());
+                    directory.getGroup("Group" + index).getId());
 
             Assertions.assertEquals("Group" + index,
-                    directoryBackend.getGroup("Group" + index).getName());
+                    directory.getGroup("Group" + index).getName());
 
             Assertions.assertEquals("Description of Group" + index + ".",
-                    directoryBackend.getGroup("Group" + index).getDescription());
+                    directory.getGroup("Group" + index).getDescription());
         }
 
         for (String index : indices) {
 
             Assertions.assertEquals(("User" + index).toLowerCase(),
-                    directoryBackend.getUser("User" + index).getId());
+                    directory.getUser("User" + index).getId());
 
             Assertions.assertEquals("User" + index,
-                    directoryBackend.getUser("User" + index).getUsername());
+                    directory.getUser("User" + index).getUsername());
 
             Assertions.assertEquals("LastNameOfUser" + index,
-                    directoryBackend.getUser("User" + index).getLastName());
+                    directory.getUser("User" + index).getLastName());
 
             Assertions.assertEquals("FirstNameOfUser" + index,
-                    directoryBackend.getUser("User" + index).getFirstName());
+                    directory.getUser("User" + index).getFirstName());
 
             Assertions.assertEquals("DisplayNameOfUser" + index,
-                    directoryBackend.getUser("User" + index).getDisplayName());
+                    directory.getUser("User" + index).getDisplayName());
 
             Assertions.assertEquals(index.toLowerCase().charAt(0) + ".user@email.com",
-                    directoryBackend.getUser("User" + index).getEmail());
+                    directory.getUser("User" + index).getEmail());
         }
     }
 
     @Test
     @Order(2)
-    @DisplayName("it should make an authentication correctly")
+    @DisplayName("it should perform an authentication correctly")
     public void test002()
             throws Exception {
+
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
 
         for (String index : indices) {
 
             Assertions.assertEquals("User" + index,
-                    directoryBackend
+                    directory
                             .getAuthenticatedUser("User" + index, "pw-user-" + index.toLowerCase().charAt(0))
                             .getUsername());
         }
 
         Assertions.assertThrows(SecurityProblemException.class, () -> {
 
-            directoryBackend.getAuthenticatedUser("UserA", "pw-incorrect");
+            directory.getAuthenticatedUser("UserA", "pw-incorrect");
         });
 
         Assertions.assertThrows(EntityNotFoundException.class, () -> {
 
-            directoryBackend.getAuthenticatedUser("non-existing-user", "pw");
+            directory.getAuthenticatedUser("non-existing-user", "pw");
         });
     }
 
     @Test
     @Order(3)
-    @DisplayName("it should list all entries")
+    @DisplayName("it should list all entities")
     public void test003()
             throws Exception {
 
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
+
         Assertions.assertEquals(indices.stream().map((x) -> "Group" + x).collect(Collectors.toSet()),
-                directoryBackend.getAllGroups().stream()
+                directory.getAllGroups().stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(indices.stream().map((x) -> "User" + x).collect(Collectors.toSet()),
-                directoryBackend.getAllUsers().stream()
+                directory.getAllUsers().stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
     }
@@ -111,28 +123,50 @@ public class JsonDirectoryBackendTest
     public void test004()
             throws Exception {
 
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
+
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB")),
-                directoryBackend.getDirectGroupsOfUser("UserA").stream()
+                directory.getDirectGroupsOfUser("UserA").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB")),
-                directoryBackend.getDirectGroupsOfUser("UserB").stream()
+                directory.getDirectGroupsOfUser("UserB").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupB")),
-                directoryBackend.getDirectGroupsOfUser("UserC").stream()
+                directory.getDirectGroupsOfUser("UserC").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupC")),
-                directoryBackend.getDirectGroupsOfUser("UserD").stream()
+                directory.getDirectGroupsOfUser("UserD").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE+,")),
-                directoryBackend.getDirectGroupsOfUser("UserE+,").stream()
+                directory.getDirectGroupsOfUser("UserE+,").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupF")),
+                directory.getDirectGroupsOfUser("UserF").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupG")),
+                directory.getDirectGroupsOfUser("UserG").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupH")),
+                directory.getDirectGroupsOfUser("UserH").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getDirectGroupsOfUser("UserI").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
@@ -143,28 +177,50 @@ public class JsonDirectoryBackendTest
     public void test005()
             throws Exception {
 
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
+
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserD")),
-                directoryBackend.getDirectUsersOfGroup("GroupA").stream()
+                directory.getDirectUsersOfGroup("GroupA").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserC")),
-                directoryBackend.getDirectUsersOfGroup("GroupB").stream()
+                directory.getDirectUsersOfGroup("GroupB").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserD")),
-                directoryBackend.getDirectUsersOfGroup("GroupC").stream()
+                directory.getDirectUsersOfGroup("GroupC").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
-                directoryBackend.getDirectUsersOfGroup("GroupD").stream()
+                directory.getDirectUsersOfGroup("GroupD").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserE+,")),
-                directoryBackend.getDirectUsersOfGroup("GroupE+,").stream()
+                directory.getDirectUsersOfGroup("GroupE+,").stream()
+                        .map(UserEntity::getUsername)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserF")),
+                directory.getDirectUsersOfGroup("GroupF").stream()
+                        .map(UserEntity::getUsername)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserG")),
+                directory.getDirectUsersOfGroup("GroupG").stream()
+                        .map(UserEntity::getUsername)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserH")),
+                directory.getDirectUsersOfGroup("GroupH").stream()
+                        .map(UserEntity::getUsername)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getDirectUsersOfGroup("GroupI").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
     }
@@ -175,28 +231,50 @@ public class JsonDirectoryBackendTest
     public void test006()
             throws Exception {
 
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
+
         Assertions.assertEquals(new HashSet<>(),
-                directoryBackend.getDirectChildGroupsOfGroup("GroupA").stream()
+                directory.getDirectChildGroupsOfGroup("GroupA").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
-                directoryBackend.getDirectChildGroupsOfGroup("GroupB").stream()
+                directory.getDirectChildGroupsOfGroup("GroupB").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA")),
-                directoryBackend.getDirectChildGroupsOfGroup("GroupC").stream()
+                directory.getDirectChildGroupsOfGroup("GroupC").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC")),
-                directoryBackend.getDirectChildGroupsOfGroup("GroupD").stream()
+                directory.getDirectChildGroupsOfGroup("GroupD").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD")),
-                directoryBackend.getDirectChildGroupsOfGroup("GroupE+,").stream()
+                directory.getDirectChildGroupsOfGroup("GroupE+,").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getDirectChildGroupsOfGroup("GroupF").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupH")),
+                directory.getDirectChildGroupsOfGroup("GroupG").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupG")),
+                directory.getDirectChildGroupsOfGroup("GroupH").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getDirectChildGroupsOfGroup("GroupI").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
@@ -207,28 +285,50 @@ public class JsonDirectoryBackendTest
     public void test007()
             throws Exception {
 
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
+
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC")),
-                directoryBackend.getDirectParentGroupsOfGroup("GroupA").stream()
+                directory.getDirectParentGroupsOfGroup("GroupA").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
-                directoryBackend.getDirectParentGroupsOfGroup("GroupB").stream()
+                directory.getDirectParentGroupsOfGroup("GroupB").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD")),
-                directoryBackend.getDirectParentGroupsOfGroup("GroupC").stream()
+                directory.getDirectParentGroupsOfGroup("GroupC").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE+,")),
-                directoryBackend.getDirectParentGroupsOfGroup("GroupD").stream()
+                directory.getDirectParentGroupsOfGroup("GroupD").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
-                directoryBackend.getDirectParentGroupsOfGroup("GroupE+,").stream()
+                directory.getDirectParentGroupsOfGroup("GroupE+,").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getDirectParentGroupsOfGroup("GroupF").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupH")),
+                directory.getDirectParentGroupsOfGroup("GroupG").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupG")),
+                directory.getDirectParentGroupsOfGroup("GroupH").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getDirectParentGroupsOfGroup("GroupI").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
@@ -239,28 +339,50 @@ public class JsonDirectoryBackendTest
     public void test008()
             throws Exception {
 
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
+
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB", "GroupC", "GroupD", "GroupE+,")),
-                directoryBackend.getTransitiveGroupsOfUser("UserA").stream()
+                directory.getTransitiveGroupsOfUser("UserA").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupB", "GroupC", "GroupD", "GroupE+,")),
-                directoryBackend.getTransitiveGroupsOfUser("UserB").stream()
+                directory.getTransitiveGroupsOfUser("UserB").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupB")),
-                directoryBackend.getTransitiveGroupsOfUser("UserC").stream()
+                directory.getTransitiveGroupsOfUser("UserC").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA", "GroupC", "GroupD", "GroupE+,")),
-                directoryBackend.getTransitiveGroupsOfUser("UserD").stream()
+                directory.getTransitiveGroupsOfUser("UserD").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE+,")),
-                directoryBackend.getTransitiveGroupsOfUser("UserE+,").stream()
+                directory.getTransitiveGroupsOfUser("UserE+,").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupF")),
+                directory.getTransitiveGroupsOfUser("UserF").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupG", "GroupH")),
+                directory.getTransitiveGroupsOfUser("UserG").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupG", "GroupH")),
+                directory.getTransitiveGroupsOfUser("UserH").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getTransitiveGroupsOfUser("UserI").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
@@ -271,28 +393,50 @@ public class JsonDirectoryBackendTest
     public void test009()
             throws Exception {
 
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
+
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserD")),
-                directoryBackend.getTransitiveUsersOfGroup("GroupA").stream()
+                directory.getTransitiveUsersOfGroup("GroupA").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserA", "UserB", "UserC")),
-                directoryBackend.getTransitiveUsersOfGroup("GroupB").stream()
+                directory.getTransitiveUsersOfGroup("GroupB").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserD", "UserA", "UserB")),
-                directoryBackend.getTransitiveUsersOfGroup("GroupC").stream()
+                directory.getTransitiveUsersOfGroup("GroupC").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserD", "UserA", "UserB")),
-                directoryBackend.getTransitiveUsersOfGroup("GroupD").stream()
+                directory.getTransitiveUsersOfGroup("GroupD").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("UserE+,", "UserD", "UserA", "UserB")),
-                directoryBackend.getTransitiveUsersOfGroup("GroupE+,").stream()
+                directory.getTransitiveUsersOfGroup("GroupE+,").stream()
+                        .map(UserEntity::getUsername)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserF")),
+                directory.getTransitiveUsersOfGroup("GroupF").stream()
+                        .map(UserEntity::getUsername)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserG", "UserH")),
+                directory.getTransitiveUsersOfGroup("GroupG").stream()
+                        .map(UserEntity::getUsername)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("UserG", "UserH")),
+                directory.getTransitiveUsersOfGroup("GroupH").stream()
+                        .map(UserEntity::getUsername)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getTransitiveUsersOfGroup("GroupI").stream()
                         .map(UserEntity::getUsername)
                         .collect(Collectors.toSet()));
     }
@@ -304,28 +448,50 @@ public class JsonDirectoryBackendTest
     public void test010()
             throws Exception {
 
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
+
         Assertions.assertEquals(new HashSet<>(),
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupA").stream()
+                directory.getTransitiveChildGroupsOfGroup("GroupA").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupB").stream()
+                directory.getTransitiveChildGroupsOfGroup("GroupB").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupA")),
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupC").stream()
+                directory.getTransitiveChildGroupsOfGroup("GroupC").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC", "GroupA")),
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupD").stream()
+                directory.getTransitiveChildGroupsOfGroup("GroupD").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD", "GroupC", "GroupA")),
-                directoryBackend.getTransitiveChildGroupsOfGroup("GroupE+,").stream()
+                directory.getTransitiveChildGroupsOfGroup("GroupE+,").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getTransitiveChildGroupsOfGroup("GroupF").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupH")),
+                directory.getTransitiveChildGroupsOfGroup("GroupG").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupG")),
+                directory.getTransitiveChildGroupsOfGroup("GroupH").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getTransitiveChildGroupsOfGroup("GroupI").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }
@@ -336,28 +502,50 @@ public class JsonDirectoryBackendTest
     public void test011()
             throws Exception {
 
+        DirectoryBackend directory = getBackendFactory().getPermanentDirectory();
+
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupC", "GroupD", "GroupE+,")),
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupA").stream()
+                directory.getTransitiveParentGroupsOfGroup("GroupA").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupB").stream()
+                directory.getTransitiveParentGroupsOfGroup("GroupB").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupD", "GroupE+,")),
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupC").stream()
+                directory.getTransitiveParentGroupsOfGroup("GroupC").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupE+,")),
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupD").stream()
+                directory.getTransitiveParentGroupsOfGroup("GroupD").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
 
         Assertions.assertEquals(new HashSet<>(),
-                directoryBackend.getTransitiveParentGroupsOfGroup("GroupE+,").stream()
+                directory.getTransitiveParentGroupsOfGroup("GroupE+,").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getTransitiveParentGroupsOfGroup("GroupF").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupH")),
+                directory.getTransitiveParentGroupsOfGroup("GroupG").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(Arrays.asList("GroupG")),
+                directory.getTransitiveParentGroupsOfGroup("GroupH").stream()
+                        .map(GroupEntity::getName)
+                        .collect(Collectors.toSet()));
+
+        Assertions.assertEquals(new HashSet<>(),
+                directory.getTransitiveParentGroupsOfGroup("GroupI").stream()
                         .map(GroupEntity::getName)
                         .collect(Collectors.toSet()));
     }

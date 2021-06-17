@@ -1,4 +1,4 @@
-package com.aservo.ldap.adapter.helper;
+package test.api;
 
 import java.io.*;
 import java.math.BigInteger;

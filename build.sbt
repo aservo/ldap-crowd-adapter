@@ -61,11 +61,8 @@ libraryDependencies ++= Seq(
   "com.atlassian.crowd.client" % "atlassian-crowd-rest-client" % "1.4",
   "com.atlassian.crowd" % "crowd-integration-client-rest" % "4.2.3",
   "com.atlassian.security" % "atlassian-cookie-tools" % "4.0.0" jar,
-  "org.bouncycastle" % "bcprov-jdk15on" % "1.68" % "test,it",
-  "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % "test,it"
+  "org.bouncycastle" % "bcprov-jdk15on" % "1.68" % "test",
+  "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % "test"
 )
-
-configs(IntegrationTest)
-Defaults.itSettings
 
 enablePlugins(JacocoItPlugin)
