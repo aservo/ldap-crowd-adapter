@@ -64,12 +64,12 @@ public class Main {
      * Creates a server configuration instance.
      * It configures all directory backends.
      *
-     * @param backendProperties additional backend properties
+     * @param properties additional backend properties
      * @return the server configuration instance
      */
-    public static ServerConfiguration createConfiguration(Properties backendProperties) {
+    public static ServerConfiguration createConfiguration(Properties properties) {
 
-        return createConfiguration(new Properties(), backendProperties);
+        return createConfiguration(properties, properties);
     }
 
     /**
