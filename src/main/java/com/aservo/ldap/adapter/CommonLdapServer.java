@@ -104,6 +104,16 @@ public class CommonLdapServer {
     }
 
     /**
+     * Gets the directory backend factory.
+     *
+     * @return the directory backend factory
+     */
+    public DirectoryBackendFactory getDirectoryBackendFactory() {
+
+        return directoryBackendFactory;
+    }
+
+    /**
      * Startup method.
      */
     public void startup() {
