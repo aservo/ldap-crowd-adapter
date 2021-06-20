@@ -1,9 +1,10 @@
 #!/bin/bash
 
 CROWD_KEY="$1"
-
-CROWD_INSTALL="$PWD/temp/atlassian-crowd"
+INSTALL_DIR="$PWD/tmp/crowd-it-test-installation"
+CROWD_INSTALL="$INSTALL_DIR/atlassian-crowd"
 CROWD_INSTANCE="$CROWD_INSTALL-instance"
+CROWD_COOKIES="$INSTALL_DIR/cookies.txt"
 CROWD_HOST="http://localhost:8095"
 
 function wait_server_up {
@@ -29,7 +30,7 @@ function getAtlToken {
   # fetch page to parse the token
   local RESULT=$(curl -L -X GET \
     --silent \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     "$CROWD_HOST""$1")
 
   # parse form token
@@ -45,7 +46,7 @@ function get_directory_id {
   # fetch page with information about initial directory
   local RESULT=$(curl -L -X POST \
     --silent \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/directory/browse.action)" \
     --data-urlencode "active=" \
@@ -64,7 +65,7 @@ function get_application_id {
   # fetch page with information about initial directory
   local RESULT=$(curl -L -X GET \
     --silent \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     "$CROWD_HOST/crowd/console/secure/application/browse.action?name=$UNIQUE_NAME&active=&resultsPerPage=1")
 
   # parse directory ID
@@ -76,7 +77,7 @@ function login_web {
   # login user
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie-jar temp/cookies \
+    --cookie-jar "$CROWD_COOKIES" \
     --header "Content-Type: application/json" \
     --header "X-Atlassian-Token: no-check" \
     --data '{"username":"'"$1"'","password":"'"$2"'","rememberMe":"false"}' \
@@ -96,13 +97,13 @@ function pre_config {
   # fetch session cookie
   curl -L -X GET \
     --silent --output /dev/null \
-    --cookie-jar temp/cookies \
+    --cookie-jar "$CROWD_COOKIES" \
     "$CROWD_HOST/crowd/console"
 
   # set Crowd license key
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/setuplicense.action)" \
     --data-urlencode "sid=$SERVER_ID" \
@@ -112,7 +113,7 @@ function pre_config {
   # set flag to continue with installation process from null
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/installtype.action)" \
     --data-urlencode "installOption=install.new" \
@@ -121,7 +122,7 @@ function pre_config {
   # set usage of an embedded database
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/setupdatabase.action)" \
     --data-urlencode "databaseOption=db.embedded" \
@@ -130,7 +131,7 @@ function pre_config {
   # set Crowd options
   curl -L -X POST \
   --silent --output /dev/null \
-  --cookie temp/cookies \
+  --cookie "$CROWD_COOKIES" \
   --header "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/setupoptions.action)" \
   --data-urlencode "title=Test Instance" \
@@ -141,7 +142,7 @@ function pre_config {
   # set initial internal directory
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/directoryinternalsetup.action)" \
     --data-urlencode "name=$DIRECTORY" \
@@ -150,7 +151,7 @@ function pre_config {
   # set first user
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/defaultadministrator.action)" \
     --data-urlencode "email=$EMAIL" \
@@ -164,7 +165,7 @@ function pre_config {
   # set no migration flags
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/integration.action)" \
     "$CROWD_HOST"'/crowd/console/setup/integration!update.action'
@@ -184,7 +185,7 @@ function create_user {
   # safe user
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/user/add.action)" \
     --data-urlencode "directoryID=$DIRECTORY_ID" \
@@ -209,7 +210,7 @@ function create_group {
   # safe group
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/group/add.action)" \
     --data-urlencode "directoryID=$DIRECTORY_ID" \
@@ -229,7 +230,7 @@ function add_user_to_group {
   # safe user-group-membership
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken "/crowd/console/secure/group/viewmembers.action?directoryID=$DIRECTORY_ID&groupName=$UNIQUE_NAME")" \
     --data-urlencode "selectedEntityNames=$MEMBER_UNIQUE_NAME" \
@@ -246,7 +247,7 @@ function add_group_to_group {
   # safe group-group-membership
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken "/crowd/console/secure/group/viewmembers.action?directoryID=$DIRECTORY_ID&groupName=$UNIQUE_NAME")" \
     --data-urlencode "selectedEntityNames=$MEMBER_UNIQUE_NAME" \
@@ -260,7 +261,7 @@ function create_directory {
   # safe directory part 1
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/directory/create.action)" \
     --data-urlencode "directoryType=INTERNAL" \
@@ -269,7 +270,7 @@ function create_directory {
   # safe directory part 2
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/directory/createinternal.action)" \
     --data-urlencode "active=true" \
@@ -311,7 +312,7 @@ function create_app {
   # safe app part 1
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/application/addapplicationdetails.action)" \
     --data-urlencode "applicationType=GENERIC_APPLICATION" \
@@ -324,7 +325,7 @@ function create_app {
   # safe app part 2
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/application/addapplicationconnectiondetails.action)" \
     --data-urlencode "applicationURL=$APP_URL" \
@@ -334,7 +335,7 @@ function create_app {
   # safe app part 3
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/application/addapplicationdirectorydetails.action)" \
     $(for i in "${!DIR_ARRAY[@]}"; do echo "--data-urlencode selecteddirectories=${DIR_ARRAY[$i]}"; done) \
@@ -343,7 +344,7 @@ function create_app {
   # safe app part 4
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/application/addapplicationauthorisationdetails.action)" \
     $(for i in "${!DIR_ARRAY[@]}"; do echo "--data-urlencode allowAllToAuthenticateForDirectory-${DIR_ARRAY[$i]}=true"; done) \
@@ -352,7 +353,7 @@ function create_app {
   # safe app part 5
   curl -L -X POST \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/application/addapplicationconfirmation.action)" \
     "$CROWD_HOST"'/crowd/console/secure/application/addapplicationconfirmation!completeStep.action'
@@ -365,7 +366,7 @@ function enable_app_aggregation {
   # set aggregation flag
   curl -L -X PUT \
     --silent --output /dev/null \
-    --cookie temp/cookies \
+    --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/json" \
     --header "X-Atlassian-Token: no-check" \
     --data '{"aggregateMemberships":true}' \

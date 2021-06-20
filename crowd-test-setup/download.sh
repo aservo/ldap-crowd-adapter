@@ -1,10 +1,12 @@
 #!/bin/bash
 
 CROWD_VERSION="$1"
+INSTALL_DIR="$PWD/tmp/crowd-it-test-installation"
 
-mkdir "$PWD/temp"
+rm -r "$INSTALL_DIR" || true
+mkdir -p "$INSTALL_DIR"
 
 curl -sL "https://www.atlassian.com/software/crowd/downloads/binary/atlassian-crowd-$CROWD_VERSION.tar.gz" \
-  | tar -C "$PWD/temp" -zxf -
+  | tar -C "$INSTALL_DIR" -zxf -
 
-ln -s "$PWD/temp/atlassian-crowd-$CROWD_VERSION" "$PWD/temp/atlassian-crowd"
+ln -s "$INSTALL_DIR/atlassian-crowd-$CROWD_VERSION" "$INSTALL_DIR/atlassian-crowd"
