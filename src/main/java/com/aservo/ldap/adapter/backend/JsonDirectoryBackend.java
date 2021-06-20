@@ -229,7 +229,9 @@ public class JsonDirectoryBackend
 
         Group group = findGroupById(id);
 
-        return new ArrayList<>(group.userMembers);
+        return group.getUserMembers().stream()
+                .map(x -> (UserEntity) x)
+                .collect(Collectors.toList());
     }
 
     public List<GroupEntity> getDirectGroupsOfUser(String id)
@@ -281,7 +283,9 @@ public class JsonDirectoryBackend
 
         Group group = findGroupById(id);
 
-        return new ArrayList<>(group.groupMembers);
+        return group.getGroupMembers().stream()
+                .filter(x -> !x.equals(group))
+                .collect(Collectors.toList());
     }
 
     public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
@@ -293,6 +297,7 @@ public class JsonDirectoryBackend
 
         return groupList.stream()
                 .filter(x -> x.getGroupMembers().contains(group))
+                .filter(x -> !x.equals(group))
                 .collect(Collectors.toList());
     }
 
