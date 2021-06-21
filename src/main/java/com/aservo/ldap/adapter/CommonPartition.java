@@ -357,7 +357,7 @@ public class CommonPartition
                     if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
 
                         if (serverConfig.isAbbreviateGnAttribute())
-                            entry.put(SchemaConstants.GN_AT, user.getLastName());
+                            entry.put(SchemaConstants.GN_AT, user.getFirstName());
                         else
                             entry.put(SchemaConstants.GIVENNAME_AT, user.getFirstName());
                     }

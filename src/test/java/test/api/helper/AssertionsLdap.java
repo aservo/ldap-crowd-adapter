@@ -25,7 +25,9 @@ public class AssertionsLdap {
             Attributes attributes,
             EntityType entityType,
             DirectoryBackend directory,
-            boolean flattening)
+            boolean flattening,
+            boolean abbreviateSn,
+            boolean abbreviateGn)
             throws Exception {
 
         String id = null;
@@ -279,14 +281,38 @@ public class AssertionsLdap {
                 Assertions.assertFalse(ne.hasMore());
             }
 
-            {
+            if (abbreviateSn) {
+
+                Assertions.assertNull(attributes.get(SchemaConstants.SURNAME_AT));
+
+                NamingEnumeration ne = attributes.get(SchemaConstants.SN_AT).getAll();
+
+                Assertions.assertEquals(entity.getLastName(), ne.next());
+                Assertions.assertFalse(ne.hasMore());
+
+            } else {
+
+                Assertions.assertNull(attributes.get(SchemaConstants.SN_AT));
+
                 NamingEnumeration ne = attributes.get(SchemaConstants.SURNAME_AT).getAll();
 
                 Assertions.assertEquals(entity.getLastName(), ne.next());
                 Assertions.assertFalse(ne.hasMore());
             }
 
-            {
+            if (abbreviateGn) {
+
+                Assertions.assertNull(attributes.get(SchemaConstants.GIVENNAME_AT));
+
+                NamingEnumeration ne = attributes.get(SchemaConstants.GN_AT).getAll();
+
+                Assertions.assertEquals(entity.getFirstName(), ne.next());
+                Assertions.assertFalse(ne.hasMore());
+
+            } else {
+
+                Assertions.assertNull(attributes.get(SchemaConstants.GN_AT));
+
                 NamingEnumeration ne = attributes.get(SchemaConstants.GIVENNAME_AT).getAll();
 
                 Assertions.assertEquals(entity.getFirstName(), ne.next());

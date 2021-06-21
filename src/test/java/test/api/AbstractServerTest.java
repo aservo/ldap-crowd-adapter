@@ -59,7 +59,8 @@ public abstract class AbstractServerTest {
 
         DirectoryBackend directory = server.getDirectoryBackendFactory().getPermanentDirectory();
 
-        return AssertionsLdap.correctEntry(attributes, entityType, directory, serverSetup.isFlatteningEnabled());
+        return AssertionsLdap.correctEntry(attributes, entityType, directory, serverSetup.isFlatteningEnabled(),
+                server.getServerConfig().isAbbreviateSnAttribute(), server.getServerConfig().isAbbreviateGnAttribute());
     }
 
     @BeforeAll

@@ -2,7 +2,6 @@ package test.it;
 
 import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import com.aservo.ldap.adapter.api.entity.EntityType;
-import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.InitialDirContext;
@@ -11,18 +10,18 @@ import javax.naming.directory.SearchResult;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
-import test.configuration.server.JsonWithGroupNesting;
+import test.configuration.server.JsonWithGroupNestingAndAbbrevAttr;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(unit-only)")
-public class GroupNestingTest
+public class AttributeAbbrevAttrTest
         extends AbstractServerTest {
 
-    public GroupNestingTest() {
+    public AttributeAbbrevAttrTest() {
 
-        super(new JsonWithGroupNesting(10932));
+        super(new JsonWithGroupNestingAndAbbrevAttr(10936));
     }
 
     @Test
@@ -31,44 +30,14 @@ public class GroupNestingTest
     public void test001()
             throws Exception {
 
-        Assertions.assertFalse(getServer().getServerConfig().isAbbreviateSnAttribute());
-        Assertions.assertFalse(getServer().getServerConfig().isAbbreviateGnAttribute());
+        Assertions.assertTrue(getServer().getServerConfig().isAbbreviateSnAttribute());
+        Assertions.assertTrue(getServer().getServerConfig().isAbbreviateGnAttribute());
     }
 
     @Test
     @Order(2)
-    @DisplayName("it should show group attributes correctly in nested-groups mode")
+    @DisplayName("it should show user attributes correctly with abbreviated attributes")
     public void test002()
-            throws Exception {
-
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
-
-        String base = "ou=groups,dc=json";
-        String filter = "objectClass=groupOfUniqueNames";
-
-        InitialDirContext context = createContext("UserA", "pw-user-a");
-
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
-
-        NamingEnumeration results = context.search(base, filter, sc);
-
-        for (GroupEntity entity : directory.getAllGroups()) {
-
-            Assertions.assertTrue(results.hasMore());
-            String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP);
-            Assertions.assertEquals(entity.getId(), id);
-        }
-
-        Assertions.assertFalse(results.hasMore());
-
-        context.close();
-    }
-
-    @Test
-    @Order(3)
-    @DisplayName("it should show user attributes correctly in nested-groups mode")
-    public void test003()
             throws Exception {
 
         DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();

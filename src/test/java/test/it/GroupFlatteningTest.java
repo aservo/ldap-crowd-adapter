@@ -27,8 +27,18 @@ public class GroupFlatteningTest
 
     @Test
     @Order(1)
-    @DisplayName("it should show group attributes correctly in flattening mode")
+    @DisplayName("it should use the correct flags for attribute abbreviation")
     public void test001()
+            throws Exception {
+
+        Assertions.assertFalse(getServer().getServerConfig().isAbbreviateSnAttribute());
+        Assertions.assertFalse(getServer().getServerConfig().isAbbreviateGnAttribute());
+    }
+
+    @Test
+    @Order(2)
+    @DisplayName("it should show group attributes correctly in flattening mode")
+    public void test002()
             throws Exception {
 
         DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
@@ -56,9 +66,9 @@ public class GroupFlatteningTest
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     @DisplayName("it should show user attributes correctly in flattening mode")
-    public void test002()
+    public void test003()
             throws Exception {
 
         DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
