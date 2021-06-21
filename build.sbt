@@ -65,4 +65,7 @@ libraryDependencies ++= Seq(
   "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % "test"
 )
 
+jacocoReportSettings in Test := JacocoReportSettings()
+  .withFormats(JacocoReportFormats.XML)
+
 enablePlugins(JacocoItPlugin)
