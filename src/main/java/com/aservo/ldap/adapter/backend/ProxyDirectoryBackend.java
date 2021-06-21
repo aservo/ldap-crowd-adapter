@@ -29,7 +29,6 @@ import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import java.util.List;
 import java.util.function.Supplier;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 
 
@@ -170,30 +169,6 @@ public abstract class ProxyDirectoryBackend
                                                   EntityType entityType) {
 
         return directoryBackend.runQueryExpression(schemaManager, expression, entityType);
-    }
-
-    @Override
-    public List<Pair<String, String>> getAllDirectGroupRelationships() {
-
-        return directoryBackend.getAllDirectGroupRelationships();
-    }
-
-    @Override
-    public List<Pair<String, String>> getAllDirectUserRelationships() {
-
-        return directoryBackend.getAllDirectUserRelationships();
-    }
-
-    @Override
-    public List<Pair<String, String>> getAllTransitiveGroupRelationships() {
-
-        return directoryBackend.getAllTransitiveGroupRelationships();
-    }
-
-    @Override
-    public List<Pair<String, String>> getAllTransitiveUserRelationships() {
-
-        return directoryBackend.getAllTransitiveUserRelationships();
     }
 
     @Override

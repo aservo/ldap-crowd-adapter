@@ -18,10 +18,8 @@
 package com.aservo.ldap.adapter.api.directory;
 
 import com.aservo.ldap.adapter.api.entity.MembershipEntity;
-import java.util.List;
 import java.util.function.Supplier;
 import javax.naming.OperationNotSupportedException;
-import org.apache.commons.lang3.tuple.Pair;
 
 
 /**
@@ -192,50 +190,6 @@ public interface NestedDirectoryBackend
      * @param membership the membership entity
      */
     default void dropMembership(MembershipEntity membership) {
-    }
-
-    /**
-     * Gets all direct group relationships.
-     *
-     * @return the transitive group relationships
-     */
-    default List<Pair<String, String>> getAllDirectGroupRelationships() {
-
-        throw new RuntimeException(new OperationNotSupportedException(
-                "The method getAllDirectGroupRelationships is not supported."));
-    }
-
-    /**
-     * Gets all direct user relationships.
-     *
-     * @return the transitive user relationships
-     */
-    default List<Pair<String, String>> getAllDirectUserRelationships() {
-
-        throw new RuntimeException(new OperationNotSupportedException(
-                "The method getAllDirectUserRelationships is not supported."));
-    }
-
-    /**
-     * Gets all transitive group relationships.
-     *
-     * @return the transitive group relationships
-     */
-    default List<Pair<String, String>> getAllTransitiveGroupRelationships() {
-
-        throw new RuntimeException(new OperationNotSupportedException(
-                "The method getAllTransitiveGroupRelationships is not supported."));
-    }
-
-    /**
-     * Gets all transitive user relationships.
-     *
-     * @return the transitive user relationships
-     */
-    default List<Pair<String, String>> getAllTransitiveUserRelationships() {
-
-        throw new RuntimeException(new OperationNotSupportedException(
-                "The method getAllTransitiveUserRelationships is not supported."));
     }
 
     /**

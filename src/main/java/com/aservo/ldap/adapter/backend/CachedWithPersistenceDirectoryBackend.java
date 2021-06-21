@@ -45,7 +45,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -543,91 +542,6 @@ public class CachedWithPersistenceDirectoryBackend
                 expression)
                 .execute(CursorResult.class)
                 .transform(Function.identity()));
-    }
-
-    @Override
-    public List<Pair<String, String>> getAllDirectGroupRelationships() {
-
-        QueryDefFactory factory = getCurrentQueryDefFactory();
-
-        return factory
-                .queryById("find_all_direct_group_memberships")
-                .execute(IndexedSeqResult.class)
-                .transform(row -> Pair.of(
-                        row.apply("parent_group_id", String.class),
-                        row.apply("member_group_id", String.class)
-                ));
-    }
-
-    @Override
-    public List<Pair<String, String>> getAllDirectUserRelationships() {
-
-        QueryDefFactory factory = getCurrentQueryDefFactory();
-
-        return factory
-                .queryById("find_all_direct_user_memberships")
-                .on("active_only", activeUsersOnly)
-                .execute(IndexedSeqResult.class)
-                .transform(row -> Pair.of(
-                        row.apply("parent_group_id", String.class),
-                        row.apply("member_user_id", String.class)
-                ));
-    }
-
-    @Override
-    public List<Pair<String, String>> getAllTransitiveGroupRelationships() {
-
-        QueryDefFactory factory = getCurrentQueryDefFactory();
-
-        if (useMaterializedViews) {
-
-            return factory
-                    .queryById("find_all_transitive_group_memberships")
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> Pair.of(
-                            row.apply("parent_group_id", String.class),
-                            row.apply("member_group_id", String.class)
-                    ));
-
-        } else {
-
-            return factory
-                    .queryById("find_all_transitive_group_memberships_non_materialized")
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> Pair.of(
-                            row.apply("parent_group_id", String.class),
-                            row.apply("member_group_id", String.class)
-                    ));
-        }
-    }
-
-    @Override
-    public List<Pair<String, String>> getAllTransitiveUserRelationships() {
-
-        QueryDefFactory factory = getCurrentQueryDefFactory();
-
-        if (useMaterializedViews) {
-
-            return factory
-                    .queryById("find_all_transitive_user_memberships")
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> Pair.of(
-                            row.apply("parent_group_id", String.class),
-                            row.apply("member_user_id", String.class)
-                    ));
-
-        } else {
-
-            return factory
-                    .queryById("find_all_transitive_user_memberships_non_materialized")
-                    .on("active_only", activeUsersOnly)
-                    .execute(IndexedSeqResult.class)
-                    .transform(row -> Pair.of(
-                            row.apply("parent_group_id", String.class),
-                            row.apply("member_user_id", String.class)
-                    ));
-        }
     }
 
     @Override
