@@ -273,62 +273,6 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
-    public List<String> getDirectUserNamesOfGroup(String id)
-            throws EntityNotFoundException {
-
-        return directoryBackend.getDirectUserNamesOfGroup(id);
-    }
-
-    @Override
-    public List<String> getDirectGroupNamesOfUser(String id)
-            throws EntityNotFoundException {
-
-        return directoryBackend.getDirectGroupNamesOfUser(id);
-    }
-
-    @Override
-    public List<String> getTransitiveUserNamesOfGroup(String id)
-            throws EntityNotFoundException {
-
-        return directoryBackend.getTransitiveUserNamesOfGroup(id);
-    }
-
-    @Override
-    public List<String> getTransitiveGroupNamesOfUser(String id)
-            throws EntityNotFoundException {
-
-        return directoryBackend.getTransitiveGroupNamesOfUser(id);
-    }
-
-    @Override
-    public List<String> getDirectChildGroupNamesOfGroup(String id)
-            throws EntityNotFoundException {
-
-        return directoryBackend.getDirectChildGroupNamesOfGroup(id);
-    }
-
-    @Override
-    public List<String> getDirectParentGroupNamesOfGroup(String id)
-            throws EntityNotFoundException {
-
-        return directoryBackend.getDirectParentGroupNamesOfGroup(id);
-    }
-
-    @Override
-    public List<String> getTransitiveChildGroupNamesOfGroup(String id)
-            throws EntityNotFoundException {
-
-        return directoryBackend.getTransitiveChildGroupNamesOfGroup(id);
-    }
-
-    @Override
-    public List<String> getTransitiveParentGroupNamesOfGroup(String id)
-            throws EntityNotFoundException {
-
-        return directoryBackend.getTransitiveParentGroupNamesOfGroup(id);
-    }
-
-    @Override
     public Iterable<MembershipEntity> getMemberships() {
 
         return directoryBackend.getMemberships();
