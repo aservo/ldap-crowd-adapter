@@ -37,20 +37,17 @@ import com.atlassian.crowd.embedded.api.SearchRestriction;
 import com.atlassian.crowd.exception.*;
 import com.atlassian.crowd.integration.rest.service.factory.RestCrowdClientFactory;
 import com.atlassian.crowd.model.group.Group;
-import com.atlassian.crowd.model.group.Membership;
 import com.atlassian.crowd.model.user.User;
 import com.atlassian.crowd.search.query.entity.restriction.*;
 import com.atlassian.crowd.search.query.entity.restriction.constants.GroupTermKeys;
 import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -455,40 +452,18 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public Iterable<MembershipEntity> getMemberships() {
+    public MappableCursor<MembershipEntity> getMemberships() {
 
         logger.info("Backend call: getMemberships");
 
         try {
 
-            Iterator<Membership> memberships = crowdClient.getMemberships().iterator();
+            return MappableCursor.fromIterable(crowdClient.getMemberships()).map(membership -> {
 
-            return new Iterable<MembershipEntity>() {
-
-                @NotNull
-                @Override
-                public Iterator<MembershipEntity> iterator() {
-
-                    return new Iterator<MembershipEntity>() {
-
-                        @Override
-                        public boolean hasNext() {
-
-                            return memberships.hasNext();
-                        }
-
-                        @Override
-                        public MembershipEntity next() {
-
-                            Membership membership = memberships.next();
-
-                            return new MembershipEntity(membership.getGroupName(),
-                                    membership.getChildGroupNames(),
-                                    membership.getUserNames());
-                        }
-                    };
-                }
-            };
+                return new MembershipEntity(membership.getGroupName(),
+                        membership.getChildGroupNames(),
+                        membership.getUserNames());
+            });
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {

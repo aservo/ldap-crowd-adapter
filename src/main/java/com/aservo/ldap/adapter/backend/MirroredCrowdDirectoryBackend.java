@@ -18,6 +18,7 @@
 package com.aservo.ldap.adapter.backend;
 
 import com.aservo.ldap.adapter.ServerConfiguration;
+import com.aservo.ldap.adapter.api.cursor.MappableCursor;
 import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.google.common.collect.Lists;
@@ -314,7 +315,7 @@ public class MirroredCrowdDirectoryBackend
                     directoryBackend.dropAllGroups();
                     directoryBackend.dropAllUsers();
 
-                    Iterator<MembershipEntity> memberships = directoryBackend.getMemberships().iterator();
+                    MappableCursor<MembershipEntity> memberships = directoryBackend.getMemberships();
                     int groupPage = 0;
                     int userPage = 0;
 
@@ -333,15 +334,8 @@ public class MirroredCrowdDirectoryBackend
                         }
                     }
 
-                    while (memberships.hasNext()) {
-
-                        for (int i = 0; i < pageSize && memberships.hasNext(); i++) {
-
-                            MembershipEntity membership = memberships.next();
-
-                            directoryBackend.upsertMembership(membership);
-                        }
-                    }
+                    while (memberships.next())
+                        directoryBackend.upsertMembership(memberships.get());
 
                     return false;
                 });

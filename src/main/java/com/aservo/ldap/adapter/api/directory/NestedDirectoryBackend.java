@@ -17,9 +17,9 @@
 
 package com.aservo.ldap.adapter.api.directory;
 
+import com.aservo.ldap.adapter.api.cursor.MappableCursor;
 import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import java.util.function.Supplier;
-import javax.naming.OperationNotSupportedException;
 
 
 /**
@@ -193,13 +193,9 @@ public interface NestedDirectoryBackend
     }
 
     /**
-     * Returns an iterable sequence of membership entities.
+     * Returns a cursor for membership entities.
      *
-     * @return the iterable object with membership elements
+     * @return the cursor with membership elements
      */
-    default Iterable<MembershipEntity> getMemberships() {
-
-        throw new RuntimeException(new OperationNotSupportedException(
-                "The method getMemberships is not supported."));
-    }
+    MappableCursor<MembershipEntity> getMemberships();
 }

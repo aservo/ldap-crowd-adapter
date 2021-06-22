@@ -273,7 +273,7 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
-    public Iterable<MembershipEntity> getMemberships() {
+    public MappableCursor<MembershipEntity> getMemberships() {
 
         return directoryBackend.getMemberships();
     }

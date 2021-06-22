@@ -26,6 +26,7 @@ import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
+import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
 import com.google.gson.Gson;
@@ -333,6 +334,22 @@ public class JsonDirectoryBackend
         groups.remove(group);
 
         return new ArrayList<>(groups);
+    }
+
+    public MappableCursor<MembershipEntity> getMemberships() {
+
+        logger.info("Backend call: getMemberships");
+
+        return MappableCursor.fromIterable(groupList).map(group -> {
+
+            return new MembershipEntity(group.getName(),
+                    getDirectChildGroupsOfGroup(group.getId()).stream()
+                            .map(GroupEntity::getName)
+                            .collect(Collectors.toSet()),
+                    getDirectUsersOfGroup(group.getId()).stream()
+                            .map(UserEntity::getUsername)
+                            .collect(Collectors.toSet()));
+        });
     }
 
     private Group findGroupById(String id)
