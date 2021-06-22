@@ -1,12 +1,9 @@
 package test.it;
 
 import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
-import com.aservo.ldap.adapter.api.entity.EntityType;
-import com.aservo.ldap.adapter.api.entity.UserEntity;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
-import javax.naming.directory.SearchResult;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
@@ -52,14 +49,7 @@ public class AttributeAbbrevAttrTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        for (UserEntity entity : directory.getAllUsers()) {
-
-            Assertions.assertTrue(results.hasMore());
-            String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
-            Assertions.assertEquals(entity.getId(), id);
-        }
-
-        Assertions.assertFalse(results.hasMore());
+        getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllUsers());
 
         context.close();
     }

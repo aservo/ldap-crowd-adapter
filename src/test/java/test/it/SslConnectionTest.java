@@ -1,5 +1,6 @@
 package test.it;
 
+import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import com.aservo.ldap.adapter.api.entity.EntityType;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.InitialDirContext;
@@ -28,6 +29,8 @@ public class SslConnectionTest
     public void test001()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "cn=UserA,ou=users,dc=json";
         String filter = "objectClass=inetOrgPerson";
 
@@ -39,8 +42,10 @@ public class SslConnectionTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
-        Assertions.assertTrue(id.equalsIgnoreCase("UserA"));
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.USER, ("UserA").toLowerCase());
+
         Assertions.assertFalse(results.hasMore());
 
         context.close();

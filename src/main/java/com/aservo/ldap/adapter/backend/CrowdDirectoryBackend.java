@@ -43,8 +43,8 @@ import com.atlassian.crowd.search.query.entity.restriction.constants.GroupTermKe
 import com.atlassian.crowd.service.client.ClientProperties;
 import com.atlassian.crowd.service.client.ClientPropertiesImpl;
 import com.atlassian.crowd.service.client.CrowdClient;
-import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
@@ -192,12 +192,12 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<GroupEntity> getAllGroups() {
+    public Set<GroupEntity> getAllGroups() {
 
         return getAllGroups(0, Integer.MAX_VALUE);
     }
 
-    public List<GroupEntity> getAllGroups(int startIndex, int maxResults) {
+    public Set<GroupEntity> getAllGroups(int startIndex, int maxResults) {
 
         logger.info("Backend call: getGroups({}, {})", startIndex, maxResults);
 
@@ -205,7 +205,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.searchGroups(NullRestrictionImpl.INSTANCE, startIndex, maxResults).stream()
                     .map(this::createGroupEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -218,12 +218,12 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<UserEntity> getAllUsers() {
+    public Set<UserEntity> getAllUsers() {
 
         return getAllUsers(0, Integer.MAX_VALUE);
     }
 
-    public List<UserEntity> getAllUsers(int startIndex, int maxResults) {
+    public Set<UserEntity> getAllUsers(int startIndex, int maxResults) {
 
         logger.info("Backend call: getUsers({}, {})", startIndex, maxResults);
 
@@ -231,7 +231,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.searchUsers(NullRestrictionImpl.INSTANCE, startIndex, maxResults).stream()
                     .map(this::createUserEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (ApplicationPermissionException |
                 InvalidAuthenticationException e) {
@@ -244,7 +244,7 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<UserEntity> getDirectUsersOfGroup(String id)
+    public Set<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Backend call: getDirectUsersOfGroup; ID={}", id);
@@ -253,7 +253,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.getUsersOfGroup(id, 0, Integer.MAX_VALUE).stream()
                     .map(this::createUserEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (GroupNotFoundException e) {
 
@@ -270,7 +270,7 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<GroupEntity> getDirectGroupsOfUser(String id)
+    public Set<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
         logger.info("Backend call: getDirectGroupsOfUser; ID={}", id);
@@ -279,7 +279,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.getGroupsForUser(id, 0, Integer.MAX_VALUE).stream()
                     .map(this::createGroupEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (UserNotFoundException e) {
 
@@ -296,7 +296,7 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<UserEntity> getTransitiveUsersOfGroup(String id)
+    public Set<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Backend call: getTransitiveUsersOfGroup; ID={}", id);
@@ -305,7 +305,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.getNestedUsersOfGroup(id, 0, Integer.MAX_VALUE).stream()
                     .map(this::createUserEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (GroupNotFoundException e) {
 
@@ -322,7 +322,7 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<GroupEntity> getTransitiveGroupsOfUser(String id)
+    public Set<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
         logger.info("Backend call: getTransitiveGroupsOfUser; ID={}", id);
@@ -331,7 +331,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.getGroupsForNestedUser(id, 0, Integer.MAX_VALUE).stream()
                     .map(this::createGroupEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (UserNotFoundException e) {
 
@@ -348,7 +348,7 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
+    public Set<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Backend call: getDirectChildGroupsOfGroup; ID={}", id);
@@ -357,7 +357,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.getChildGroupsOfGroup(id, 0, Integer.MAX_VALUE).stream()
                     .map(this::createGroupEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (GroupNotFoundException e) {
 
@@ -374,7 +374,7 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
+    public Set<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Backend call: getDirectParentGroupsOfGroup; ID={}", id);
@@ -383,7 +383,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.getParentGroupsForGroup(id, 0, Integer.MAX_VALUE).stream()
                     .map(this::createGroupEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (GroupNotFoundException e) {
 
@@ -400,7 +400,7 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
+    public Set<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Backend call: getTransitiveChildGroupsOfGroup; ID={}", id);
@@ -409,7 +409,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.getNestedChildGroupsOfGroup(id, 0, Integer.MAX_VALUE).stream()
                     .map(this::createGroupEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (GroupNotFoundException e) {
 
@@ -426,7 +426,7 @@ public class CrowdDirectoryBackend
         }
     }
 
-    public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
+    public Set<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Backend call: getTransitiveParentGroupsOfGroup; ID={}", id);
@@ -435,7 +435,7 @@ public class CrowdDirectoryBackend
 
             return crowdClient.getParentGroupsForNestedGroup(id, 0, Integer.MAX_VALUE).stream()
                     .map(this::createGroupEntity)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
 
         } catch (GroupNotFoundException e) {
 

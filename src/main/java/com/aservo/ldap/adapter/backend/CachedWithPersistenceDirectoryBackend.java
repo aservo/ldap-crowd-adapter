@@ -309,7 +309,7 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.upsertAllGroups(startIndex, maxResults);
 
-        List<GroupEntity> entities = directoryBackend.getAllGroups(startIndex, maxResults);
+        Set<GroupEntity> entities = directoryBackend.getAllGroups(startIndex, maxResults);
 
         entities.forEach(entity -> {
 
@@ -331,7 +331,7 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.upsertAllGroups();
 
-        List<GroupEntity> entities = directoryBackend.getAllGroups();
+        Set<GroupEntity> entities = directoryBackend.getAllGroups();
 
         entities.forEach(entity -> {
 
@@ -381,7 +381,7 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.upsertAllUsers(startIndex, maxResults);
 
-        List<UserEntity> entities = directoryBackend.getAllUsers(startIndex, maxResults);
+        Set<UserEntity> entities = directoryBackend.getAllUsers(startIndex, maxResults);
 
         entities.forEach(entity -> {
 
@@ -407,7 +407,7 @@ public class CachedWithPersistenceDirectoryBackend
 
         super.upsertAllUsers();
 
-        List<UserEntity> entities = directoryBackend.getAllUsers();
+        Set<UserEntity> entities = directoryBackend.getAllUsers();
 
         entities.forEach(entity -> {
 
@@ -574,179 +574,179 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
-    public List<GroupEntity> getAllGroups() {
+    public Set<GroupEntity> getAllGroups() {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
+        return new HashSet<>(factory
                 .queryById("find_all_groups")
                 .execute(IndexedSeqResult.class)
-                .transform(this::mapGroupEntity);
+                .transform(this::mapGroupEntity));
     }
 
     @Override
-    public List<UserEntity> getAllUsers() {
+    public Set<UserEntity> getAllUsers() {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
+        return new HashSet<>(factory
                 .queryById("find_all_users")
                 .on("active_only", activeUsersOnly)
                 .execute(IndexedSeqResult.class)
-                .transform(this::mapUserEntity);
+                .transform(this::mapUserEntity));
     }
 
     @Override
-    public List<UserEntity> getDirectUsersOfGroup(String id)
+    public Set<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
+        return new HashSet<>(factory
                 .queryById("find_direct_users_of_group")
                 .on("group_id", id)
                 .on("active_only", activeUsersOnly)
                 .execute(IndexedSeqResult.class)
-                .transform(this::mapUserEntity);
+                .transform(this::mapUserEntity));
     }
 
     @Override
-    public List<GroupEntity> getDirectGroupsOfUser(String id)
+    public Set<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
+        return new HashSet<>(factory
                 .queryById("find_direct_groups_of_user")
                 .on("user_id", id)
                 .on("active_only", activeUsersOnly)
                 .execute(IndexedSeqResult.class)
-                .transform(this::mapGroupEntity);
+                .transform(this::mapGroupEntity));
     }
 
     @Override
-    public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
+    public Set<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
+        return new HashSet<>(factory
                 .queryById("find_direct_child_groups_of_group")
                 .on("group_id", id)
                 .execute(IndexedSeqResult.class)
-                .transform(this::mapGroupEntity);
+                .transform(this::mapGroupEntity));
     }
 
     @Override
-    public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
+    public Set<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        return factory
+        return new HashSet<>(factory
                 .queryById("find_direct_parent_groups_of_group")
                 .on("group_id", id)
                 .execute(IndexedSeqResult.class)
-                .transform(this::mapGroupEntity);
+                .transform(this::mapGroupEntity));
     }
 
     @Override
-    public List<UserEntity> getTransitiveUsersOfGroup(String id)
+    public Set<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
         if (useMaterializedViews) {
 
-            return factory
+            return new HashSet<>(factory
                     .queryById("find_transitive_users_of_group")
                     .on("group_id", id)
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
-                    .transform(this::mapUserEntity);
+                    .transform(this::mapUserEntity));
 
         } else {
 
-            return factory
+            return new HashSet<>(factory
                     .queryById("find_transitive_users_of_group_non_materialized")
                     .on("group_id", id)
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
-                    .transform(this::mapUserEntity);
+                    .transform(this::mapUserEntity));
         }
     }
 
     @Override
-    public List<GroupEntity> getTransitiveGroupsOfUser(String id)
+    public Set<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
         if (useMaterializedViews) {
 
-            return factory
+            return new HashSet<>(factory
                     .queryById("find_transitive_groups_of_user")
                     .on("user_id", id)
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
+                    .transform(this::mapGroupEntity));
 
         } else {
 
-            return factory
+            return new HashSet<>(factory
                     .queryById("find_transitive_groups_of_user_non_materialized")
                     .on("user_id", id)
                     .on("active_only", activeUsersOnly)
                     .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
+                    .transform(this::mapGroupEntity));
         }
     }
 
     @Override
-    public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
+    public Set<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
         if (useMaterializedViews) {
 
-            return factory
+            return new HashSet<>(factory
                     .queryById("find_transitive_child_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
+                    .transform(this::mapGroupEntity));
 
         } else {
 
-            return factory
+            return new HashSet<>(factory
                     .queryById("find_transitive_child_groups_of_group_non_materialized")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
+                    .transform(this::mapGroupEntity));
         }
     }
 
     @Override
-    public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
+    public Set<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
         if (useMaterializedViews) {
 
-            return factory
+            return new HashSet<>(factory
                     .queryById("find_transitive_parent_groups_of_group")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
+                    .transform(this::mapGroupEntity));
 
         } else {
 
-            return factory
+            return new HashSet<>(factory
                     .queryById("find_transitive_parent_groups_of_group_non_materialized")
                     .on("group_id", id)
                     .execute(IndexedSeqResult.class)
-                    .transform(this::mapGroupEntity);
+                    .transform(this::mapGroupEntity));
         }
     }
 

@@ -38,7 +38,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.slf4j.Logger;
@@ -52,8 +53,8 @@ public class JsonDirectoryBackend
         implements NestedDirectoryBackend {
 
     private final Logger logger = LoggerFactory.getLogger(JsonDirectoryBackend.class);
-    private final List<Group> groupList = new ArrayList<>();
-    private final List<User> userList = new ArrayList<>();
+    private final Set<Group> groupSet = new HashSet<>();
+    private final Set<User> userSet = new HashSet<>();
     private final File dbFile;
 
     /**
@@ -113,7 +114,7 @@ public class JsonDirectoryBackend
 
             for (JsonElement element : userNode) {
 
-                userList.add(new User(
+                userSet.add(new User(
                         element.getAsJsonObject().get("username").getAsString(),
                         element.getAsJsonObject().get("last_name").getAsString(),
                         element.getAsJsonObject().get("first_name").getAsString(),
@@ -126,7 +127,7 @@ public class JsonDirectoryBackend
 
             for (JsonElement x : groupNode) {
 
-                groupList.add(new Group(
+                groupSet.add(new Group(
                         x.getAsJsonObject().get("name").getAsString(),
                         x.getAsJsonObject().get("description").getAsString()
                 ));
@@ -138,17 +139,17 @@ public class JsonDirectoryBackend
                 JsonArray groupMemberNode = x.getAsJsonObject().getAsJsonArray("group_members");
                 JsonArray userMemberNode = x.getAsJsonObject().getAsJsonArray("user_members");
 
-                Group group = groupList.stream().filter(z -> z.getId().equalsIgnoreCase(groupId)).findAny()
+                Group group = groupSet.stream().filter(z -> z.getId().equalsIgnoreCase(groupId)).findAny()
                         .orElseThrow(() -> new IllegalArgumentException("Unknown error."));
 
                 for (JsonElement y : groupMemberNode)
-                    group.addGroup(groupList.stream().filter(z -> z.getId().equalsIgnoreCase(y.getAsString())).findAny()
+                    group.addGroup(groupSet.stream().filter(z -> z.getId().equalsIgnoreCase(y.getAsString())).findAny()
                             .orElseThrow(() -> new IllegalArgumentException(
                                     "Cannot find group member with id " + y.getAsString()
                             )));
 
                 for (JsonElement y : userMemberNode)
-                    group.addUser(userList.stream().filter(z -> z.getId().equalsIgnoreCase(y.getAsString())).findAny()
+                    group.addUser(userSet.stream().filter(z -> z.getId().equalsIgnoreCase(y.getAsString())).findAny()
                             .orElseThrow(() -> new IllegalArgumentException(
                                     "Cannot find user member with id " + y.getAsString()
                             )));
@@ -162,8 +163,8 @@ public class JsonDirectoryBackend
 
     public void shutdown() {
 
-        groupList.clear();
-        userList.clear();
+        groupSet.clear();
+        userSet.clear();
     }
 
     public MappableCursor<Row> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
@@ -201,33 +202,33 @@ public class JsonDirectoryBackend
         return user;
     }
 
-    public List<GroupEntity> getAllGroups() {
+    public Set<GroupEntity> getAllGroups() {
 
         logger.info("Call: getGroups");
 
-        return new ArrayList<>(groupList);
+        return new HashSet<>(groupSet);
     }
 
     @Override
-    public List<GroupEntity> getAllGroups(int startIndex, int maxResults) {
+    public Set<GroupEntity> getAllGroups(int startIndex, int maxResults) {
 
-        return getAllGroups().subList(startIndex, startIndex + maxResults);
+        return new HashSet<>(new ArrayList<>(groupSet).subList(startIndex, startIndex + maxResults));
     }
 
-    public List<UserEntity> getAllUsers() {
+    public Set<UserEntity> getAllUsers() {
 
         logger.info("Call: getUsers");
 
-        return new ArrayList<>(userList);
+        return new HashSet<>(userSet);
     }
 
     @Override
-    public List<UserEntity> getAllUsers(int startIndex, int maxResults) {
+    public Set<UserEntity> getAllUsers(int startIndex, int maxResults) {
 
-        return getAllUsers().subList(startIndex, startIndex + maxResults);
+        return new HashSet<>(new ArrayList<>(userSet).subList(startIndex, startIndex + maxResults));
     }
 
-    public List<UserEntity> getDirectUsersOfGroup(String id)
+    public Set<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Call: getDirectUsersOfGroup; id={}", id);
@@ -236,52 +237,48 @@ public class JsonDirectoryBackend
 
         return group.getUserMembers().stream()
                 .map(x -> (UserEntity) x)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
-    public List<GroupEntity> getDirectGroupsOfUser(String id)
+    public Set<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
         logger.info("Call: getDirectGroupsOfUser; id={}", id);
 
         User user = findUserById(id);
 
-        return groupList.stream()
+        return groupSet.stream()
                 .filter(x -> x.getUserMembers().contains(user))
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
-    public List<UserEntity> getTransitiveUsersOfGroup(String id)
+    public Set<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Call: getTransitiveUsersOfGroup; id={}", id);
 
-        List<UserEntity> users = getDirectUsersOfGroup(id);
+        Set<UserEntity> users = getDirectUsersOfGroup(id);
 
-        for (GroupEntity y : getTransitiveChildGroupsOfGroup(id))
-            for (UserEntity x : getDirectUsersOfGroup(y.getId()))
-                if (!users.contains(x))
-                    users.add(x);
+        for (GroupEntity group : getTransitiveChildGroupsOfGroup(id))
+            users.addAll(getDirectUsersOfGroup(group.getId()));
 
         return users;
     }
 
-    public List<GroupEntity> getTransitiveGroupsOfUser(String id)
+    public Set<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
         logger.info("Call: getTransitiveGroupsOfUser; id={}", id);
 
-        List<GroupEntity> groups = getDirectGroupsOfUser(id);
+        Set<GroupEntity> groups = getDirectGroupsOfUser(id);
 
-        for (GroupEntity y : new ArrayList<>(groups))
-            for (GroupEntity x : getTransitiveParentGroupsOfGroup(y.getId()))
-                if (!groups.contains(x))
-                    groups.add(x);
+        for (GroupEntity group : new ArrayList<>(groups))
+            groups.addAll(getTransitiveParentGroupsOfGroup(group.getId()));
 
         return groups;
     }
 
-    public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
+    public Set<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Call: getDirectChildGroupsOfGroup; id={}", id);
@@ -290,57 +287,57 @@ public class JsonDirectoryBackend
 
         return group.getGroupMembers().stream()
                 .filter(x -> !x.equals(group))
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
-    public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
+    public Set<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Call: getDirectParentGroupsOfGroup; id={}", id);
 
         Group group = findGroupById(id);
 
-        return groupList.stream()
+        return groupSet.stream()
                 .filter(x -> x.getGroupMembers().contains(group))
                 .filter(x -> !x.equals(group))
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
-    public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
+    public Set<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Call: getTransitiveChildGroupsOfGroup; id={}", id);
 
-        List<Group> groups = new ArrayList<>();
+        Set<Group> groups = new HashSet<>();
         Group group = findGroupById(id);
 
         groups.add(group);
         resolveGroupsDownwards(group, groups);
         groups.remove(group);
 
-        return new ArrayList<>(groups);
+        return new HashSet<>(groups);
     }
 
-    public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
+    public Set<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         logger.info("Call: getTransitiveParentGroupsOfGroup; id={}", id);
 
-        List<Group> groups = new ArrayList<>();
+        Set<Group> groups = new HashSet<>();
         Group group = findGroupById(id);
 
         groups.add(group);
         resolveGroupsUpwards(group, groups);
         groups.remove(group);
 
-        return new ArrayList<>(groups);
+        return new HashSet<>(groups);
     }
 
     public MappableCursor<MembershipEntity> getMemberships() {
 
         logger.info("Backend call: getMemberships");
 
-        return MappableCursor.fromIterable(groupList).map(group -> {
+        return MappableCursor.fromIterable(groupSet).map(group -> {
 
             return new MembershipEntity(group.getName(),
                     getDirectChildGroupsOfGroup(group.getId()).stream()
@@ -355,7 +352,7 @@ public class JsonDirectoryBackend
     private Group findGroupById(String id)
             throws EntityNotFoundException {
 
-        return groupList.stream()
+        return groupSet.stream()
                 .filter(x -> x.getId().equalsIgnoreCase(id))
                 .findAny()
                 .orElseThrow(() -> new EntityNotFoundException("Cannot find group with id " + id));
@@ -364,16 +361,16 @@ public class JsonDirectoryBackend
     private User findUserById(String id)
             throws EntityNotFoundException {
 
-        return userList.stream()
+        return userSet.stream()
                 .filter(x -> x.getId().equalsIgnoreCase(id))
                 .findAny()
                 .orElseThrow(() -> new EntityNotFoundException("Cannot find user with id " + id));
     }
 
-    private void resolveGroupsDownwards(Group group, List<Group> acc)
+    private void resolveGroupsDownwards(Group group, Set<Group> acc)
             throws DirectoryAccessFailureException, SecurityProblemException, EntityNotFoundException {
 
-        List<Group> result = group.getGroupMembers();
+        Set<Group> result = group.getGroupMembers();
 
         result.removeAll(acc);
         acc.addAll(result);
@@ -382,13 +379,13 @@ public class JsonDirectoryBackend
             resolveGroupsDownwards(x, acc);
     }
 
-    private void resolveGroupsUpwards(Group group, List<Group> acc)
+    private void resolveGroupsUpwards(Group group, Set<Group> acc)
             throws DirectoryAccessFailureException, SecurityProblemException, EntityNotFoundException {
 
-        List<Group> result =
-                groupList.stream()
+        Set<Group> result =
+                groupSet.stream()
                         .filter(x -> x.getGroupMembers().contains(group))
-                        .collect(Collectors.toList());
+                        .collect(Collectors.toSet());
 
         result.removeAll(acc);
         acc.addAll(result);
@@ -400,8 +397,8 @@ public class JsonDirectoryBackend
     private static class Group
             extends GroupEntity {
 
-        private final List<Group> groupMembers = new ArrayList<>();
-        private final List<User> userMembers = new ArrayList<>();
+        private final Set<Group> groupMembers = new HashSet<>();
+        private final Set<User> userMembers = new HashSet<>();
 
         /**
          * Instantiates a new Group.
@@ -439,9 +436,9 @@ public class JsonDirectoryBackend
          *
          * @return the group members
          */
-        public List<Group> getGroupMembers() {
+        public Set<Group> getGroupMembers() {
 
-            return new ArrayList<>(groupMembers);
+            return new HashSet<>(groupMembers);
         }
 
         /**
@@ -449,9 +446,9 @@ public class JsonDirectoryBackend
          *
          * @return the user members
          */
-        public List<User> getUserMembers() {
+        public Set<User> getUserMembers() {
 
-            return new ArrayList<>(userMembers);
+            return new HashSet<>(userMembers);
         }
     }
 

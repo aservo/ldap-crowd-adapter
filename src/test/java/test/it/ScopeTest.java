@@ -1,14 +1,14 @@
 package test.it;
 
+import com.aservo.ldap.adapter.api.LdapUtils;
 import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import com.aservo.ldap.adapter.api.entity.EntityType;
-import com.aservo.ldap.adapter.api.entity.GroupEntity;
-import com.aservo.ldap.adapter.api.entity.UserEntity;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.naming.NamingEnumeration;
-import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
@@ -36,7 +36,9 @@ public class ScopeTest
     public void test001()
             throws Exception {
 
-        final String userName = "GroupE+,";
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
+        final String name = "GroupE+,";
 
         Consumer<NamingEnumeration> consumer =
                 results -> {
@@ -44,9 +46,11 @@ public class ScopeTest
                     try {
 
                         Assertions.assertTrue(results.hasMore());
-                        Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        String id = assertCorrectEntry(attributes, EntityType.GROUP);
-                        Assertions.assertEquals(userName.toLowerCase(), id);
+
+                        getLdapAssertions().assertCorrectEntry(directory,
+                                ((SearchResult) results.next()).getAttributes(),
+                                EntityType.GROUP, name.toLowerCase());
+
                         Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {
@@ -57,8 +61,8 @@ public class ScopeTest
 
         List<String> baseList =
                 Arrays.asList(
-                        "cn=" + Rdn.escapeValue(userName) + ",dc=json",
-                        "cn=" + Rdn.escapeValue(userName) + ",ou=groups,dc=json"
+                        "cn=" + Rdn.escapeValue(name) + ",dc=json",
+                        "cn=" + Rdn.escapeValue(name) + ",ou=groups,dc=json"
                 );
 
         List<SearchControls> searchControlsList =
@@ -89,7 +93,9 @@ public class ScopeTest
     public void test002()
             throws Exception {
 
-        final String userName = "UserE+,";
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
+        final String name = "UserE+,";
 
         Consumer<NamingEnumeration> consumer =
                 results -> {
@@ -97,9 +103,11 @@ public class ScopeTest
                     try {
 
                         Assertions.assertTrue(results.hasMore());
-                        Attributes attributes = ((SearchResult) results.next()).getAttributes();
-                        String id = assertCorrectEntry(attributes, EntityType.USER);
-                        Assertions.assertEquals(userName.toLowerCase(), id);
+
+                        getLdapAssertions().assertCorrectEntry(directory,
+                                ((SearchResult) results.next()).getAttributes(),
+                                EntityType.USER, name.toLowerCase());
+
                         Assertions.assertFalse(results.hasMore());
 
                     } catch (Exception e) {
@@ -110,8 +118,8 @@ public class ScopeTest
 
         List<String> baseList =
                 Arrays.asList(
-                        "cn=" + Rdn.escapeValue(userName) + ",dc=json",
-                        "cn=" + Rdn.escapeValue(userName) + ",ou=users,dc=json"
+                        "cn=" + Rdn.escapeValue(name) + ",dc=json",
+                        "cn=" + Rdn.escapeValue(name) + ",ou=users,dc=json"
                 );
 
         List<SearchControls> searchControlsList =
@@ -142,6 +150,8 @@ public class ScopeTest
     public void test003()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "dc=json";
         String filter = "objectClass=*";
 
@@ -153,7 +163,9 @@ public class ScopeTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.DOMAIN, directory.getId());
 
         Assertions.assertFalse(results.hasMore());
 
@@ -166,6 +178,8 @@ public class ScopeTest
     public void test004()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "ou=groups,dc=json";
         String filter = "objectClass=*";
 
@@ -177,7 +191,9 @@ public class ScopeTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -190,6 +206,8 @@ public class ScopeTest
     public void test005()
             throws Exception {
 
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+
         String base = "ou=users,dc=json";
         String filter = "objectClass=*";
 
@@ -201,7 +219,9 @@ public class ScopeTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -234,29 +254,23 @@ public class ScopeTest
         for (NamingEnumeration results : Arrays.asList(results1, results2)) {
 
             Assertions.assertTrue(results.hasMore());
-            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
+
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.DOMAIN, directory.getId());
 
             Assertions.assertTrue(results.hasMore());
-            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
+
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
             Assertions.assertTrue(results.hasMore());
-            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
-            for (GroupEntity entry : directory.getAllGroups()) {
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-                Assertions.assertTrue(results.hasMore());
-                String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP);
-                Assertions.assertEquals(entry.getId(), id);
-            }
-
-            for (UserEntity entry : directory.getAllUsers()) {
-
-                Assertions.assertTrue(results.hasMore());
-                String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
-                Assertions.assertEquals(entry.getId(), id);
-            }
-
-            Assertions.assertFalse(results.hasMore());
+            getLdapAssertions().assertCorrectEntries(directory, results,
+                    Stream.concat(directory.getAllGroups().stream(), directory.getAllUsers().stream())
+                            .collect(Collectors.toSet()));
         }
 
         context1.close();
@@ -289,16 +303,11 @@ public class ScopeTest
         for (NamingEnumeration results : Arrays.asList(results1, results2)) {
 
             Assertions.assertTrue(results.hasMore());
-            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
 
-            for (GroupEntity entry : directory.getAllGroups()) {
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
-                Assertions.assertTrue(results.hasMore());
-                String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP);
-                Assertions.assertEquals(entry.getId(), id);
-            }
-
-            Assertions.assertFalse(results.hasMore());
+            getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllGroups());
         }
 
         context1.close();
@@ -331,16 +340,11 @@ public class ScopeTest
         for (NamingEnumeration results : Arrays.asList(results1, results2)) {
 
             Assertions.assertTrue(results.hasMore());
-            assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
-            for (UserEntity entry : directory.getAllUsers()) {
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-                Assertions.assertTrue(results.hasMore());
-                String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
-                Assertions.assertEquals(entry.getId(), id);
-            }
-
-            Assertions.assertFalse(results.hasMore());
+            getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllUsers());
         }
 
         context1.close();

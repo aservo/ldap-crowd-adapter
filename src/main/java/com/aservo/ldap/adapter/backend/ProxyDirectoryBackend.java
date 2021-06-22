@@ -27,7 +27,7 @@ import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
-import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 
@@ -193,80 +193,80 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
-    public List<GroupEntity> getAllGroups() {
+    public Set<GroupEntity> getAllGroups() {
 
         return directoryBackend.getAllGroups();
     }
 
     @Override
-    public List<GroupEntity> getAllGroups(int startIndex, int maxResults) {
+    public Set<GroupEntity> getAllGroups(int startIndex, int maxResults) {
 
         return directoryBackend.getAllGroups(startIndex, maxResults);
     }
 
     @Override
-    public List<UserEntity> getAllUsers() {
+    public Set<UserEntity> getAllUsers() {
 
         return directoryBackend.getAllUsers();
     }
 
     @Override
-    public List<UserEntity> getAllUsers(int startIndex, int maxResults) {
+    public Set<UserEntity> getAllUsers(int startIndex, int maxResults) {
 
         return directoryBackend.getAllUsers(startIndex, maxResults);
     }
 
     @Override
-    public List<UserEntity> getDirectUsersOfGroup(String id)
+    public Set<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException {
 
         return directoryBackend.getDirectUsersOfGroup(id);
     }
 
     @Override
-    public List<GroupEntity> getDirectGroupsOfUser(String id)
+    public Set<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException {
 
         return directoryBackend.getDirectGroupsOfUser(id);
     }
 
     @Override
-    public List<UserEntity> getTransitiveUsersOfGroup(String id)
+    public Set<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException {
 
         return directoryBackend.getTransitiveUsersOfGroup(id);
     }
 
     @Override
-    public List<GroupEntity> getTransitiveGroupsOfUser(String id)
+    public Set<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException {
 
         return directoryBackend.getTransitiveGroupsOfUser(id);
     }
 
     @Override
-    public List<GroupEntity> getDirectChildGroupsOfGroup(String id)
+    public Set<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         return directoryBackend.getDirectChildGroupsOfGroup(id);
     }
 
     @Override
-    public List<GroupEntity> getDirectParentGroupsOfGroup(String id)
+    public Set<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         return directoryBackend.getDirectParentGroupsOfGroup(id);
     }
 
     @Override
-    public List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
+    public Set<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         return directoryBackend.getTransitiveChildGroupsOfGroup(id);
     }
 
     @Override
-    public List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
+    public Set<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException {
 
         return directoryBackend.getTransitiveParentGroupsOfGroup(id);

@@ -3,8 +3,8 @@ package test.it;
 import com.aservo.ldap.adapter.api.LdapUtils;
 import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import com.aservo.ldap.adapter.api.entity.EntityType;
-import com.aservo.ldap.adapter.api.entity.GroupEntity;
-import com.aservo.ldap.adapter.api.entity.UserEntity;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
@@ -48,29 +48,23 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.DOMAIN, directory.getId());
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
 
-        for (GroupEntity group : directory.getAllGroups()) {
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-            Assertions.assertTrue(results.hasMore());
-            String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP);
-            Assertions.assertEquals(group.getId(), id);
-        }
-
-        for (UserEntity user : directory.getAllUsers()) {
-
-            Assertions.assertTrue(results.hasMore());
-            String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
-            Assertions.assertEquals(user.getId(), id);
-        }
-
-        Assertions.assertFalse(results.hasMore());
+        getLdapAssertions().assertCorrectEntries(directory, results,
+                Stream.concat(directory.getAllGroups().stream(), directory.getAllUsers().stream())
+                        .collect(Collectors.toSet()));
 
         context.close();
     }
@@ -80,6 +74,8 @@ public class FilterTest
     @DisplayName("it should show domain entry")
     public void test002()
             throws Exception {
+
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
 
         String base = "dc=json";
 
@@ -94,7 +90,9 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.DOMAIN, directory.getId());
 
         Assertions.assertFalse(results.hasMore());
 
@@ -106,6 +104,8 @@ public class FilterTest
     @DisplayName("it should list all OU entries")
     public void test003()
             throws Exception {
+
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
 
         String base = "dc=json";
 
@@ -120,10 +120,14 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -135,6 +139,8 @@ public class FilterTest
     @DisplayName("it should handle and-expression correctly to get group OU entry")
     public void test004()
             throws Exception {
+
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
 
         String base = "dc=json";
 
@@ -152,7 +158,9 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -164,6 +172,8 @@ public class FilterTest
     @DisplayName("it should handle and-expression correctly to get users OU entry")
     public void test005()
             throws Exception {
+
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
 
         String base = "dc=json";
 
@@ -181,7 +191,9 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -193,6 +205,8 @@ public class FilterTest
     @DisplayName("it should handle or-expression correctly to get all OU and DC entries")
     public void test006()
             throws Exception {
+
+        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
 
         String base = "dc=json";
 
@@ -210,13 +224,19 @@ public class FilterTest
         NamingEnumeration results = context.search(base, filter, sc);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.DOMAIN);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.DOMAIN, directory.getId());
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.GROUP_UNIT);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
         Assertions.assertTrue(results.hasMore());
-        assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER_UNIT);
+
+        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
         Assertions.assertFalse(results.hasMore());
 
@@ -247,14 +267,7 @@ public class FilterTest
 
         NamingEnumeration results = context.search(base, filter, sc);
 
-        for (UserEntity user : directory.getAllUsers()) {
-
-            Assertions.assertTrue(results.hasMore());
-            String id = assertCorrectEntry(((SearchResult) results.next()).getAttributes(), EntityType.USER);
-            Assertions.assertEquals(user.getId(), id);
-        }
-
-        Assertions.assertFalse(results.hasMore());
+        getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllUsers());
 
         context.close();
     }

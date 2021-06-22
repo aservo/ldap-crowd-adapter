@@ -1,7 +1,9 @@
 package test.api.helper;
 
 import com.aservo.ldap.adapter.api.LdapUtils;
+import com.aservo.ldap.adapter.api.database.Row;
 import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
+import com.aservo.ldap.adapter.api.entity.ColumnNames;
 import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
@@ -14,6 +16,8 @@ import java.util.stream.Stream;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
+import javax.naming.directory.SearchResult;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.junit.jupiter.api.Assertions;
@@ -21,28 +25,171 @@ import org.junit.jupiter.api.Assertions;
 
 public class AssertionsLdap {
 
-    public static String correctEntry(
-            Attributes attributes,
-            EntityType entityType,
-            DirectoryBackend directory,
-            boolean flattening,
-            boolean abbreviateSn,
-            boolean abbreviateGn)
+    private final boolean flattening;
+    private final boolean abbreviateSn;
+    private final boolean abbreviateGn;
+
+    public AssertionsLdap(boolean flattening, boolean abbreviateSn, boolean abbreviateGn) {
+
+        this.flattening = flattening;
+        this.abbreviateSn = abbreviateSn;
+        this.abbreviateGn = abbreviateGn;
+    }
+
+    public void assertCorrectEntry(DirectoryBackend directory, Attributes attributes, EntityType entityType, String id)
             throws Exception {
 
+        Pair<EntityType, String> pair = getMeta(directory, attributes);
+
+        Assertions.assertEquals(entityType, pair.getLeft());
+        Assertions.assertEquals(id, pair.getRight());
+    }
+
+    public <T extends Row> void assertCorrectEntries(DirectoryBackend directory, NamingEnumeration results,
+                                                     Set<T> entities)
+            throws Exception {
+
+        Set<String> domainEntities =
+                entities.stream().filter(x ->
+                        EntityType.fromString(x.apply(ColumnNames.TYPE, String.class)) == EntityType.DOMAIN
+                )
+                        .map(x -> x.apply(ColumnNames.ID, String.class))
+                        .collect(Collectors.toSet());
+
+        Set<String> groupUnitEntities =
+                entities.stream().filter(x ->
+                        EntityType.fromString(x.apply(ColumnNames.TYPE, String.class)) == EntityType.GROUP_UNIT
+                )
+                        .map(x -> x.apply(ColumnNames.ID, String.class))
+                        .collect(Collectors.toSet());
+
+        Set<String> userUnitEntities =
+                entities.stream().filter(x ->
+                        EntityType.fromString(x.apply(ColumnNames.TYPE, String.class)) == EntityType.USER_UNIT
+                )
+                        .map(x -> x.apply(ColumnNames.ID, String.class))
+                        .collect(Collectors.toSet());
+
+        Set<String> groupEntities =
+                entities.stream().filter(x ->
+                        EntityType.fromString(x.apply(ColumnNames.TYPE, String.class)) == EntityType.GROUP
+                )
+                        .map(x -> x.apply(ColumnNames.ID, String.class))
+                        .collect(Collectors.toSet());
+
+        Set<String> userEntities =
+                entities.stream().filter(x ->
+                        EntityType.fromString(x.apply(ColumnNames.TYPE, String.class)) == EntityType.USER
+                )
+                        .map(x -> x.apply(ColumnNames.ID, String.class))
+                        .collect(Collectors.toSet());
+
+        Assertions.assertEquals(entities.size(), domainEntities.size() + groupUnitEntities.size() +
+                userUnitEntities.size() + groupEntities.size() + userEntities.size());
+
+        Set<String> domainEntries = new HashSet<>();
+        Set<String> groupUnitEntries = new HashSet<>();
+        Set<String> userUnitEntries = new HashSet<>();
+        Set<String> groupEntries = new HashSet<>();
+        Set<String> userEntries = new HashSet<>();
+        int count = 0;
+
+        while (results.hasMore()) {
+
+            Pair<EntityType, String> pair = getMeta(directory, ((SearchResult) results.next()).getAttributes());
+
+            if (pair.getLeft() == EntityType.DOMAIN)
+                domainEntries.add(pair.getRight());
+            else if (pair.getLeft() == EntityType.GROUP_UNIT)
+                groupUnitEntries.add(pair.getRight());
+            else if (pair.getLeft() == EntityType.USER_UNIT)
+                userUnitEntries.add(pair.getRight());
+            else if (pair.getLeft() == EntityType.GROUP)
+                groupEntries.add(pair.getRight());
+            else if (pair.getLeft() == EntityType.USER)
+                userEntries.add(pair.getRight());
+            else
+                Assertions.fail("Cannot handle unknown entity type.");
+
+            count++;
+        }
+
+        Assertions.assertEquals(domainEntities, domainEntries);
+        Assertions.assertEquals(groupUnitEntities, groupUnitEntries);
+        Assertions.assertEquals(userUnitEntities, userUnitEntries);
+        Assertions.assertEquals(groupEntities, groupEntries);
+        Assertions.assertEquals(userEntities, userEntries);
+
+        Assertions.assertEquals(entities.size(), count);
+    }
+
+    private Pair<EntityType, String> getMeta(DirectoryBackend directory, Attributes attributes)
+            throws Exception {
+
+        EntityType entityType = null;
         String id = null;
+
+        {
+            NamingEnumeration ne = attributes.get(SchemaConstants.OBJECT_CLASS_AT).getAll();
+
+            Assertions.assertTrue(ne.hasMore());
+            Assertions.assertEquals(SchemaConstants.TOP_OC, ne.next());
+            Assertions.assertTrue(ne.hasMore());
+
+            String objectClass = (String) ne.next();
+
+            if (SchemaConstants.DOMAIN_OC.equals(objectClass)) {
+
+                Assertions.assertFalse(ne.hasMore());
+
+                entityType = EntityType.DOMAIN;
+
+            } else if (SchemaConstants.ORGANIZATIONAL_UNIT_OC.equals(objectClass)) {
+
+                Assertions.assertFalse(ne.hasMore());
+
+                NamingEnumeration neOu = attributes.get(SchemaConstants.OU_AT).getAll();
+
+                Assertions.assertTrue(neOu.hasMore());
+
+                String ou = (String) neOu.next();
+
+                Assertions.assertFalse(neOu.hasMore());
+
+                if (LdapUtils.OU_GROUPS.equals(ou))
+                    entityType = EntityType.GROUP_UNIT;
+                else if (LdapUtils.OU_USERS.equals(ou))
+                    entityType = EntityType.USER_UNIT;
+                else
+                    Assertions.fail("Cannot handle unknown ou attribute.");
+
+            } else if (SchemaConstants.GROUP_OF_NAMES_OC.equals(objectClass)) {
+
+                Assertions.assertTrue(ne.hasMore());
+                Assertions.assertEquals(SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC, ne.next());
+                Assertions.assertFalse(ne.hasMore());
+
+                entityType = EntityType.GROUP;
+
+            } else if (SchemaConstants.PERSON_OC.equals(objectClass)) {
+
+                Assertions.assertTrue(ne.hasMore());
+                Assertions.assertEquals(SchemaConstants.ORGANIZATIONAL_PERSON_OC, ne.next());
+                Assertions.assertTrue(ne.hasMore());
+                Assertions.assertEquals(SchemaConstants.INET_ORG_PERSON_OC, ne.next());
+                Assertions.assertFalse(ne.hasMore());
+
+                entityType = EntityType.USER;
+
+            } else
+                Assertions.fail("Cannot handle unknown objectClass attribute.");
+        }
+
+        Assertions.assertNotNull(entityType);
 
         if (entityType == EntityType.DOMAIN) {
 
             id = directory.getId().toLowerCase();
-
-            {
-                NamingEnumeration ne = attributes.get(SchemaConstants.OBJECT_CLASS_AT).getAll();
-
-                Assertions.assertEquals(SchemaConstants.TOP_OC, ne.next());
-                Assertions.assertEquals(SchemaConstants.DOMAIN_OC, ne.next());
-                Assertions.assertFalse(ne.hasMore());
-            }
 
             {
                 NamingEnumeration ne = attributes.get(SchemaConstants.DC_AT).getAll();
@@ -63,21 +210,6 @@ public class AssertionsLdap {
             id = LdapUtils.OU_GROUPS;
 
             {
-                NamingEnumeration ne = attributes.get(SchemaConstants.OBJECT_CLASS_AT).getAll();
-
-                Assertions.assertEquals(SchemaConstants.TOP_OC, ne.next());
-                Assertions.assertEquals(SchemaConstants.ORGANIZATIONAL_UNIT_OC, ne.next());
-                Assertions.assertFalse(ne.hasMore());
-            }
-
-            {
-                NamingEnumeration ne = attributes.get(SchemaConstants.OU_AT).getAll();
-
-                Assertions.assertEquals(id, ne.next());
-                Assertions.assertFalse(ne.hasMore());
-            }
-
-            {
                 NamingEnumeration ne = attributes.get(SchemaConstants.DESCRIPTION_AT).getAll();
 
                 Assertions.assertFalse(ne.next().toString().isEmpty());
@@ -87,21 +219,6 @@ public class AssertionsLdap {
         } else if (entityType == EntityType.USER_UNIT) {
 
             id = LdapUtils.OU_USERS;
-
-            {
-                NamingEnumeration ne = attributes.get(SchemaConstants.OBJECT_CLASS_AT).getAll();
-
-                Assertions.assertEquals(SchemaConstants.TOP_OC, ne.next());
-                Assertions.assertEquals(SchemaConstants.ORGANIZATIONAL_UNIT_OC, ne.next());
-                Assertions.assertFalse(ne.hasMore());
-            }
-
-            {
-                NamingEnumeration ne = attributes.get(SchemaConstants.OU_AT).getAll();
-
-                Assertions.assertEquals(id, ne.next());
-                Assertions.assertFalse(ne.hasMore());
-            }
 
             {
                 NamingEnumeration ne = attributes.get(SchemaConstants.DESCRIPTION_AT).getAll();
@@ -115,15 +232,6 @@ public class AssertionsLdap {
             GroupEntity entity;
 
             {
-                NamingEnumeration ne = attributes.get(SchemaConstants.OBJECT_CLASS_AT).getAll();
-
-                Assertions.assertEquals(SchemaConstants.TOP_OC, ne.next());
-                Assertions.assertEquals(SchemaConstants.GROUP_OF_NAMES_OC, ne.next());
-                Assertions.assertEquals(SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC, ne.next());
-                Assertions.assertFalse(ne.hasMore());
-            }
-
-            {
                 NamingEnumeration ne = attributes.get(SchemaConstants.OU_AT).getAll();
 
                 Assertions.assertEquals(LdapUtils.OU_GROUPS, ne.next());
@@ -133,12 +241,12 @@ public class AssertionsLdap {
             {
                 NamingEnumeration ne = attributes.get(SchemaConstants.CN_AT).getAll();
 
-                String entry = ne.next().toString();
-                entity = directory.getGroup(entry);
-                id = entity.getId();
+                String name = ne.next().toString();
+                id = name.toLowerCase();
+                entity = directory.getGroup(id);
 
-                Assertions.assertEquals(entry.toLowerCase(), entity.getId());
-                Assertions.assertEquals(entry, entity.getName());
+                Assertions.assertEquals(id, entity.getId());
+                Assertions.assertEquals(name, entity.getName());
                 Assertions.assertFalse(ne.hasMore());
             }
 
@@ -175,7 +283,6 @@ public class AssertionsLdap {
                             memberResult.add(ne.next().toString());
                     }
 
-                    Assertions.assertEquals(member.size(), memberResult.size());
                     Assertions.assertEquals(member, new HashSet<>(memberResult));
                 }
 
@@ -216,7 +323,6 @@ public class AssertionsLdap {
                             memberResult.add(ne.next().toString());
                     }
 
-                    Assertions.assertEquals(member.size(), memberResult.size());
                     Assertions.assertEquals(member, new HashSet<>(memberResult));
                 }
 
@@ -237,7 +343,6 @@ public class AssertionsLdap {
                             memberOfResult.add(ne.next().toString());
                     }
 
-                    Assertions.assertEquals(memberOf.size(), memberOfResult.size());
                     Assertions.assertEquals(memberOf, new HashSet<>(memberOfResult));
                 }
             }
@@ -245,16 +350,6 @@ public class AssertionsLdap {
         } else if (entityType == EntityType.USER) {
 
             UserEntity entity;
-
-            {
-                NamingEnumeration ne = attributes.get(SchemaConstants.OBJECT_CLASS_AT).getAll();
-
-                Assertions.assertEquals(SchemaConstants.TOP_OC, ne.next());
-                Assertions.assertEquals(SchemaConstants.PERSON_OC, ne.next());
-                Assertions.assertEquals(SchemaConstants.ORGANIZATIONAL_PERSON_OC, ne.next());
-                Assertions.assertEquals(SchemaConstants.INET_ORG_PERSON_OC, ne.next());
-                Assertions.assertFalse(ne.hasMore());
-            }
 
             {
                 NamingEnumeration ne = attributes.get(SchemaConstants.OU_AT).getAll();
@@ -266,11 +361,12 @@ public class AssertionsLdap {
             {
                 NamingEnumeration ne = attributes.get(SchemaConstants.UID_AT).getAll();
 
-                String entry = ne.next().toString();
-                entity = directory.getUser(entry);
-                id = entity.getId();
+                String name = ne.next().toString();
+                id = name.toLowerCase();
+                entity = directory.getUser(id);
 
-                Assertions.assertEquals(entry, entity.getId());
+                Assertions.assertEquals(id, entity.getId());
+                Assertions.assertEquals(name, entity.getId());
                 Assertions.assertFalse(ne.hasMore());
             }
 
@@ -369,13 +465,12 @@ public class AssertionsLdap {
                         memberOfResult.add(ne.next().toString());
                 }
 
-                Assertions.assertEquals(memberOf.size(), memberOfResult.size());
                 Assertions.assertEquals(memberOf, new HashSet<>(memberOfResult));
             }
         }
 
         Assertions.assertNotNull(id);
 
-        return id;
+        return Pair.of(entityType, id);
     }
 }

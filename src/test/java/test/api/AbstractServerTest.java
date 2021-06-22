@@ -3,12 +3,9 @@ package test.api;
 import com.aservo.ldap.adapter.CommonLdapServer;
 import com.aservo.ldap.adapter.Main;
 import com.aservo.ldap.adapter.ServerConfiguration;
-import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
-import com.aservo.ldap.adapter.api.entity.EntityType;
 import java.nio.file.Files;
 import java.util.Hashtable;
 import javax.naming.Context;
-import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.*;
@@ -21,6 +18,7 @@ public abstract class AbstractServerTest {
 
     private final IntegrationTestServerSetup serverSetup;
     private CommonLdapServer server;
+    private AssertionsLdap ldapAssertions;
 
     public AbstractServerTest(IntegrationTestServerSetup serverSetup) {
 
@@ -35,6 +33,11 @@ public abstract class AbstractServerTest {
     public CommonLdapServer getServer() {
 
         return server;
+    }
+
+    protected AssertionsLdap getLdapAssertions() {
+
+        return ldapAssertions;
     }
 
     protected InitialDirContext createContext(String userId, String password)
@@ -52,15 +55,6 @@ public abstract class AbstractServerTest {
             env.put(Context.SECURITY_PROTOCOL, "ssl");
 
         return new InitialDirContext(env);
-    }
-
-    protected String assertCorrectEntry(Attributes attributes, EntityType entityType)
-            throws Exception {
-
-        DirectoryBackend directory = server.getDirectoryBackendFactory().getPermanentDirectory();
-
-        return AssertionsLdap.correctEntry(attributes, entityType, directory, serverSetup.isFlatteningEnabled(),
-                server.getServerConfig().isAbbreviateSnAttribute(), server.getServerConfig().isAbbreviateGnAttribute());
     }
 
     @BeforeAll
@@ -92,6 +86,11 @@ public abstract class AbstractServerTest {
 
             // expect running server
             Assertions.assertTrue(server.isStarted());
+
+            ldapAssertions = new AssertionsLdap(
+                    serverSetup.isFlatteningEnabled(),
+                    server.getServerConfig().isAbbreviateSnAttribute(),
+                    server.getServerConfig().isAbbreviateGnAttribute());
         }
     }
 

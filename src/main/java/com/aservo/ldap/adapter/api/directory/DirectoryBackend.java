@@ -24,7 +24,7 @@ import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.aservo.ldap.adapter.api.entity.GroupEntity;
 import com.aservo.ldap.adapter.api.entity.UserEntity;
 import com.aservo.ldap.adapter.api.query.QueryExpression;
-import java.util.List;
+import java.util.Set;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 
 
@@ -97,28 +97,28 @@ public interface DirectoryBackend {
      *
      * @return the groups
      */
-    List<GroupEntity> getAllGroups();
+    Set<GroupEntity> getAllGroups();
 
     /**
      * Gets all groups.
      *
      * @return the groups
      */
-    List<GroupEntity> getAllGroups(int startIndex, int maxResults);
+    Set<GroupEntity> getAllGroups(int startIndex, int maxResults);
 
     /**
      * Gets all users.
      *
      * @return the users
      */
-    List<UserEntity> getAllUsers();
+    Set<UserEntity> getAllUsers();
 
     /**
      * Gets all users.
      *
      * @return the users
      */
-    List<UserEntity> getAllUsers(int startIndex, int maxResults);
+    Set<UserEntity> getAllUsers(int startIndex, int maxResults);
 
     /**
      * Gets direct users of group.
@@ -127,7 +127,7 @@ public interface DirectoryBackend {
      * @return the direct users of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<UserEntity> getDirectUsersOfGroup(String id)
+    Set<UserEntity> getDirectUsersOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
@@ -137,7 +137,7 @@ public interface DirectoryBackend {
      * @return the direct groups of user
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<GroupEntity> getDirectGroupsOfUser(String id)
+    Set<GroupEntity> getDirectGroupsOfUser(String id)
             throws EntityNotFoundException;
 
     /**
@@ -147,7 +147,7 @@ public interface DirectoryBackend {
      * @return the transitive users of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<UserEntity> getTransitiveUsersOfGroup(String id)
+    Set<UserEntity> getTransitiveUsersOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
@@ -157,7 +157,7 @@ public interface DirectoryBackend {
      * @return the transitive groups of user
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<GroupEntity> getTransitiveGroupsOfUser(String id)
+    Set<GroupEntity> getTransitiveGroupsOfUser(String id)
             throws EntityNotFoundException;
 
     /**
@@ -167,7 +167,7 @@ public interface DirectoryBackend {
      * @return the direct child groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<GroupEntity> getDirectChildGroupsOfGroup(String id)
+    Set<GroupEntity> getDirectChildGroupsOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
@@ -177,7 +177,7 @@ public interface DirectoryBackend {
      * @return the direct parent groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<GroupEntity> getDirectParentGroupsOfGroup(String id)
+    Set<GroupEntity> getDirectParentGroupsOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
@@ -187,7 +187,7 @@ public interface DirectoryBackend {
      * @return the transitive child groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
+    Set<GroupEntity> getTransitiveChildGroupsOfGroup(String id)
             throws EntityNotFoundException;
 
     /**
@@ -197,6 +197,6 @@ public interface DirectoryBackend {
      * @return the transitive parent groups of group
      * @throws EntityNotFoundException the entry not found exception
      */
-    List<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
+    Set<GroupEntity> getTransitiveParentGroupsOfGroup(String id)
             throws EntityNotFoundException;
 }
