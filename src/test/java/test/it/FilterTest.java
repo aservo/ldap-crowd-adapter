@@ -13,6 +13,7 @@ import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
+import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupNesting;
 
 
@@ -33,40 +34,41 @@ public class FilterTest
     public void test001()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "dc=json";
+            String base = "dc=json";
 
-        String filter =
-                SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.TOP_OC;
+            String filter =
+                    SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.TOP_OC;
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.DOMAIN, directory.getId());
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.DOMAIN, directory.getId());
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.USER_UNIT, LdapUtils.OU_USERS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-        getLdapAssertions().assertCorrectEntries(directory, results,
-                Stream.concat(directory.getAllGroups().stream(), directory.getAllUsers().stream())
-                        .collect(Collectors.toSet()));
+            getLdapAssertions().assertCorrectEntries(directory, results,
+                    Stream.concat(directory.getAllGroups().stream(), directory.getAllUsers().stream())
+                            .collect(Collectors.toSet()));
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -75,28 +77,29 @@ public class FilterTest
     public void test002()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "dc=json";
+            String base = "dc=json";
 
-        String filter =
-                SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC;
+            String filter =
+                    SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC;
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.DOMAIN, directory.getId());
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.DOMAIN, directory.getId());
 
-        Assertions.assertFalse(results.hasMore());
+            Assertions.assertFalse(results.hasMore());
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -105,33 +108,34 @@ public class FilterTest
     public void test003()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "dc=json";
+            String base = "dc=json";
 
-        String filter =
-                SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC;
+            String filter =
+                    SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC;
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.USER_UNIT, LdapUtils.OU_USERS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-        Assertions.assertFalse(results.hasMore());
+            Assertions.assertFalse(results.hasMore());
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -140,31 +144,32 @@ public class FilterTest
     public void test004()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "dc=json";
+            String base = "dc=json";
 
-        String filter =
-                "(&" +
-                        "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + ")" +
-                        "(" + SchemaConstants.OU_AT + "=" + LdapUtils.OU_GROUPS + ")" +
-                        ")";
+            String filter =
+                    "(&" +
+                            "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + ")" +
+                            "(" + SchemaConstants.OU_AT + "=" + LdapUtils.OU_GROUPS + ")" +
+                            ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
-        Assertions.assertFalse(results.hasMore());
+            Assertions.assertFalse(results.hasMore());
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -173,31 +178,32 @@ public class FilterTest
     public void test005()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "dc=json";
+            String base = "dc=json";
 
-        String filter =
-                "(&" +
-                        "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + ")" +
-                        "(" + SchemaConstants.OU_AT + "=" + LdapUtils.OU_USERS + ")" +
-                        ")";
+            String filter =
+                    "(&" +
+                            "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + ")" +
+                            "(" + SchemaConstants.OU_AT + "=" + LdapUtils.OU_USERS + ")" +
+                            ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.USER_UNIT, LdapUtils.OU_USERS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-        Assertions.assertFalse(results.hasMore());
+            Assertions.assertFalse(results.hasMore());
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -206,41 +212,42 @@ public class FilterTest
     public void test006()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "dc=json";
+            String base = "dc=json";
 
-        String filter =
-                "(|" +
-                        "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + ")" +
-                        "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC + ")" +
-                        ")";
+            String filter =
+                    "(|" +
+                            "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + ")" +
+                            "(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC + ")" +
+                            ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.DOMAIN, directory.getId());
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.DOMAIN, directory.getId());
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.USER_UNIT, LdapUtils.OU_USERS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-        Assertions.assertFalse(results.hasMore());
+            Assertions.assertFalse(results.hasMore());
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -249,27 +256,28 @@ public class FilterTest
     public void test007()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "dc=json";
+            String base = "dc=json";
 
-        String filter =
-                "(&" +
-                        "(!(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC + "))" +
-                        "(!(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + "))" +
-                        "(!(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.GROUP_OF_NAMES_OC + "))" +
-                        ")";
+            String filter =
+                    "(&" +
+                            "(!(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.DOMAIN_OC + "))" +
+                            "(!(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.ORGANIZATIONAL_UNIT_OC + "))" +
+                            "(!(" + SchemaConstants.OBJECT_CLASS_AT + "=" + SchemaConstants.GROUP_OF_NAMES_OC + "))" +
+                            ")";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllUsers());
+            getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllUsers());
 
-        context.close();
+            context.close();
+        });
     }
 
     /*

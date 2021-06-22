@@ -7,6 +7,7 @@ import javax.naming.directory.SearchControls;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
+import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupFlattening;
 
 
@@ -37,21 +38,22 @@ public class GroupFlatteningTest
     public void test002()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "ou=groups,dc=json";
-        String filter = "objectClass=groupOfUniqueNames";
+            String base = "ou=groups,dc=json";
+            String filter = "objectClass=groupOfUniqueNames";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllGroups());
+            getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllGroups());
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -60,20 +62,21 @@ public class GroupFlatteningTest
     public void test003()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "ou=users,dc=json";
-        String filter = "objectClass=inetOrgPerson";
+            String base = "ou=users,dc=json";
+            String filter = "objectClass=inetOrgPerson";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllUsers());
+            getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllUsers());
 
-        context.close();
+            context.close();
+        });
     }
 }

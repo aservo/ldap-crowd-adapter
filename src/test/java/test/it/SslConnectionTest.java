@@ -9,6 +9,7 @@ import javax.naming.directory.SearchResult;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
+import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupFlatteningAndSsl;
 
 
@@ -29,25 +30,26 @@ public class SslConnectionTest
     public void test001()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "cn=UserA,ou=users,dc=json";
-        String filter = "objectClass=inetOrgPerson";
+            String base = "cn=UserA,ou=users,dc=json";
+            String filter = "objectClass=inetOrgPerson";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.USER, ("UserA").toLowerCase());
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.USER, ("UserA").toLowerCase());
 
-        Assertions.assertFalse(results.hasMore());
+            Assertions.assertFalse(results.hasMore());
 
-        context.close();
+            context.close();
+        });
     }
 }

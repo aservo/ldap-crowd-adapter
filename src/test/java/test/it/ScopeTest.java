@@ -16,6 +16,7 @@ import org.apache.directory.api.ldap.model.name.Rdn;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
+import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupFlattening;
 
 
@@ -36,55 +37,56 @@ public class ScopeTest
     public void test001()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        final String name = "GroupE+,";
+            final String name = "GroupE+,";
 
-        Consumer<NamingEnumeration> consumer =
-                results -> {
+            Consumer<NamingEnumeration> consumer =
+                    results -> {
 
-                    try {
+                        try {
 
-                        Assertions.assertTrue(results.hasMore());
+                            Assertions.assertTrue(results.hasMore());
 
-                        getLdapAssertions().assertCorrectEntry(directory,
-                                ((SearchResult) results.next()).getAttributes(),
-                                EntityType.GROUP, name.toLowerCase());
+                            getLdapAssertions().assertCorrectEntry(directory,
+                                    ((SearchResult) results.next()).getAttributes(),
+                                    EntityType.GROUP, name.toLowerCase());
 
-                        Assertions.assertFalse(results.hasMore());
+                            Assertions.assertFalse(results.hasMore());
 
-                    } catch (Exception e) {
+                        } catch (Exception e) {
 
-                        throw new RuntimeException(e);
-                    }
-                };
+                            throw new RuntimeException(e);
+                        }
+                    };
 
-        List<String> baseList =
-                Arrays.asList(
-                        "cn=" + Rdn.escapeValue(name) + ",dc=json",
-                        "cn=" + Rdn.escapeValue(name) + ",ou=groups,dc=json"
-                );
+            List<String> baseList =
+                    Arrays.asList(
+                            "cn=" + Rdn.escapeValue(name) + ",dc=json",
+                            "cn=" + Rdn.escapeValue(name) + ",ou=groups,dc=json"
+                    );
 
-        List<SearchControls> searchControlsList =
-                Arrays.asList(new SearchControls(), new SearchControls(), new SearchControls());
+            List<SearchControls> searchControlsList =
+                    Arrays.asList(new SearchControls(), new SearchControls(), new SearchControls());
 
-        searchControlsList.get(0).setSearchScope(SearchControls.OBJECT_SCOPE);
-        searchControlsList.get(1).setSearchScope(SearchControls.ONELEVEL_SCOPE);
-        searchControlsList.get(2).setSearchScope(SearchControls.SUBTREE_SCOPE);
+            searchControlsList.get(0).setSearchScope(SearchControls.OBJECT_SCOPE);
+            searchControlsList.get(1).setSearchScope(SearchControls.ONELEVEL_SCOPE);
+            searchControlsList.get(2).setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        String filter = "objectClass=*";
+            String filter = "objectClass=*";
 
-        for (String base : baseList) {
+            for (String base : baseList) {
 
-            for (SearchControls sc : searchControlsList) {
+                for (SearchControls sc : searchControlsList) {
 
-                InitialDirContext context = createContext("UserA", "pw-user-a");
+                    InitialDirContext context = createContext("UserA", "pw-user-a");
 
-                consumer.accept(context.search(base, filter, sc));
+                    consumer.accept(context.search(base, filter, sc));
 
-                context.close();
+                    context.close();
+                }
             }
-        }
+        });
     }
 
     @Test
@@ -93,55 +95,56 @@ public class ScopeTest
     public void test002()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        final String name = "UserE+,";
+            final String name = "UserE+,";
 
-        Consumer<NamingEnumeration> consumer =
-                results -> {
+            Consumer<NamingEnumeration> consumer =
+                    results -> {
 
-                    try {
+                        try {
 
-                        Assertions.assertTrue(results.hasMore());
+                            Assertions.assertTrue(results.hasMore());
 
-                        getLdapAssertions().assertCorrectEntry(directory,
-                                ((SearchResult) results.next()).getAttributes(),
-                                EntityType.USER, name.toLowerCase());
+                            getLdapAssertions().assertCorrectEntry(directory,
+                                    ((SearchResult) results.next()).getAttributes(),
+                                    EntityType.USER, name.toLowerCase());
 
-                        Assertions.assertFalse(results.hasMore());
+                            Assertions.assertFalse(results.hasMore());
 
-                    } catch (Exception e) {
+                        } catch (Exception e) {
 
-                        throw new RuntimeException(e);
-                    }
-                };
+                            throw new RuntimeException(e);
+                        }
+                    };
 
-        List<String> baseList =
-                Arrays.asList(
-                        "cn=" + Rdn.escapeValue(name) + ",dc=json",
-                        "cn=" + Rdn.escapeValue(name) + ",ou=users,dc=json"
-                );
+            List<String> baseList =
+                    Arrays.asList(
+                            "cn=" + Rdn.escapeValue(name) + ",dc=json",
+                            "cn=" + Rdn.escapeValue(name) + ",ou=users,dc=json"
+                    );
 
-        List<SearchControls> searchControlsList =
-                Arrays.asList(new SearchControls(), new SearchControls(), new SearchControls());
+            List<SearchControls> searchControlsList =
+                    Arrays.asList(new SearchControls(), new SearchControls(), new SearchControls());
 
-        searchControlsList.get(0).setSearchScope(SearchControls.OBJECT_SCOPE);
-        searchControlsList.get(1).setSearchScope(SearchControls.ONELEVEL_SCOPE);
-        searchControlsList.get(2).setSearchScope(SearchControls.SUBTREE_SCOPE);
+            searchControlsList.get(0).setSearchScope(SearchControls.OBJECT_SCOPE);
+            searchControlsList.get(1).setSearchScope(SearchControls.ONELEVEL_SCOPE);
+            searchControlsList.get(2).setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        String filter = "objectClass=*";
+            String filter = "objectClass=*";
 
-        for (String base : baseList) {
+            for (String base : baseList) {
 
-            for (SearchControls sc : searchControlsList) {
+                for (SearchControls sc : searchControlsList) {
 
-                InitialDirContext context = createContext("UserA", "pw-user-a");
+                    InitialDirContext context = createContext("UserA", "pw-user-a");
 
-                consumer.accept(context.search(base, filter, sc));
+                    consumer.accept(context.search(base, filter, sc));
 
-                context.close();
+                    context.close();
+                }
             }
-        }
+        });
     }
 
     @Test
@@ -150,26 +153,27 @@ public class ScopeTest
     public void test003()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "dc=json";
-        String filter = "objectClass=*";
+            String base = "dc=json";
+            String filter = "objectClass=*";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.OBJECT_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.OBJECT_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.DOMAIN, directory.getId());
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.DOMAIN, directory.getId());
 
-        Assertions.assertFalse(results.hasMore());
+            Assertions.assertFalse(results.hasMore());
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -178,26 +182,27 @@ public class ScopeTest
     public void test004()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "ou=groups,dc=json";
-        String filter = "objectClass=*";
+            String base = "ou=groups,dc=json";
+            String filter = "objectClass=*";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.OBJECT_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.OBJECT_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
-        Assertions.assertFalse(results.hasMore());
+            Assertions.assertFalse(results.hasMore());
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -206,26 +211,27 @@ public class ScopeTest
     public void test005()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "ou=users,dc=json";
-        String filter = "objectClass=*";
+            String base = "ou=users,dc=json";
+            String filter = "objectClass=*";
 
-        InitialDirContext context = createContext("UserA", "pw-user-a");
+            InitialDirContext context = createContext("UserA", "pw-user-a");
 
-        SearchControls sc = new SearchControls();
-        sc.setSearchScope(SearchControls.OBJECT_SCOPE);
+            SearchControls sc = new SearchControls();
+            sc.setSearchScope(SearchControls.OBJECT_SCOPE);
 
-        NamingEnumeration results = context.search(base, filter, sc);
+            NamingEnumeration results = context.search(base, filter, sc);
 
-        Assertions.assertTrue(results.hasMore());
+            Assertions.assertTrue(results.hasMore());
 
-        getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                EntityType.USER_UNIT, LdapUtils.OU_USERS);
+            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                    EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-        Assertions.assertFalse(results.hasMore());
+            Assertions.assertFalse(results.hasMore());
 
-        context.close();
+            context.close();
+        });
     }
 
     @Test
@@ -234,47 +240,48 @@ public class ScopeTest
     public void test006()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "dc=json";
-        String filter = "objectClass=*";
+            String base = "dc=json";
+            String filter = "objectClass=*";
 
-        InitialDirContext context1 = createContext("UserA", "pw-user-a");
-        InitialDirContext context2 = createContext("UserA", "pw-user-a");
+            InitialDirContext context1 = createContext("UserA", "pw-user-a");
+            InitialDirContext context2 = createContext("UserA", "pw-user-a");
 
-        SearchControls sc1 = new SearchControls();
-        sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
+            SearchControls sc1 = new SearchControls();
+            sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
 
-        SearchControls sc2 = new SearchControls();
-        sc2.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc2 = new SearchControls();
+            sc2.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results1 = context1.search(base, filter, sc1);
-        NamingEnumeration results2 = context1.search(base, filter, sc2);
+            NamingEnumeration results1 = context1.search(base, filter, sc1);
+            NamingEnumeration results2 = context1.search(base, filter, sc2);
 
-        for (NamingEnumeration results : Arrays.asList(results1, results2)) {
+            for (NamingEnumeration results : Arrays.asList(results1, results2)) {
 
-            Assertions.assertTrue(results.hasMore());
+                Assertions.assertTrue(results.hasMore());
 
-            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                    EntityType.DOMAIN, directory.getId());
+                getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                        EntityType.DOMAIN, directory.getId());
 
-            Assertions.assertTrue(results.hasMore());
+                Assertions.assertTrue(results.hasMore());
 
-            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                    EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
+                getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                        EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
-            Assertions.assertTrue(results.hasMore());
+                Assertions.assertTrue(results.hasMore());
 
-            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                    EntityType.USER_UNIT, LdapUtils.OU_USERS);
+                getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                        EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-            getLdapAssertions().assertCorrectEntries(directory, results,
-                    Stream.concat(directory.getAllGroups().stream(), directory.getAllUsers().stream())
-                            .collect(Collectors.toSet()));
-        }
+                getLdapAssertions().assertCorrectEntries(directory, results,
+                        Stream.concat(directory.getAllGroups().stream(), directory.getAllUsers().stream())
+                                .collect(Collectors.toSet()));
+            }
 
-        context1.close();
-        context2.close();
+            context1.close();
+            context2.close();
+        });
     }
 
     @Test
@@ -283,35 +290,36 @@ public class ScopeTest
     public void test007()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "ou=groups,dc=json";
-        String filter = "objectClass=*";
+            String base = "ou=groups,dc=json";
+            String filter = "objectClass=*";
 
-        InitialDirContext context1 = createContext("UserA", "pw-user-a");
-        InitialDirContext context2 = createContext("UserA", "pw-user-a");
+            InitialDirContext context1 = createContext("UserA", "pw-user-a");
+            InitialDirContext context2 = createContext("UserA", "pw-user-a");
 
-        SearchControls sc1 = new SearchControls();
-        sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
+            SearchControls sc1 = new SearchControls();
+            sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
 
-        SearchControls sc2 = new SearchControls();
-        sc2.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc2 = new SearchControls();
+            sc2.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results1 = context1.search(base, filter, sc1);
-        NamingEnumeration results2 = context1.search(base, filter, sc2);
+            NamingEnumeration results1 = context1.search(base, filter, sc1);
+            NamingEnumeration results2 = context1.search(base, filter, sc2);
 
-        for (NamingEnumeration results : Arrays.asList(results1, results2)) {
+            for (NamingEnumeration results : Arrays.asList(results1, results2)) {
 
-            Assertions.assertTrue(results.hasMore());
+                Assertions.assertTrue(results.hasMore());
 
-            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                    EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
+                getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                        EntityType.GROUP_UNIT, LdapUtils.OU_GROUPS);
 
-            getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllGroups());
-        }
+                getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllGroups());
+            }
 
-        context1.close();
-        context2.close();
+            context1.close();
+            context2.close();
+        });
     }
 
     @Test
@@ -320,34 +328,35 @@ public class ScopeTest
     public void test008()
             throws Exception {
 
-        DirectoryBackend directory = getServer().getDirectoryBackendFactory().getPermanentDirectory();
+        getServer().getDirectoryBackendFactory().withSession((ThrowingConsumer<DirectoryBackend>) directory -> {
 
-        String base = "ou=users,dc=json";
-        String filter = "objectClass=*";
+            String base = "ou=users,dc=json";
+            String filter = "objectClass=*";
 
-        InitialDirContext context1 = createContext("UserA", "pw-user-a");
-        InitialDirContext context2 = createContext("UserA", "pw-user-a");
+            InitialDirContext context1 = createContext("UserA", "pw-user-a");
+            InitialDirContext context2 = createContext("UserA", "pw-user-a");
 
-        SearchControls sc1 = new SearchControls();
-        sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
+            SearchControls sc1 = new SearchControls();
+            sc1.setSearchScope(SearchControls.ONELEVEL_SCOPE);
 
-        SearchControls sc2 = new SearchControls();
-        sc2.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            SearchControls sc2 = new SearchControls();
+            sc2.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-        NamingEnumeration results1 = context1.search(base, filter, sc1);
-        NamingEnumeration results2 = context1.search(base, filter, sc2);
+            NamingEnumeration results1 = context1.search(base, filter, sc1);
+            NamingEnumeration results2 = context1.search(base, filter, sc2);
 
-        for (NamingEnumeration results : Arrays.asList(results1, results2)) {
+            for (NamingEnumeration results : Arrays.asList(results1, results2)) {
 
-            Assertions.assertTrue(results.hasMore());
+                Assertions.assertTrue(results.hasMore());
 
-            getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
-                    EntityType.USER_UNIT, LdapUtils.OU_USERS);
+                getLdapAssertions().assertCorrectEntry(directory, ((SearchResult) results.next()).getAttributes(),
+                        EntityType.USER_UNIT, LdapUtils.OU_USERS);
 
-            getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllUsers());
-        }
+                getLdapAssertions().assertCorrectEntries(directory, results, directory.getAllUsers());
+            }
 
-        context1.close();
-        context2.close();
+            context1.close();
+            context2.close();
+        });
     }
 }
