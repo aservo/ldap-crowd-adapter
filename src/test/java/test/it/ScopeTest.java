@@ -81,7 +81,16 @@ public class ScopeTest
 
                     InitialDirContext context = createContext("UserA", "pw-user-a");
 
-                    consumer.accept(context.search(base, filter, sc));
+                    if (base.equals(baseList.get(0)) && sc.equals(searchControlsList.get(0))) {
+
+                        NamingEnumeration results = context.search(base, filter, sc);
+
+                        Assertions.assertFalse(results.hasMore()); // no results for incomplete DN and base scope
+
+                    } else {
+
+                        consumer.accept(context.search(base, filter, sc));
+                    }
 
                     context.close();
                 }
@@ -139,7 +148,16 @@ public class ScopeTest
 
                     InitialDirContext context = createContext("UserA", "pw-user-a");
 
-                    consumer.accept(context.search(base, filter, sc));
+                    if (base.equals(baseList.get(0)) && sc.equals(searchControlsList.get(0))) {
+
+                        NamingEnumeration results = context.search(base, filter, sc);
+
+                        Assertions.assertFalse(results.hasMore()); // no results for incomplete DN and base scope
+
+                    } else {
+
+                        consumer.accept(context.search(base, filter, sc));
+                    }
 
                     context.close();
                 }
