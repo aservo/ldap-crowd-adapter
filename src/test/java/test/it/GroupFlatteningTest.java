@@ -33,6 +33,7 @@ public class GroupFlatteningTest
     }
 
     @Test
+    @Disabled
     @Order(2)
     @DisplayName("it should show group attributes correctly in flattening mode")
     public void test002()
@@ -57,6 +58,7 @@ public class GroupFlatteningTest
     }
 
     @Test
+    @Disabled
     @Order(3)
     @DisplayName("it should show user attributes correctly in flattening mode")
     public void test003()
