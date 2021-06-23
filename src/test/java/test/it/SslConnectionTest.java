@@ -10,7 +10,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
 import test.api.helper.ThrowingConsumer;
-import test.configuration.server.JsonWithGroupFlatteningAndSsl;
+import test.configuration.server.JsonWithGroupNestingAndSsl;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -21,7 +21,7 @@ public class SslConnectionTest
 
     public SslConnectionTest() {
 
-        super(new JsonWithGroupFlatteningAndSsl(10931));
+        super(new JsonWithGroupNestingAndSsl(10931));
     }
 
     @Test

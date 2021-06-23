@@ -17,7 +17,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
 import test.api.helper.ThrowingConsumer;
-import test.configuration.server.JsonWithGroupFlattening;
+import test.configuration.server.JsonWithGroupNesting;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -28,7 +28,7 @@ public class ScopeTest
 
     public ScopeTest() {
 
-        super(new JsonWithGroupFlattening(10934));
+        super(new JsonWithGroupNesting(10934));
     }
 
     @Test

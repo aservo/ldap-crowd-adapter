@@ -34,7 +34,8 @@ public class JsonWithGroupNesting
         Properties properties = new Properties();
 
         properties.put("directory-backend.permanent",
-                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
+                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend," +
+                        "com.aservo.ldap.adapter.backend.CachedWithPersistenceDirectoryBackend");
 
         properties.put("directory-backend.session", "");
 
@@ -50,6 +51,8 @@ public class JsonWithGroupNesting
         Properties properties = new Properties();
 
         properties.put("db-uri", "file:./src/test/resources/com/aservo/ldap/adapter/db.json");
+
+        properties.put("database.jdbc.connection.url", "jdbc:h2:" + getTestDirectory() + "/db");
 
         return properties;
     }

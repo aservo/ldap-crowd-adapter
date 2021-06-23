@@ -10,12 +10,12 @@ import test.api.CertificateGenerator;
 import test.api.IntegrationTestServerSetup;
 
 
-public class JsonWithGroupFlatteningAndSsl
+public class JsonWithGroupNestingAndSsl
         implements IntegrationTestServerSetup {
 
     private final int port;
 
-    public JsonWithGroupFlatteningAndSsl(int port) {
+    public JsonWithGroupNestingAndSsl(int port) {
 
         this.port = port;
     }
@@ -32,7 +32,7 @@ public class JsonWithGroupFlatteningAndSsl
 
     public boolean isFlatteningEnabled() {
 
-        return true;
+        return false;
     }
 
     public Properties getServerProperties() {
@@ -40,7 +40,8 @@ public class JsonWithGroupFlatteningAndSsl
         Properties properties = new Properties();
 
         properties.put("directory-backend.permanent",
-                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
+                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend," +
+                        "com.aservo.ldap.adapter.backend.CachedWithPersistenceDirectoryBackend");
 
         properties.put("directory-backend.session", "");
 
@@ -59,6 +60,8 @@ public class JsonWithGroupFlatteningAndSsl
         Properties properties = new Properties();
 
         properties.put("db-uri", "file:./src/test/resources/com/aservo/ldap/adapter/db.json");
+
+        properties.put("database.jdbc.connection.url", "jdbc:h2:" + getTestDirectory() + "/db");
 
         return properties;
     }

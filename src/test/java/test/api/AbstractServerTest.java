@@ -3,6 +3,8 @@ package test.api;
 import com.aservo.ldap.adapter.CommonLdapServer;
 import com.aservo.ldap.adapter.Main;
 import com.aservo.ldap.adapter.ServerConfiguration;
+import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
+import com.aservo.ldap.adapter.api.entity.MembershipEntity;
 import java.nio.file.Files;
 import java.util.Hashtable;
 import javax.naming.Context;
@@ -78,6 +80,18 @@ public abstract class AbstractServerTest {
 
             // boot process
             server.startup();
+
+            NestedDirectoryBackend directory =
+                    ((NestedDirectoryBackend) server.getDirectoryBackendFactory().getPermanentDirectory());
+
+            directory.withWriteAccess(() -> {
+
+                directory.upsertAllGroups();
+                directory.upsertAllUsers();
+
+                for (MembershipEntity membership : directory.getMemberships())
+                    directory.upsertMembership(membership);
+            });
 
             // wait max 10 seconds for server boot
             for (int i = 0; i < 10; i++)
