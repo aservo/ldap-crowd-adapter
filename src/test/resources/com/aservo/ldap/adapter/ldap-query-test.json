@@ -1,0 +1,678 @@
+{
+  "query_tests": [
+    {
+      "ignored": false,
+      "description": "it should be able to list all entries",
+      "base": "dc=json",
+      "filter": "(objectClass=*)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "domain",
+          "id": "json"
+        },
+        {
+          "type": "group_unit",
+          "id": "groups"
+        },
+        {
+          "type": "user_unit",
+          "id": "users"
+        },
+        {
+          "type": "group",
+          "ids": [
+            "GroupA",
+            "GroupB",
+            "GroupC",
+            "GroupD",
+            "GroupE+,",
+            "GroupF",
+            "GroupG",
+            "GroupH",
+            "GroupI"
+          ]
+        },
+        {
+          "type": "user",
+          "ids": [
+            "UserA",
+            "UserB",
+            "UserC",
+            "UserD",
+            "UserE+,",
+            "UserF",
+            "UserG",
+            "UserH",
+            "UserI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should show the domain entry by object class",
+      "base": "dc=json",
+      "filter": "(objectClass=domain)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "domain",
+          "id": "json"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should list all organizational unit entries by object class",
+      "base": "dc=json",
+      "filter": "(objectClass=organizationalUnit)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group_unit",
+          "id": "groups"
+        },
+        {
+          "type": "user_unit",
+          "id": "users"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should show the groups organizational unit entry",
+      "base": "dc=json",
+      "filter": "(&(objectClass=organizationalUnit)(ou=groups))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group_unit",
+          "id": "groups"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should show the users organizational unit entry",
+      "base": "dc=json",
+      "filter": "(&(objectClass=organizationalUnit)(ou=users))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "user_unit",
+          "id": "users"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find all group entries",
+      "base": "ou=groups,dc=json",
+      "filter": "(objectClass=groupOfUniqueNames)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "ids": [
+            "GroupA",
+            "GroupB",
+            "GroupC",
+            "GroupD",
+            "GroupE+,",
+            "GroupF",
+            "GroupG",
+            "GroupH",
+            "GroupI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find all user entries",
+      "base": "ou=users,dc=json",
+      "filter": "(objectClass=inetOrgPerson)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "user",
+          "ids": [
+            "UserA",
+            "UserB",
+            "UserC",
+            "UserD",
+            "UserE+,",
+            "UserF",
+            "UserG",
+            "UserH",
+            "UserI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find a specific group by DN",
+      "base": "cn=GroupA,ou=groups,dc=json",
+      "filter": "(objectClass=*)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "id": "GroupA"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find a specific group by filter",
+      "base": "ou=groups,dc=json",
+      "filter": "(&(objectClass=groupOfNames)(cn=GroupA))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "id": "GroupA"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find a selection of groups by filter",
+      "base": "ou=groups,dc=json",
+      "filter": "(&(objectClass=groupOfNames)(|(cn=GroupA)(cn=GroupB)(cn=GroupC)))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "id": "GroupA"
+        },
+        {
+          "type": "group",
+          "id": "GroupB"
+        },
+        {
+          "type": "group",
+          "id": "GroupC"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find a specific user by DN",
+      "base": "cn=UserA,ou=users,dc=json",
+      "filter": "(objectClass=*)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "user",
+          "id": "UserA"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find a specific user by filter",
+      "base": "ou=users,dc=json",
+      "filter": "(&(objectClass=inetOrgPerson)(cn=UserA))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "user",
+          "id": "UserA"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find a selection of users by filter",
+      "base": "ou=users,dc=json",
+      "filter": "(&(objectClass=inetOrgPerson)(|(cn=UserA)(cn=UserB)(cn=UserC)))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "user",
+          "id": "UserA"
+        },
+        {
+          "type": "user",
+          "id": "UserB"
+        },
+        {
+          "type": "user",
+          "id": "UserC"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find users by a specific group",
+      "base": "ou=users,dc=json",
+      "filter": "(memberOf=cn=GroupB,ou=groups,dc=json)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "user",
+          "id": "UserA"
+        },
+        {
+          "type": "user",
+          "id": "UserB"
+        },
+        {
+          "type": "user",
+          "id": "UserC"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find groups by a specific user",
+      "base": "ou=groups,dc=json",
+      "filter": "(member=cn=UserA,ou=users,dc=json)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "id": "GroupA"
+        },
+        {
+          "type": "group",
+          "id": "GroupB"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find groups by a specific child group",
+      "base": "ou=groups,dc=json",
+      "filter": "(member=cn=GroupH,ou=groups,dc=json)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "id": "GroupG"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find groups by a specific parent group",
+      "base": "ou=groups,dc=json",
+      "filter": "(member=cn=GroupH,ou=groups,dc=json)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "id": "GroupG"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find groups which are not member of a specific group",
+      "base": "ou=groups,dc=json",
+      "filter": "(&(objectClass=groupOfNames)(!(memberOf=cn=GroupC,ou=groups,dc=json)))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "ids": [
+            "GroupB",
+            "GroupD",
+            "GroupC",
+            "GroupE+,",
+            "GroupF",
+            "GroupG",
+            "GroupH",
+            "GroupI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find users which are not member of a specific group",
+      "base": "ou=users,dc=json",
+      "filter": "(&(objectClass=inetOrgPerson)(!(memberOf=cn=GroupB,ou=groups,dc=json)))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "user",
+          "ids": [
+            "UserD",
+            "UserE+,",
+            "UserF",
+            "UserG",
+            "UserH",
+            "UserI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find groups which have not specific member attributes",
+      "base": "ou=groups,dc=json",
+      "filter": "(&(objectClass=groupOfNames)(!(member=cn=UserB,ou=users,dc=json))(!(member=cn=GroupC,ou=groups,dc=json)))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "ids": [
+            "GroupC",
+            "GroupE+,",
+            "GroupF",
+            "GroupG",
+            "GroupH",
+            "GroupI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find group and user entries which have not specific member-of attributes",
+      "base": "dc=json",
+      "filter": "(&(|(objectClass=groupOfNames)(objectClass=inetOrgPerson))(!(memberOf=cn=GroupA,ou=groups,dc=json))(!(memberOf=cn=GroupC,ou=groups,dc=json))(!(memberOf=cn=GroupE\\\\+\\\\,,ou=groups,dc=json)))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "ids": [
+            "GroupB",
+            "GroupC",
+            "GroupE+,",
+            "GroupF",
+            "GroupG",
+            "GroupH",
+            "GroupI"
+          ]
+        },
+        {
+          "type": "user",
+          "ids": [
+            "UserC",
+            "UserF",
+            "UserG",
+            "UserH",
+            "UserI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should list all group entries which have a member attribute",
+      "base": "ou=groups,dc=json",
+      "filter": "(member=*)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "ids": [
+            "GroupA",
+            "GroupB",
+            "GroupC",
+            "GroupD",
+            "GroupE+,",
+            "GroupF",
+            "GroupG",
+            "GroupH"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should list all group entries which have not a member attribute",
+      "base": "ou=groups,dc=json",
+      "filter": "(!(member=*))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group_unit",
+          "id": "groups"
+        },
+        {
+          "type": "group",
+          "id": "GroupI"
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should list all group and user entries which have a member-of attribute",
+      "base": "dc=json",
+      "filter": "(&(|(objectClass=groupOfNames)(objectClass=inetOrgPerson))(memberOf=*))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "ids": [
+            "GroupA",
+            "GroupC",
+            "GroupD",
+            "GroupG",
+            "GroupH"
+          ]
+        },
+        {
+          "type": "user",
+          "ids": [
+            "UserA",
+            "UserB",
+            "UserC",
+            "UserD",
+            "UserE+,",
+            "UserF",
+            "UserG",
+            "UserH"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should list all group and user entries which have not a member-of attribute",
+      "base": "dc=json",
+      "filter": "(&(|(objectClass=groupOfNames)(objectClass=inetOrgPerson))(!(memberOf=*)))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "ids": [
+            "GroupB",
+            "GroupE+,",
+            "GroupF",
+            "GroupI"
+          ]
+        },
+        {
+          "type": "user",
+          "ids": [
+            "UserI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should list all entries which have not a member-of attribute",
+      "base": "dc=json",
+      "filter": "(&(!(memberOf=*)))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "domain",
+          "id": "json"
+        },
+        {
+          "type": "group_unit",
+          "id": "groups"
+        },
+        {
+          "type": "user_unit",
+          "id": "users"
+        },
+        {
+          "type": "group",
+          "ids": [
+            "GroupB",
+            "GroupE+,",
+            "GroupF",
+            "GroupI"
+          ]
+        },
+        {
+          "type": "user",
+          "ids": [
+            "UserI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find all entries with a description",
+      "base": "dc=json",
+      "filter": "(description=*)",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "domain",
+          "id": "json"
+        },
+        {
+          "type": "group_unit",
+          "id": "groups"
+        },
+        {
+          "type": "user_unit",
+          "id": "users"
+        },
+        {
+          "type": "group",
+          "ids": [
+            "GroupA",
+            "GroupB",
+            "GroupC",
+            "GroupD",
+            "GroupE+,",
+            "GroupF",
+            "GroupG",
+            "GroupH",
+            "GroupI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should find all entries which have not a description",
+      "base": "dc=json",
+      "filter": "(!(description=*))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "user",
+          "ids": [
+            "UserA",
+            "UserB",
+            "UserC",
+            "UserD",
+            "UserE+,",
+            "UserF",
+            "UserG",
+            "UserH",
+            "UserI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should support wildcard expressions",
+      "base": "dc=json",
+      "filter": "(&(cn=*User*)(sn=*User*)(gn=*User*))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "user",
+          "ids": [
+            "UserA",
+            "UserB",
+            "UserC",
+            "UserD",
+            "UserE+,",
+            "UserF",
+            "UserG",
+            "UserH",
+            "UserI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should support negated wildcard expressions",
+      "base": "dc=json",
+      "filter": "(!(cn=User*))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "domain",
+          "id": "json"
+        },
+        {
+          "type": "group_unit",
+          "id": "groups"
+        },
+        {
+          "type": "user_unit",
+          "id": "users"
+        },
+        {
+          "type": "group",
+          "ids": [
+            "GroupA",
+            "GroupB",
+            "GroupC",
+            "GroupD",
+            "GroupE+,",
+            "GroupF",
+            "GroupG",
+            "GroupH",
+            "GroupI"
+          ]
+        }
+      ]
+    },
+    {
+      "ignored": false,
+      "description": "it should handle nested negation correctly",
+      "base": "dc=json",
+      "filter": "(!(&(!(cn=UserA))(!(cn=UserB))(!(cn=GroupA))(!(cn=GroupB))))",
+      "scope": "sub",
+      "expectations": [
+        {
+          "type": "group",
+          "id": "GroupA"
+        },
+        {
+          "type": "group",
+          "id": "GroupB"
+        },
+        {
+          "type": "user",
+          "id": "UserA"
+        },
+        {
+          "type": "user",
+          "id": "UserB"
+        }
+      ]
+    }
+  ]
+}
