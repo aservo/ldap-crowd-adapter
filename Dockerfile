@@ -24,43 +24,32 @@ ADD start.sh /app/
 RUN groupadd -r -g 1000 appuser && \
     useradd -r -g 1000 -u 1000 appuser && \
     mkdir /var/app && \
-    chown -R appuser:appuser /app && \
-    chown -R appuser:appuser /var/app && \
+    chown -R appuser:appuser /app /var/app && \
     chmod a+x /app/start.sh && \
     mkhomedir_helper appuser
 
-RUN yum clean all && \
-    yum -y update && \
+RUN yum clean all --enablerepo=* && \
+    yum -y install deltarpm \
+                   yum-utils \
+                   ca-certificates && \
+    yum -y update && \                   
+    yum -y install epel-release && \
+    curl https://www.scala-sbt.org/sbt-rpm.repo | tee > /etc/yum.repos.d/sbt-rpm.repo && \
+    yum -y install \
+        java-1.8.0-openjdk-headless \
+        java-1.8.0-openjdk \
+        java-1.8.0-openjdk-devel \
+        sbt \
+        openssl \
+        nc \
+        jq && \
+    mv /etc/yum.repos.d/sbt-rpm.repo /etc/yum.repos.d/sbt-rpm.repo.disabled && \
     yum clean all --enablerepo=* && \
     rm -rf /tmp/* /var/tmp/*
-
-RUN yum -y install \
-        deltarpm \
-        yum-utils \
-        ca-certificates && \
-    yum clean all --enablerepo=* && \
-	rm -rf /tmp/* /var/tmp/*
-
-RUN yum -y install epel-release && \
-    yum clean all --enablerepo=* && \
-	rm -rf /tmp/* /var/tmp/*
 
 COPY ca_certs/ /usr/share/pki/ca-trust-source/anchors/
 
 RUN update-ca-trust
-
-RUN curl https://www.scala-sbt.org/sbt-rpm.repo | tee > /etc/yum.repos.d/sbt-rpm.repo && \
-    yum -y install \ 
-	    java-1.8.0-openjdk \
-        java-1.8.0-openjdk-headless \
-        java-1.8.0-openjdk-devel \
-        sbt \
-	    openssl \
-	    nc \
-        jq && \    
-    mv /etc/yum.repos.d/sbt-rpm.repo /etc/yum.repos.d/sbt-rpm.repo.disabled && \
-    yum clean all --enablerepo=* && \
-    rm -rf /tmp/* /var/tmp/*
 
 ENV JAVA_OPTS "-Dfile.encoding=UTF-8"
 
