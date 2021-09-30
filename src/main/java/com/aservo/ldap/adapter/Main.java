@@ -139,9 +139,10 @@ public class Main {
 
         Properties properties = new Properties();
 
-        try {
+        try (final FileInputStream fis = new FileInputStream(file);
+             final InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8)) {
 
-            properties.load(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
+            properties.load(isr);
 
         } catch (IOException e) {
 
