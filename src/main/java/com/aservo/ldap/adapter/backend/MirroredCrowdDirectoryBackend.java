@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -406,10 +407,12 @@ public class MirroredCrowdDirectoryBackend
 
                                         } else if (type.equals("USER")) {
 
+                                            String alias = auditLogProcessor.resolveToAlias(name);
+
                                             if (eventType.equals("USER_CREATED") || eventType.equals("USER_UPDATED"))
-                                                deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, name));
+                                                deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, alias));
                                             else if (eventType.equals("USER_DELETED"))
-                                                deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, name));
+                                                deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, alias));
                                         }
                                     }
 
@@ -430,7 +433,7 @@ public class MirroredCrowdDirectoryBackend
                                         else if (type.equals("GROUP"))
                                             childGroupIds.add(name);
                                         else if (type.equals("USER"))
-                                            userIds.add(name);
+                                            userIds.add(auditLogProcessor.resolveToAlias(name));
                                     }
 
                                     if (parentGroupId == null)
@@ -770,7 +773,7 @@ public class MirroredCrowdDirectoryBackend
 
             try {
 
-                callRestApi(route, node, false);
+                postRestApi(route, node, false);
 
             } catch (IOException e) {
 
@@ -798,7 +801,7 @@ public class MirroredCrowdDirectoryBackend
             String queryString = "?start=0&limit=1";
             String route = "/rest/admin/1.0/auditlog/query" + queryString;
 
-            JsonObject result = callRestApi(route, node, true).get();
+            JsonObject result = postRestApi(route, node, true).get();
             JsonArray array = result.getAsJsonArray("values");
 
             if (array.size() != 1)
@@ -829,10 +832,82 @@ public class MirroredCrowdDirectoryBackend
             String queryString = "?start=" + (page * pageSize) + "&limit=" + pageSize;
             String route = "/rest/admin/1.0/auditlog/query" + queryString;
 
-            return callRestApi(route, node, true).get();
+            return postRestApi(route, node, true).get();
         }
 
-        private Optional<JsonObject> callRestApi(String route, JsonObject node, boolean expectResult)
+        public String resolveToAlias(String username) {
+
+            JsonObject applications;
+            JsonObject aliases;
+            String appId = null;
+
+            try {
+
+                applications = getRestApi("/rest/appmanagement/1/application", true).get();
+                aliases = getRestApi("/rest/appmanagement/1/aliases?user=" + username, true).get();
+
+            } catch (IOException e) {
+
+                throw new UncheckedIOException(e);
+            }
+
+            for (JsonElement element : applications.getAsJsonObject().getAsJsonArray("applications")) {
+
+                JsonObject entry = element.getAsJsonObject().getAsJsonObject("ApplicationEntity");
+
+                String id = entry.get("id").getAsString();
+                String name = entry.get("name").getAsString();
+
+                if (name.equals(appName))
+                    appId = id;
+            }
+
+            if (appId == null || !aliases.getAsJsonObject().has(appId))
+                return username;
+
+            String alias = aliases.getAsJsonObject().get(appId).getAsString();
+
+            logger.debug("Resolve username {} to alias {}: ", username, alias);
+
+            return alias;
+        }
+
+        private Optional<JsonObject> getRestApi(String route, boolean expectResult)
+                throws IOException {
+
+            CloseableHttpClient httpclient = HttpClientBuilder.create().build();
+            Gson gson = new Gson();
+
+            String credentials =
+                    new String(Base64.getEncoder().encode((restUsername + ":" + restUserPassword)
+                            .getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+
+            HttpGet request = new HttpGet(restBaseUrl + route);
+
+            request.setHeader("Authorization", "Basic " + credentials);
+            request.setHeader("Accept", "application/json");
+
+            HttpResponse response = httpclient.execute(request);
+
+            if (!expectResult)
+                return Optional.empty();
+
+            String result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8.name());
+
+            try {
+
+                return Optional.of(gson.fromJson(result, JsonObject.class));
+
+            } catch (JsonSyntaxException e) {
+
+                logger.error("Cannot parse JSON object. Status code: {}; Result:\n {}",
+                        response.getStatusLine().getStatusCode(), result);
+
+                throw e;
+            }
+        }
+
+        private Optional<JsonObject> postRestApi(String route, JsonObject node, boolean expectResult)
                 throws IOException {
 
             CloseableHttpClient httpclient = HttpClientBuilder.create().build();
@@ -844,8 +919,11 @@ public class MirroredCrowdDirectoryBackend
 
             HttpPost request = new HttpPost(restBaseUrl + route);
 
-            request.setEntity(new StringEntity(gson.toJson(node), ContentType.APPLICATION_JSON));
             request.setHeader("Authorization", "Basic " + credentials);
+            request.setHeader("Accept", "application/json");
+
+            if (node != null)
+                request.setEntity(new StringEntity(gson.toJson(node), ContentType.APPLICATION_JSON));
 
             HttpResponse response = httpclient.execute(request);
 
