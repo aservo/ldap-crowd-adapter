@@ -45,9 +45,10 @@ else
   externalResolvers ++= Seq()
 
 libraryDependencies ++= Seq(
-  "org.slf4j" % "slf4j-api" % "1.7.30",
-  "org.slf4j" % "slf4j-log4j12" % "1.7.30",
-  "commons-logging" % "commons-logging" % "1.2",
+  "org.apache.logging.log4j" % "log4j-api" % "2.17.1",
+  "org.apache.logging.log4j" % "log4j-core" % "2.17.1",
+  "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.17.1",
+  "org.slf4j" % "slf4j-api" % "1.7.25",
   "commons-io" % "commons-io" % "2.8.0",
   "org.jetbrains" % "annotations" % "20.1.0",
   "com.google.code.gson" % "gson" % "2.8.6",

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout>
+                <Pattern>
+                    [%highlight{%p{lowerCase=true}}{FATAL=red, ERROR=red, WARN=yellow, INFO=black, DEBUG=black, TRACE=magenta}] [%d{ISO8601}{UTC}] [%t] [%c] %m%n%throwable{full}
+                </Pattern>
+            </PatternLayout>
+        </Console>
+        <RollingFile name="RollingFile">
+            <FileName>log/app.log</FileName>
+            <FilePattern>log/app.%d{yy-MM-dd}-%i.log</FilePattern>
+            <PatternLayout>
+                <Pattern>
+                    [%p{lowerCase=true}] [%d{ISO8601}{UTC}] [%t] [%c] %m%n%throwable{full}
+                </Pattern>
+            </PatternLayout>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="20"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.apache.directory" level="warn">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+        <Logger name="org.apache.directory.server" level="error">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+        <Logger name="com.atlassian.crowd" level="warn">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

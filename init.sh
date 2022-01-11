@@ -3,7 +3,7 @@
 # basic settings
 
 if [ -n "$LOGLEVEL" ]; then
-  JAVA_OPTS="-Dloglevel=$LOGLEVEL $JAVA_OPTS"
+  JAVA_OPTS="-Dlog.level=$LOGLEVEL $JAVA_OPTS"
 fi
 
 if [ -n "$XMS" ]; then

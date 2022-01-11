@@ -22,7 +22,10 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,11 +88,6 @@ public class Main {
         // hard coded directory for initial configuration
         File configDir = new File("./etc");
 
-        // configure logging
-        Properties loggingProperties = loadConfigFile(new File(configDir, "log4j.properties"));
-        setLogLevel(loggingProperties);
-        PropertyConfigurator.configure(loggingProperties);
-
         // load server configuration
         Properties finalServerProperties = loadConfigFile(new File(configDir, "server.properties"));
         finalServerProperties.putAll(System.getProperties());
@@ -99,6 +97,9 @@ public class Main {
         Properties finalBackendProperties = loadConfigFile(new File(configDir, "backend.properties"));
         finalBackendProperties.putAll(System.getProperties());
         finalBackendProperties.putAll(backendProperties);
+
+        // configure logging
+        configLogging(new File(configDir, "log4j2.xml"), finalServerProperties);
 
         return new ServerConfiguration(finalServerProperties, finalBackendProperties);
     }
@@ -113,26 +114,18 @@ public class Main {
         return new CommonLdapServer(config);
     }
 
-    private static void setLogLevel(Properties loggingProperties) {
+    private static void configLogging(File configFile, Properties properties) {
 
-        String rootCategoryKey = "log4j.rootCategory";
-        String rootCategoryValue = loggingProperties.getProperty(rootCategoryKey);
-        String sysLogLevel = System.getProperty("loglevel");
+        String logLevel = properties.getProperty("log.level");
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        Configuration config = context.getConfiguration();
 
-        if (sysLogLevel != null) {
+        context.setConfigLocation(configFile.toURI());
 
-            if (rootCategoryValue == null)
-                throw new IllegalArgumentException("Cannot find key for " + rootCategoryKey);
+        if (logLevel != null)
+            config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).setLevel(Level.getLevel(logLevel.toLowerCase()));
 
-            int pos = rootCategoryValue.indexOf(',');
-
-            if (pos < 0)
-                throw new IllegalArgumentException("Cannot parse value of key " + rootCategoryKey);
-
-            String logResources = rootCategoryValue.substring(pos);
-
-            loggingProperties.put(rootCategoryKey, sysLogLevel.toUpperCase() + logResources);
-        }
+        context.updateLoggers();
     }
 
     private static Properties loadConfigFile(File file) {
