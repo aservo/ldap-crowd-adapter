@@ -47,7 +47,6 @@ import org.apache.directory.server.core.api.filtering.EntryFilteringCursorImpl;
 import org.apache.directory.server.core.api.interceptor.context.HasEntryOperationContext;
 import org.apache.directory.server.core.api.interceptor.context.LookupOperationContext;
 import org.apache.directory.server.core.api.interceptor.context.SearchOperationContext;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +102,6 @@ public class CommonPartition
         return LdapUtils.createDn(schemaManager, EntityType.DOMAIN, getId());
     }
 
-    @Nullable
     @Override
     public ClonedServerEntry lookup(LookupOperationContext context)
             throws LdapException {

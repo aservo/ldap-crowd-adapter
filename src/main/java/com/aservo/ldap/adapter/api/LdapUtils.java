@@ -34,7 +34,6 @@ import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.ldap.model.schema.normalizers.NoOpNormalizer;
 import org.apache.directory.server.core.api.interceptor.context.FilteringOperationContext;
-import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -135,7 +134,6 @@ public class LdapUtils {
      * @param dn            the DN
      * @return the group ID
      */
-    @Nullable
     public static String getGroupIdFromDn(SchemaManager schemaManager, String dn, String dcId) {
 
         try {
@@ -163,7 +161,6 @@ public class LdapUtils {
      * @param dn            the DN
      * @return the user ID
      */
-    @Nullable
     public static String getUserIdFromDn(SchemaManager schemaManager, String dn, String dcId) {
 
         try {
