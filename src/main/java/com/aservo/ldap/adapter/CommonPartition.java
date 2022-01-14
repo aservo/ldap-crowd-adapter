@@ -183,7 +183,7 @@ public class CommonPartition
         Set<String> attributes = LdapUtils.getAttributes(context);
         MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, true);
 
-        return new EntryFilteringCursorImpl(new IterableEntryCursor(entries), context, schemaManager);
+        return new EntryFilteringCursorImpl(new IterableEntryCursor(logger, entries), context, schemaManager);
     }
 
     @Override
