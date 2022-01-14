@@ -119,7 +119,7 @@ public abstract class SimpleReadOnlyPartition
         if (context.getSession().getClientAddress() == null)
             return new EntryFilteringCursorImpl(new EmptyCursor<>(), context, this.schemaManager);
 
-        logger.info("[{}] - Access partition: DN={} filter={} scope={}",
+        logger.info("[{}] - Query: DN={} filter={} scope={}",
                 context.getSession().getClientAddress(),
                 context.getDn().getName(),
                 context.getFilter(),
@@ -166,7 +166,7 @@ public abstract class SimpleReadOnlyPartition
 
         } finally {
 
-            logger.info("[{}] - Cursor created by partition {}",
+            logger.debug("[{}] - Cursor created by partition {}",
                     context.getSession().getClientAddress(),
                     this.getClass().getSimpleName());
         }
