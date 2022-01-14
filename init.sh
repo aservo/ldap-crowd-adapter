@@ -118,20 +118,6 @@ fi
 
 # backend settings for class CachedInMemoryDirectoryBackend
 
-if [ -n "$BACKEND_ENTRY_CACHE_ENABLED" ]; then
-  JAVA_OPTS="-Dentry-cache.enabled=$BACKEND_ENTRY_CACHE_ENABLED $JAVA_OPTS"
-fi
-
-if [ -n "$BACKEND_ENTRY_CACHE_MAX_SIZE" ]; then
-  JAVA_OPTS="-Dentry-cache.max-size=$BACKEND_ENTRY_CACHE_MAX_SIZE $JAVA_OPTS"
-fi
-
-if [ -n "$BACKEND_ENTRY_CACHE_MAX_AGE" ]; then
-  JAVA_OPTS="-Dentry-cache.max-age=$BACKEND_ENTRY_CACHE_MAX_AGE $JAVA_OPTS"
-fi
-
-# backend settings for class CachedInMemoryDirectoryBackend
-
 if [ -n "$BACKEND_REST_USERNAME" ]; then
   JAVA_OPTS="-Drest.username=$BACKEND_REST_USERNAME $JAVA_OPTS"
 fi
