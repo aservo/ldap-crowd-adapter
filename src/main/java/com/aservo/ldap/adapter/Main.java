@@ -18,8 +18,6 @@
 package com.aservo.ldap.adapter;
 
 import java.io.*;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import org.apache.logging.log4j.Level;
@@ -39,13 +37,9 @@ public class Main {
      */
     public static void main(String[] args) {
 
-        MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
         Logger logger = LoggerFactory.getLogger("Bootloader");
         ServerConfiguration config = createConfiguration();
         CommonLdapServer server = createServerInstance(config);
-
-        logger.debug("Application is running with max memory: {}", memoryBean.getHeapMemoryUsage().getMax());
-        logger.debug("Application is running with initial memory: {}", memoryBean.getHeapMemoryUsage().getInit());
 
         // boot process
         server.startup();
@@ -117,15 +111,23 @@ public class Main {
     private static void configLogging(File configFile, Properties properties) {
 
         String logLevel = properties.getProperty("log.level");
-        LoggerContext context = (LoggerContext) LogManager.getContext(false);
-        Configuration config = context.getConfiguration();
 
-        context.setConfigLocation(configFile.toURI());
+        {
+            LoggerContext context = (LoggerContext) LogManager.getContext(false);
 
-        if (logLevel != null)
-            config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).setLevel(Level.getLevel(logLevel.toLowerCase()));
+            context.setConfigLocation(configFile.toURI());
+            context.updateLoggers();
+        }
 
-        context.updateLoggers();
+        {
+            LoggerContext context = (LoggerContext) LogManager.getContext(false);
+            Configuration config = context.getConfiguration();
+
+            if (logLevel != null)
+                config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).setLevel(Level.getLevel(logLevel.toUpperCase()));
+
+            context.updateLoggers();
+        }
     }
 
     private static Properties loadConfigFile(File file) {
