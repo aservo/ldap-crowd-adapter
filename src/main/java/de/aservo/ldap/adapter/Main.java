@@ -25,7 +25,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 
@@ -80,21 +83,23 @@ public class Main {
      */
     public static ServerConfiguration createConfiguration(Properties serverProperties, Properties backendProperties) {
 
-        // hard coded directory for initial configuration
-        File configDir = new File("./etc");
+        // hard coded paths for configuration files
+        String serverConfigFile = "etc/server.properties";
+        String backendConfigFile = "etc/backend.properties";
+        String log4j2ConfigFile = "etc/log4j2.xml";
 
         // load server configuration
-        Properties finalServerProperties = loadConfigFile(new File(configDir, "server.properties"));
+        Properties finalServerProperties = loadConfigFile(serverConfigFile);
         finalServerProperties.putAll(System.getProperties());
         finalServerProperties.putAll(serverProperties);
 
         // load backend configuration
-        Properties finalBackendProperties = loadConfigFile(new File(configDir, "backend.properties"));
+        Properties finalBackendProperties = loadConfigFile(backendConfigFile);
         finalBackendProperties.putAll(System.getProperties());
         finalBackendProperties.putAll(backendProperties);
 
         // configure logging
-        configLogging(new File(configDir, "log4j2.xml"), finalServerProperties);
+        configLogging(log4j2ConfigFile, finalServerProperties);
 
         return new ServerConfiguration(finalServerProperties, finalBackendProperties);
     }
@@ -109,14 +114,20 @@ public class Main {
         return new CommonLdapServer(config);
     }
 
-    private static void configLogging(File configFile, Properties properties) {
+    private static void configLogging(String configFile, Properties properties) {
 
         String logLevel = properties.getProperty("log.level");
+        URI configLocation;
+
+        if (Files.exists(Paths.get(configFile)))
+            configLocation = (new File(configFile)).toURI();
+        else
+            configLocation = URI.create(configFile);
 
         {
             LoggerContext context = (LoggerContext) LogManager.getContext(false);
 
-            context.setConfigLocation(configFile.toURI());
+            context.setConfigLocation(configLocation);
             context.updateLoggers();
         }
 
@@ -131,14 +142,33 @@ public class Main {
         }
     }
 
-    private static Properties loadConfigFile(File file) {
+    private static Properties loadConfigFile(String configFile) {
 
         Properties properties = new Properties();
 
-        try (final FileInputStream fis = new FileInputStream(file);
-             final InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8)) {
+        try {
 
-            properties.load(isr);
+            if (Files.exists(Paths.get(configFile))) {
+
+                try (final FileInputStream fis = new FileInputStream(configFile);
+                     final InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8)) {
+
+                    properties.load(isr);
+                }
+
+            } else {
+
+                try (final InputStream is = Main.class.getClassLoader().getResourceAsStream(configFile)) {
+
+                    if (is == null)
+                        throw new IllegalArgumentException("Cannot load resource " + configFile);
+
+                    try (final InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+
+                        properties.load(isr);
+                    }
+                }
+            }
 
         } catch (IOException e) {
 

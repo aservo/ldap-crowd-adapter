@@ -190,7 +190,7 @@
                     <include>**/*.xml</include>
                     <include>**/*.properties</include>
                 </includes>
-                <targetPath>../etc</targetPath>
+                <targetPath>./etc</targetPath>
             </resource>
         </resources>
         <plugins>
