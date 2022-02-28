@@ -1,18 +1,19 @@
 package test.it;
 
-import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
-import com.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
-import com.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
-import com.aservo.ldap.adapter.api.entity.GroupEntity;
-import com.aservo.ldap.adapter.api.entity.UserEntity;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.stream.Collectors;
+import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
+import de.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
+import de.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
+import de.aservo.ldap.adapter.api.entity.GroupEntity;
+import de.aservo.ldap.adapter.api.entity.UserEntity;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractBackendTest;
 import test.configuration.backend.CrowdBackendIntegration;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

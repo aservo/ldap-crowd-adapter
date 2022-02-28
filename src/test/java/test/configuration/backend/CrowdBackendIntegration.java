@@ -1,8 +1,9 @@
 package test.configuration.backend;
 
+import test.api.IntegrationTestBackendSetup;
+
 import java.io.IOException;
 import java.util.Properties;
-import test.api.IntegrationTestBackendSetup;
 
 
 public class CrowdBackendIntegration
@@ -13,7 +14,7 @@ public class CrowdBackendIntegration
         Properties properties = new Properties();
 
         properties.put("directory-backend.permanent",
-                "com.aservo.ldap.adapter.backend.CrowdDirectoryBackend");
+                "de.aservo.ldap.adapter.backend.CrowdDirectoryBackend");
 
         properties.put("directory-backend.session", "");
 

@@ -1,15 +1,8 @@
 package test.it;
 
-import com.aservo.ldap.adapter.api.database.Row;
-import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import com.google.common.collect.Sets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Set;
-import javax.naming.NamingEnumeration;
-import javax.naming.directory.InitialDirContext;
-import javax.naming.directory.SearchControls;
+import de.aservo.ldap.adapter.api.database.Row;
+import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.slf4j.Logger;
@@ -18,6 +11,14 @@ import test.api.AbstractServerTest;
 import test.api.QueryTestPlan;
 import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupNesting;
+
+import javax.naming.NamingEnumeration;
+import javax.naming.directory.InitialDirContext;
+import javax.naming.directory.SearchControls;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Set;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -39,7 +40,7 @@ public class QueryTest
     public void test001()
             throws Exception {
 
-        Path testPlan = Paths.get("./src/test/resources/com/aservo/ldap/adapter/ldap-query-test.json");
+        Path testPlan = Paths.get("./src/test/resources/de/aservo/ldap/adapter/ldap-query-test.json");
 
         List<QueryTestPlan.Element> elements = QueryTestPlan.createQueryTestPlan(testPlan.toFile());
 

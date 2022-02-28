@@ -1,17 +1,18 @@
 package test.api;
 
-import com.aservo.ldap.adapter.CommonLdapServer;
-import com.aservo.ldap.adapter.Main;
-import com.aservo.ldap.adapter.ServerConfiguration;
-import com.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
-import com.aservo.ldap.adapter.api.entity.MembershipEntity;
-import java.nio.file.Files;
-import java.util.Hashtable;
-import javax.naming.Context;
-import javax.naming.directory.InitialDirContext;
+import de.aservo.ldap.adapter.CommonLdapServer;
+import de.aservo.ldap.adapter.Main;
+import de.aservo.ldap.adapter.ServerConfiguration;
+import de.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
+import de.aservo.ldap.adapter.api.entity.MembershipEntity;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.*;
 import test.api.helper.AssertionsLdap;
+
+import javax.naming.Context;
+import javax.naming.directory.InitialDirContext;
+import java.nio.file.Files;
+import java.util.Hashtable;
 
 
 public abstract class AbstractServerTest {

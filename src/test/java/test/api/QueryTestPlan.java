@@ -1,13 +1,14 @@
 package test.api;
 
-import com.aservo.ldap.adapter.api.database.Row;
-import com.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
-import com.aservo.ldap.adapter.api.entity.ColumnNames;
-import com.aservo.ldap.adapter.api.entity.EntityType;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import de.aservo.ldap.adapter.api.database.Row;
+import de.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
+import de.aservo.ldap.adapter.api.entity.ColumnNames;
+import de.aservo.ldap.adapter.api.entity.EntityType;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;

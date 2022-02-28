@@ -1,7 +1,7 @@
 
 organizationName := "ASERVO Software GmbH"
 
-organization := "com.aservo"
+organization := "de.aservo"
 
 name := "LDAP-Crowd-Adapter"
 

@@ -1,14 +1,15 @@
 package test.it;
 
-import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
-import javax.naming.NamingEnumeration;
-import javax.naming.directory.InitialDirContext;
-import javax.naming.directory.SearchControls;
+import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
 import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupNesting;
+
+import javax.naming.NamingEnumeration;
+import javax.naming.directory.InitialDirContext;
+import javax.naming.directory.SearchControls;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

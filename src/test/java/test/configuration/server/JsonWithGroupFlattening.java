@@ -1,7 +1,8 @@
 package test.configuration.server;
 
-import java.util.Properties;
 import test.api.IntegrationTestServerSetup;
+
+import java.util.Properties;
 
 
 public class JsonWithGroupFlattening
@@ -34,8 +35,8 @@ public class JsonWithGroupFlattening
         Properties properties = new Properties();
 
         properties.put("directory-backend.permanent",
-                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend," +
-                        "com.aservo.ldap.adapter.backend.CachedWithPersistenceDirectoryBackend");
+                "de.aservo.ldap.adapter.backend.JsonDirectoryBackend," +
+                        "de.aservo.ldap.adapter.backend.CachedWithPersistenceDirectoryBackend");
 
         properties.put("directory-backend.session", "");
 
@@ -50,7 +51,7 @@ public class JsonWithGroupFlattening
 
         Properties properties = new Properties();
 
-        properties.put("db-uri", "file:./src/test/resources/com/aservo/ldap/adapter/db.json");
+        properties.put("db-uri", "file:./src/test/resources/de/aservo/ldap/adapter/db.json");
 
         properties.put("database.jdbc.connection.url", "jdbc:h2:" + getTestDirectory() + "/db");
 

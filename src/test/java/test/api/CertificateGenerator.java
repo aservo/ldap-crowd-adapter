@@ -1,5 +1,8 @@
 package test.api;
 
+import org.bouncycastle.x509.X509V3CertificateGenerator;
+
+import javax.security.auth.x500.X500Principal;
 import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
@@ -7,8 +10,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.Random;
-import javax.security.auth.x500.X500Principal;
-import org.bouncycastle.x509.X509V3CertificateGenerator;
 
 
 public class CertificateGenerator {

@@ -1,8 +1,8 @@
 package test.api;
 
-import com.aservo.ldap.adapter.DirectoryBackendFactory;
-import com.aservo.ldap.adapter.Main;
-import com.aservo.ldap.adapter.ServerConfiguration;
+import de.aservo.ldap.adapter.DirectoryBackendFactory;
+import de.aservo.ldap.adapter.Main;
+import de.aservo.ldap.adapter.ServerConfiguration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;

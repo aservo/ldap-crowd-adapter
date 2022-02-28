@@ -1,7 +1,8 @@
 package test.configuration.backend;
 
-import java.util.Properties;
 import test.api.BackendSetup;
+
+import java.util.Properties;
 
 
 public class JsonBackend
@@ -12,11 +13,11 @@ public class JsonBackend
         Properties properties = new Properties();
 
         properties.put("directory-backend.permanent",
-                "com.aservo.ldap.adapter.backend.JsonDirectoryBackend");
+                "de.aservo.ldap.adapter.backend.JsonDirectoryBackend");
 
         properties.put("directory-backend.session", "");
 
-        properties.put("db-uri", "file:./src/test/resources/com/aservo/ldap/adapter/db.json");
+        properties.put("db-uri", "file:./src/test/resources/de/aservo/ldap/adapter/db.json");
 
         return properties;
     }

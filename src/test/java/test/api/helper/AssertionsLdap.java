@@ -1,26 +1,27 @@
 package test.api.helper;
 
-import com.aservo.ldap.adapter.api.LdapUtils;
-import com.aservo.ldap.adapter.api.database.Row;
-import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
-import com.aservo.ldap.adapter.api.entity.ColumnNames;
-import com.aservo.ldap.adapter.api.entity.EntityType;
-import com.aservo.ldap.adapter.api.entity.GroupEntity;
-import com.aservo.ldap.adapter.api.entity.UserEntity;
+import de.aservo.ldap.adapter.api.LdapUtils;
+import de.aservo.ldap.adapter.api.database.Row;
+import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
+import de.aservo.ldap.adapter.api.entity.ColumnNames;
+import de.aservo.ldap.adapter.api.entity.EntityType;
+import de.aservo.ldap.adapter.api.entity.GroupEntity;
+import de.aservo.ldap.adapter.api.entity.UserEntity;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.apache.directory.api.ldap.model.name.Rdn;
+import org.junit.jupiter.api.Assertions;
+
+import javax.naming.NamingEnumeration;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.SearchResult;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.naming.NamingEnumeration;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import javax.naming.directory.SearchResult;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.directory.api.ldap.model.constants.SchemaConstants;
-import org.apache.directory.api.ldap.model.name.Rdn;
-import org.junit.jupiter.api.Assertions;
 
 
 public class AssertionsLdap {

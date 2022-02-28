@@ -1,23 +1,24 @@
 package test.it;
 
-import com.aservo.ldap.adapter.api.LdapUtils;
-import com.aservo.ldap.adapter.api.directory.DirectoryBackend;
-import com.aservo.ldap.adapter.api.entity.EntityType;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.naming.NamingEnumeration;
-import javax.naming.directory.InitialDirContext;
-import javax.naming.directory.SearchControls;
-import javax.naming.directory.SearchResult;
+import de.aservo.ldap.adapter.api.LdapUtils;
+import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
+import de.aservo.ldap.adapter.api.entity.EntityType;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
 import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupNesting;
+
+import javax.naming.NamingEnumeration;
+import javax.naming.directory.InitialDirContext;
+import javax.naming.directory.SearchControls;
+import javax.naming.directory.SearchResult;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
