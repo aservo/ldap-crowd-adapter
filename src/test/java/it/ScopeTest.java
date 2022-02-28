@@ -1,11 +1,10 @@
-package test.it;
+package it;
 
 import de.aservo.ldap.adapter.api.LdapUtils;
 import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import de.aservo.ldap.adapter.api.entity.EntityType;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
 import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupNesting;
@@ -23,7 +22,6 @@ import java.util.stream.Stream;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(unit-only)")
 public class ScopeTest
         extends AbstractServerTest {
 

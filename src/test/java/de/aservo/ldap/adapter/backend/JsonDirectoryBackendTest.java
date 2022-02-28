@@ -6,7 +6,6 @@ import de.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import de.aservo.ldap.adapter.api.entity.GroupEntity;
 import de.aservo.ldap.adapter.api.entity.UserEntity;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractBackendTest;
 import test.configuration.backend.JsonBackend;
 
@@ -18,7 +17,6 @@ import java.util.stream.Collectors;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(it-only)|(it-offline-only)")
 public class JsonDirectoryBackendTest
         extends AbstractBackendTest {
 

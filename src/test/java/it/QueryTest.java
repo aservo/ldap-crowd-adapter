@@ -1,10 +1,9 @@
-package test.it;
+package it;
 
 import com.google.common.collect.Sets;
 import de.aservo.ldap.adapter.api.database.Row;
 import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import test.api.AbstractServerTest;
@@ -23,7 +22,6 @@ import java.util.Set;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(unit-only)")
 public class QueryTest
         extends AbstractServerTest {
 

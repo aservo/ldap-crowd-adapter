@@ -1,4 +1,4 @@
-package test.it;
+package it;
 
 import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import de.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
@@ -6,7 +6,7 @@ import de.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import de.aservo.ldap.adapter.api.entity.GroupEntity;
 import de.aservo.ldap.adapter.api.entity.UserEntity;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import test.api.AbstractBackendTest;
 import test.configuration.backend.CrowdBackendIntegration;
 
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(offline)|(it-offline-only)|(unit-only)")
+@EnabledIfEnvironmentVariable(named = "CROWD_TEST_VERSION", matches = "\\d+(\\.\\d+){0,2}")
 public class CrowdDirectoryBackendTest
         extends AbstractBackendTest {
 

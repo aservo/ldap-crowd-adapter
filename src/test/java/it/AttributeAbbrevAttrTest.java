@@ -1,8 +1,7 @@
-package test.it;
+package it;
 
 import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
 import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupNestingAndAbbrevAttr;
@@ -14,7 +13,6 @@ import javax.naming.directory.SearchControls;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(unit-only)")
 public class AttributeAbbrevAttrTest
         extends AbstractServerTest {
 

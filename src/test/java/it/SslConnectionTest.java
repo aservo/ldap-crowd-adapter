@@ -1,9 +1,8 @@
-package test.it;
+package it;
 
 import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import de.aservo.ldap.adapter.api.entity.EntityType;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
 import test.api.helper.ThrowingConsumer;
 import test.configuration.server.JsonWithGroupNestingAndSsl;
@@ -16,7 +15,6 @@ import javax.naming.directory.SearchResult;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(unit-only)")
 public class SslConnectionTest
         extends AbstractServerTest {
 

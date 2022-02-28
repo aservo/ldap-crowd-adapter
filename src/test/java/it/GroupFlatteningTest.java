@@ -1,11 +1,10 @@
-package test.it;
+package it;
 
 import de.aservo.ldap.adapter.api.directory.DirectoryBackend;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import test.api.AbstractServerTest;
 import test.api.helper.ThrowingConsumer;
-import test.configuration.server.JsonWithGroupNesting;
+import test.configuration.server.JsonWithGroupFlattening;
 
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.InitialDirContext;
@@ -14,13 +13,12 @@ import javax.naming.directory.SearchControls;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DisabledIfEnvironmentVariable(named = "TEST_MODE", matches = "(unit-only)")
-public class GroupNestingTest
+public class GroupFlatteningTest
         extends AbstractServerTest {
 
-    public GroupNestingTest() {
+    public GroupFlatteningTest() {
 
-        super(new JsonWithGroupNesting(10932));
+        super(new JsonWithGroupFlattening(10933));
     }
 
     @Test
@@ -34,8 +32,9 @@ public class GroupNestingTest
     }
 
     @Test
+    @Disabled
     @Order(2)
-    @DisplayName("it should show group attributes correctly in nested-groups mode")
+    @DisplayName("it should show group attributes correctly in flattening mode")
     public void test002()
             throws Exception {
 
@@ -58,8 +57,9 @@ public class GroupNestingTest
     }
 
     @Test
+    @Disabled
     @Order(3)
-    @DisplayName("it should show user attributes correctly in nested-groups mode")
+    @DisplayName("it should show user attributes correctly in flattening mode")
     public void test003()
             throws Exception {
 
