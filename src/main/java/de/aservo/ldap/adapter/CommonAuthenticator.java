@@ -30,6 +30,8 @@ import de.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import de.aservo.ldap.adapter.api.entity.UserEntity;
 import de.aservo.ldap.adapter.api.exception.InternalServerException;
 import org.apache.directory.api.ldap.model.constants.AuthenticationLevel;
+import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException;
+import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.server.core.api.LdapPrincipal;
@@ -38,7 +40,6 @@ import org.apache.directory.server.core.authn.AbstractAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.naming.AuthenticationException;
 import java.nio.charset.StandardCharsets;
 
 
@@ -66,7 +67,7 @@ public class CommonAuthenticator
     }
 
     public LdapPrincipal authenticate(BindOperationContext context)
-            throws Exception {
+            throws LdapException {
 
         DirectoryBackend directory = directoryBackendFactory.getPermanentDirectory();
 
@@ -96,7 +97,7 @@ public class CommonAuthenticator
 
             logger.debug("Authentication failed.", e);
 
-            throw new AuthenticationException(e.getMessage());
+            throw new LdapAuthenticationException(e.getMessage());
 
         } catch (DirectoryAccessFailureException |
                 SecurityProblemException |
@@ -108,7 +109,7 @@ public class CommonAuthenticator
 
             logger.debug("Authentication failed.", e);
 
-            throw new AuthenticationException(e.getMessage());
+            throw new LdapAuthenticationException(e.getMessage());
 
         } catch (Exception e) {
 

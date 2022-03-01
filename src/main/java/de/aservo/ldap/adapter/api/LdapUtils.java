@@ -146,7 +146,7 @@ public class LdapUtils {
                     queryDn.getParent().equals(createDn(schemaManager, EntityType.DOMAIN, dcId))) &&
                     attribute.equals(SchemaConstants.CN_AT_OID)) {
 
-                return queryDn.getRdn().getNormValue().toLowerCase();
+                return queryDn.getRdn().getValue().toLowerCase();
             }
 
         } catch (LdapInvalidDnException e) {
@@ -174,7 +174,7 @@ public class LdapUtils {
                     attribute.equals(SchemaConstants.UID_AT_OID) ||
                             attribute.equals(SchemaConstants.CN_AT_OID))) {
 
-                return queryDn.getRdn().getNormValue().toLowerCase();
+                return queryDn.getRdn().getValue().toLowerCase();
             }
 
         } catch (LdapInvalidDnException e) {

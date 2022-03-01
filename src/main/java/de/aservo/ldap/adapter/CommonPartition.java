@@ -74,15 +74,17 @@ public class CommonPartition
      */
     public CommonPartition(ServerConfiguration serverConfig, DirectoryBackendFactory directoryFactory) {
 
-        super(directoryFactory.getPermanentDirectory().getId());
-
         this.serverConfig = serverConfig;
         this.directoryFactory = directoryFactory;
+
+        setId(directoryFactory.getPermanentDirectory().getId());
     }
 
     @Override
     protected void doInit()
             throws LdapException {
+
+        setSuffixDn(LdapUtils.createDn(schemaManager, EntityType.DOMAIN, getId()));
 
         domainEntity =
                 new DomainEntity(directoryFactory.getPermanentDirectory().getId(),
@@ -95,12 +97,6 @@ public class CommonPartition
     @Override
     protected void doDestroy()
             throws LdapException {
-    }
-
-    @Override
-    public Dn getSuffixDn() {
-
-        return LdapUtils.createDn(schemaManager, EntityType.DOMAIN, getId());
     }
 
     @Override
@@ -219,7 +215,7 @@ public class CommonPartition
             } else if (queryDn.getParent().equals(groupsDn)) {
 
                 String attribute = queryDn.getRdn().getType();
-                String value = queryDn.getRdn().getNormValue();
+                String value = queryDn.getRdn().getValue();
 
                 QueryExpression expr =
                         new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
@@ -239,7 +235,7 @@ public class CommonPartition
             } else if (queryDn.getParent().equals(usersDn)) {
 
                 String attribute = queryDn.getRdn().getType();
-                String value = queryDn.getRdn().getNormValue();
+                String value = queryDn.getRdn().getValue();
 
                 QueryExpression expr =
                         new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
@@ -266,7 +262,7 @@ public class CommonPartition
             } else if (queryDn.getParent().equals(rootDn) && multiple) {
 
                 String attribute = queryDn.getRdn().getType();
-                String value = queryDn.getRdn().getNormValue();
+                String value = queryDn.getRdn().getValue();
 
                 QueryExpression expr =
                         new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));

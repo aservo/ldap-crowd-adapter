@@ -22,97 +22,25 @@ import de.aservo.ldap.adapter.api.exception.UnsupportedQueryExpressionException;
 import org.apache.directory.api.ldap.model.cursor.EmptyCursor;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
-import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
-import org.apache.directory.api.ldap.model.name.Dn;
-import org.apache.directory.api.ldap.model.schema.SchemaManager;
-import org.apache.directory.api.util.Strings;
-import org.apache.directory.server.core.api.CacheService;
 import org.apache.directory.server.core.api.filtering.EntryFilteringCursor;
 import org.apache.directory.server.core.api.filtering.EntryFilteringCursorImpl;
 import org.apache.directory.server.core.api.interceptor.context.*;
-import org.apache.directory.server.core.api.partition.Partition;
-import org.apache.directory.server.core.api.partition.Subordinates;
+import org.apache.directory.server.core.api.partition.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.naming.OperationNotSupportedException;
-import java.io.IOException;
-import java.io.OutputStream;
 
 
 /**
  * The base type ApacheDS partition for simplified read only access.
  */
 public abstract class SimpleReadOnlyPartition
-        implements Partition {
+        extends AbstractPartition {
 
     private final Logger logger = LoggerFactory.getLogger(SimpleReadOnlyPartition.class);
 
     private static final String MODIFICATION_NOT_ALLOWED_MSG = "This simple partition does not allow modification.";
 
-    /**
-     * The partition ID.
-     */
-    protected final String id;
-    /**
-     * The schema manager.
-     */
-    protected SchemaManager schemaManager;
-    private boolean initialized;
-
-    /**
-     * Instantiates a new read only partition.
-     *
-     * @param id the partition ID
-     */
-    protected SimpleReadOnlyPartition(String id) {
-
-        this.id = id;
-    }
-
-    public final void initialize()
-            throws LdapException {
-
-        if (!initialized) {
-
-            doInit();
-            initialized = true;
-        }
-    }
-
-    public final boolean isInitialized() {
-
-        return initialized;
-    }
-
-    public final void destroy()
-            throws Exception {
-
-        try {
-
-            doDestroy();
-
-        } finally {
-
-            initialized = false;
-        }
-    }
-
-    public final String getId() {
-
-        return this.id;
-    }
-
-    public final SchemaManager getSchemaManager() {
-
-        return this.schemaManager;
-    }
-
-    public void setSchemaManager(SchemaManager schemaManager) {
-
-        this.schemaManager = schemaManager;
-    }
-
+    @Override
     public EntryFilteringCursor search(SearchOperationContext context)
             throws LdapException {
 
@@ -176,22 +104,6 @@ public abstract class SimpleReadOnlyPartition
     }
 
     /**
-     * Run initialization process.
-     *
-     * @throws LdapException the ldap exception
-     */
-    protected abstract void doInit()
-            throws LdapException;
-
-    /**
-     * Run destruction process.
-     *
-     * @throws LdapException the ldap exception
-     */
-    protected abstract void doDestroy()
-            throws LdapException;
-
-    /**
      * Find one entry cursor.
      *
      * @param context the context
@@ -221,87 +133,91 @@ public abstract class SimpleReadOnlyPartition
     protected abstract EntryFilteringCursor findManyOnMultipleLevels(SearchOperationContext context)
             throws LdapException;
 
-    public void setId(String id) {
+    /**
+     * Run destruction process.
+     *
+     * @throws LdapException the ldap exception
+     */
+    protected abstract void doDestroy()
+            throws LdapException;
 
-        throw new RuntimeException(new OperationNotSupportedException("Cannot set partition ID outside object."));
-    }
-
-    public void setSuffixDn(Dn dn)
-            throws LdapInvalidDnException {
-
-        throw new RuntimeException(new OperationNotSupportedException("Cannot set dn outside object."));
-    }
-
-    public Subordinates getSubordinates(Entry entry)
+    @Override
+    protected void doDestroy(PartitionTxn partitionTxn)
             throws LdapException {
+
+        doDestroy();
+    }
+
+    @Override
+    protected void doRepair()
+            throws LdapException {
+    }
+
+    @Override
+    public PartitionReadTxn beginReadTransaction() {
 
         return null;
     }
 
-    public void repair()
-            throws Exception {
+    @Override
+    public PartitionWriteTxn beginWriteTransaction() {
 
+        return null;
     }
 
-    public void sync()
-            throws Exception {
-
-    }
-
+    @Override
     public void unbind(UnbindOperationContext unbindOperationContext)
             throws LdapException {
-
     }
 
-    public void dumpIndex(OutputStream stream, String name)
-            throws IOException {
-
-        stream.write(Strings.getBytesUtf8("Nothing to dump for index " + name));
+    @Override
+    public void saveContextCsn(PartitionTxn partitionTxn)
+            throws LdapException {
     }
 
-    public void setCacheService(CacheService cacheService) {
+    @Override
+    public Subordinates getSubordinates(PartitionTxn partitionTxn, Entry entry)
+            throws LdapException {
 
-    }
-
-    public String getContextCsn() {
         return null;
     }
 
-    public void saveContextCsn()
-            throws Exception {
-
-    }
-
+    @Override
     public void add(AddOperationContext addOperationContext)
             throws LdapException {
 
         throw new LdapException(MODIFICATION_NOT_ALLOWED_MSG);
     }
 
+    @Override
     public void modify(ModifyOperationContext modifyOperationContext)
             throws LdapException {
 
         throw new LdapException(MODIFICATION_NOT_ALLOWED_MSG);
     }
 
+    @Override
     public Entry delete(DeleteOperationContext deleteOperationContext)
             throws LdapException {
 
         throw new LdapException(MODIFICATION_NOT_ALLOWED_MSG);
     }
 
+    @Override
     public void move(MoveOperationContext moveOperationContext)
             throws LdapException {
 
         throw new LdapException(MODIFICATION_NOT_ALLOWED_MSG);
     }
 
+    @Override
     public void rename(RenameOperationContext renameOperationContext)
             throws LdapException {
 
         throw new LdapException(MODIFICATION_NOT_ALLOWED_MSG);
     }
 
+    @Override
     public void moveAndRename(MoveAndRenameOperationContext moveAndRenameOperationContext)
             throws LdapException {
 
