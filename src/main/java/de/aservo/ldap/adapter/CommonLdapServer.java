@@ -51,7 +51,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -218,24 +217,6 @@ public class CommonLdapServer {
             // memberOf Support
             Path memberOfLDIF = attributeTypesDir.resolve("m-oid=1.2.840.113556.1.2.102.ldif");
             copyStream("de/aservo/ldap/adapter/memberof.ldif", memberOfLDIF);
-
-            Path rf2307bisSchemaDir =
-                    serverConfig.getDsCacheDir().resolve("schema/ou=schema/cn=rfc2307bis/ou=attributetypes");
-
-            Files.createDirectories(rf2307bisSchemaDir);
-
-            ArrayList<String> filenames = new ArrayList<>();
-            filenames.add("m-oid=1.3.6.1.1.1.1.0");
-            filenames.add("m-oid=1.3.6.1.1.1.1.1");
-            filenames.add("m-oid=1.3.6.1.1.1.1.2");
-            filenames.add("m-oid=1.3.6.1.1.1.1.3");
-            filenames.add("m-oid=1.3.6.1.1.1.1.4");
-
-            for (String name : filenames) {
-
-                Path rf2307bisSchema = attributeTypesDir.resolve(name + ".ldif");
-                copyStream("de/aservo/ldap/adapter/rfc2307/" + name + ".ldif", rf2307bisSchema);
-            }
 
         } catch (IOException e) {
 
