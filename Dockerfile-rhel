@@ -2,73 +2,32 @@ FROM registry.access.redhat.com/ubi7/ubi
 
 MAINTAINER Eric Löffler <eloeffler@aservo.com>
 
-# force sbt to use a specific repository
-ARG MAIN_REPO_REALM
-ARG MAIN_REPO_URL
-ARG MAIN_REPO_USERNAME
-ARG MAIN_REPO_PASSWORD
-ARG JVM_ONLY_HTTP_PROXY_HOST
-ARG JVM_ONLY_HTTP_PROXY_PORT
-ARG JVM_ONLY_HTTPS_PROXY_HOST
-ARG JVM_ONLY_HTTPS_PROXY_PORT
-ARG JVM_ONLY_NO_PROXY
-
-ADD etc/ /app/etc/
-ADD src/ /app/src/
-ADD project/build.properties /app/project/
-ADD project/plugins.sbt /app/project/
-ADD build.sbt /app/
+ADD ca_certs/ /usr/share/pki/ca-trust-source/anchors/
+ADD target/dist/ /app/lib/
 ADD init.sh /app/
 ADD start.sh /app/
 
-RUN groupadd -r -g 1000 appuser && \
+RUN chmod -R 644 /usr/share/pki/ca-trust-source/anchors/ && \
+    groupadd -r -g 1000 appuser && \
     useradd -r -g 1000 -u 1000 appuser && \
-    mkdir /var/app && \
-    chown -R appuser:appuser /app /var/app && \
-    chmod a+x /app/start.sh && \
-    mkhomedir_helper appuser
+    chown -R appuser:appuser /app
 
-RUN yum clean all --enablerepo=* && \
-    yum -y install deltarpm \
-                   yum-utils \
-                   ca-certificates && \
-    yum-config-manager --enable rhel-7-server-optional-rpm --enable rhel-7-server-extras-rpms && \
-    yum -y update && \                   
-    yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
-    curl https://www.scala-sbt.org/sbt-rpm.repo | tee > /etc/yum.repos.d/sbt-rpm.repo && \
+RUN yum -y update && \
     yum -y install \
-        java-1.8.0-openjdk-headless \
-        java-1.8.0-openjdk \
-        java-1.8.0-openjdk-devel \
-        sbt \
+        ca-certificates \
         openssl \
         nc \
-        jq && \
-    mv /etc/yum.repos.d/sbt-rpm.repo /etc/yum.repos.d/sbt-rpm.repo.disabled && \
-    yum clean all --enablerepo=* && \
+        java-11-openjdk-headless \
+        && \
+    yum clean all && \
     rm -rf /tmp/* /var/tmp/*
 
-COPY ca_certs/ /usr/share/pki/ca-trust-source/anchors/
-
 RUN update-ca-trust
-
-ENV JAVA_OPTS "-Dfile.encoding=UTF-8"
-
-ENV SBT_OPTS "--no-colors" \
-    "-Dsbt.global.base=/var/app/sbt" \
-    "-Dsbt.boot.directory=/var/app/sbt/boot" \
-    "-Dsbt.ivy.home=/var/app/ivy2"
 
 WORKDIR /app
 
 USER appuser
 
-RUN if [ -n "$JVM_ONLY_HTTP_PROXY_HOST" ]; then export JAVA_OPTS="-Dhttp.proxyHost=$JVM_ONLY_HTTP_PROXY_HOST $JAVA_OPTS"; fi && \
-    if [ -n "$JVM_ONLY_HTTP_PROXY_PORT" ]; then export JAVA_OPTS="-Dhttp.proxyPort=$JVM_ONLY_HTTP_PROXY_PORT $JAVA_OPTS"; fi && \
-    if [ -n "$JVM_ONLY_HTTPS_PROXY_HOST" ]; then export JAVA_OPTS="-Dhttps.proxyHost=$JVM_ONLY_HTTPS_PROXY_HOST $JAVA_OPTS"; fi && \
-    if [ -n "$JVM_ONLY_HTTPS_PROXY_PORT" ]; then export JAVA_OPTS="-Dhttps.proxyPort=$JVM_ONLY_HTTPS_PROXY_PORT $JAVA_OPTS"; fi && \
-    if [ -n "$JVM_ONLY_NO_PROXY" ]; then export JAVA_OPTS="-Dhttp.nonProxyHosts=$JVM_ONLY_NO_PROXY $JAVA_OPTS"; fi && \
-    sbt compile
-
 ENTRYPOINT ["/app/init.sh"]
+
 CMD ["/app/start.sh"]
