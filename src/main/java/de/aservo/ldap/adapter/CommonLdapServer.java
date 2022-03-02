@@ -42,6 +42,7 @@ import org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition;
 import org.apache.directory.server.core.partition.ldif.LdifPartition;
 import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.ldap.handlers.extended.StartTlsHandler;
+import org.apache.directory.server.ldap.handlers.response.CompareResponseHandler;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
 import org.apache.directory.server.protocol.shared.transport.Transport;
 import org.slf4j.Logger;
@@ -142,6 +143,7 @@ public class CommonLdapServer {
             server.setDirectoryService(directoryService);
             server.setMaxSizeLimit(serverConfig.getResponseMaxSizeLimit());
             server.setMaxTimeLimit(serverConfig.getResponseMaxTimeLimit());
+            server.setCompareHandlers(new CompareRequestHandler(), new CompareResponseHandler());
 
             server.start();
 

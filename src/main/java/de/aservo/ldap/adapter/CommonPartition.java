@@ -42,6 +42,7 @@ import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.server.core.api.entry.ClonedServerEntry;
 import org.apache.directory.server.core.api.filtering.EntryFilteringCursor;
 import org.apache.directory.server.core.api.filtering.EntryFilteringCursorImpl;
+import org.apache.directory.server.core.api.interceptor.context.CompareOperationContext;
 import org.apache.directory.server.core.api.interceptor.context.HasEntryOperationContext;
 import org.apache.directory.server.core.api.interceptor.context.LookupOperationContext;
 import org.apache.directory.server.core.api.interceptor.context.SearchOperationContext;
@@ -136,6 +137,24 @@ public class CommonPartition
         QueryExpression expression = BooleanValue.trueValue();
         Set<String> attributes = Collections.emptySet();
         MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
+
+        boolean exists = entries.next();
+
+        entries.closeUnchecked();
+
+        return exists;
+    }
+
+    @Override
+    protected boolean compare(CompareOperationContext context)
+            throws LdapException {
+
+        logger.info("[Thread ID {}] - Perform compare action with DN={}",
+                Thread.currentThread().getId(), context.getDn().getName());
+
+        QueryExpression expression = new EqualOperator(context.getOid(), context.getValue().getString());
+        Set<String> attributes = Collections.emptySet();
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, true);
 
         boolean exists = entries.next();
 

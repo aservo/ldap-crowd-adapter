@@ -40,6 +40,16 @@ public abstract class SimpleReadOnlyPartition
 
     private static final String MODIFICATION_NOT_ALLOWED_MSG = "This simple partition does not allow modification.";
 
+    /**
+     * Perform compare action.
+     *
+     * @param context the context
+     * @return the result of the compare action
+     * @throws LdapException the ldap exception
+     */
+    protected abstract boolean compare(CompareOperationContext context)
+            throws LdapException;
+
     @Override
     public EntryFilteringCursor search(SearchOperationContext context)
             throws LdapException {
@@ -156,13 +166,13 @@ public abstract class SimpleReadOnlyPartition
     @Override
     public PartitionReadTxn beginReadTransaction() {
 
-        return null;
+        return new PartitionReadTxn();
     }
 
     @Override
     public PartitionWriteTxn beginWriteTransaction() {
 
-        return null;
+        return new PartitionWriteTxn();
     }
 
     @Override
