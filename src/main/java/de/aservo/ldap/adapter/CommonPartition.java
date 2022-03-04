@@ -23,8 +23,9 @@
 package de.aservo.ldap.adapter;
 
 import de.aservo.ldap.adapter.api.LdapUtils;
-import de.aservo.ldap.adapter.api.cursor.IterableEntryCursor;
 import de.aservo.ldap.adapter.api.cursor.MappableCursor;
+import de.aservo.ldap.adapter.api.cursor.apacheds.EntryFilteringWrapperCursor;
+import de.aservo.ldap.adapter.api.cursor.apacheds.IterableEntryCursor;
 import de.aservo.ldap.adapter.api.database.Row;
 import de.aservo.ldap.adapter.api.database.exception.UnknownColumnException;
 import de.aservo.ldap.adapter.api.entity.*;
@@ -200,7 +201,7 @@ public class CommonPartition
         Set<String> attributes = LdapUtils.getAttributes(context);
         MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, true);
 
-        return new EntryFilteringCursorImpl(new IterableEntryCursor(logger, entries), context, schemaManager);
+        return new EntryFilteringWrapperCursor(new IterableEntryCursor(logger, entries), context);
     }
 
     @Override

@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package de.aservo.ldap.adapter.api.cursor;
+package de.aservo.ldap.adapter.api.cursor.apacheds;
 
+import de.aservo.ldap.adapter.api.cursor.Cursor;
 import de.aservo.ldap.adapter.api.exception.InternalServerException;
-import org.apache.directory.api.ldap.model.cursor.ClosureMonitor;
+import org.apache.directory.api.ldap.model.cursor.AbstractCursor;
 import org.apache.directory.api.ldap.model.cursor.CursorClosedException;
 import org.apache.directory.api.ldap.model.cursor.CursorException;
 import org.apache.directory.api.ldap.model.entry.Entry;
@@ -26,11 +27,10 @@ import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 
 public class IterableEntryCursor
-        implements org.apache.directory.api.ldap.model.cursor.Cursor<Entry>, Cursor<Entry> {
+        extends AbstractCursor<Entry> {
 
     private final Logger logger;
     private final Cursor<Entry> entries;
@@ -43,135 +43,81 @@ public class IterableEntryCursor
     }
 
     @Override
-    public void before(Entry attributes)
+    public void before(Entry entry)
             throws LdapException, CursorException {
+
+        // cursor pointer change not supported
     }
 
     @Override
-    public void after(Entry attributes)
+    public void after(Entry entry)
             throws LdapException, CursorException {
+
+        // cursor pointer change not supported
     }
 
     @Override
     public void beforeFirst()
             throws LdapException, CursorException {
+
+        // cursor pointer change not supported
     }
 
     @Override
     public void afterLast()
             throws LdapException, CursorException {
+
+        // cursor pointer change not supported
     }
 
     @Override
     public boolean first()
             throws LdapException, CursorException {
 
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isFirst() {
-
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isBeforeFirst() {
-
-        throw new UnsupportedOperationException();
+        // cursor pointer change not supported
+        return true;
     }
 
     @Override
     public boolean last()
             throws LdapException, CursorException {
 
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isLast() {
-
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isAfterLast() {
-
-        throw new UnsupportedOperationException();
+        // cursor pointer change not supported
+        return false;
     }
 
     @Override
     public boolean previous()
             throws LdapException, CursorException {
 
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setClosureMonitor(ClosureMonitor closureMonitor) {
+        // cursor pointer change not supported
+        return false;
     }
 
     @Override
     public boolean available() {
 
-        return false;
+        // cursor pointer change not supported
+        return true;
     }
 
     @Override
-    public String toString(String tabs) {
+    public void close(Exception cause)
+            throws IOException {
 
-        return tabs;
-    }
-
-    @Override
-    public Iterator<Entry> iterator() {
-
-        MappableCursor<Entry> cursor =
-                new MappableCursor<Entry>() {
-
-                    @Override
-                    public boolean next() {
-
-                        return IterableEntryCursor.this.next();
-                    }
-
-                    @Override
-                    public Entry get() {
-
-                        return IterableEntryCursor.this.get();
-                    }
-
-                    @Override
-                    public void close() throws IOException {
-
-                        IterableEntryCursor.this.close();
-                    }
-                };
-
-        return cursor.iterator();
-    }
-
-    @Override
-    public boolean isClosed() {
-
-        return closed;
-    }
-
-    @Override
-    public void close(Exception cause) throws IOException {
-
+        super.close(cause);
         entries.close();
-        closed = true;
 
         logger.warn("An entry cursor was closed with an exception.", cause);
         logger.debug("[Thread ID {}] - An entry cursor is closed.", Thread.currentThread().getId());
     }
 
     @Override
-    public void close() throws IOException {
+    public void close()
+            throws IOException {
 
+        super.close();
         entries.close();
-        closed = true;
 
         logger.debug("[Thread ID {}] - An entry cursor was closed.", Thread.currentThread().getId());
     }
