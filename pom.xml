@@ -11,6 +11,7 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <app.mainClass>de.aservo.ldap.adapter.Main</app.mainClass>
     </properties>
 
     <name>LDAP Crowd Adapter</name>
@@ -259,6 +260,20 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.2</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${app.mainClass}</mainClass>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>3.2.1</version>
                 <executions>
@@ -297,7 +312,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>de.aservo.ldap.adapter.Main</mainClass>
+                    <mainClass>${app.mainClass}</mainClass>
                 </configuration>
             </plugin>
             <plugin>
