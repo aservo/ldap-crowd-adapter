@@ -104,8 +104,8 @@ public class CommonPartition
     public ClonedServerEntry lookup(LookupOperationContext context)
             throws LdapException {
 
-        logger.debug("[Thread ID {}] - Perform lookup operation for entry with DN={}",
-                Thread.currentThread().getId(), context.getDn().getName());
+        logger.info("[{}] - Perform lookup operation for entry with DN={}",
+                context.getSession().getClientAddress(), context.getDn().getName());
 
         QueryExpression expression = BooleanValue.trueValue();
         Set<String> attributes = LdapUtils.getAttributes(context);
@@ -131,8 +131,8 @@ public class CommonPartition
     public boolean hasEntry(HasEntryOperationContext context)
             throws LdapException {
 
-        logger.debug("[Thread ID {}] - Perform check for existence of entry with DN={}",
-                Thread.currentThread().getId(), context.getDn().getName());
+        logger.info("[{}] - Perform check for existence of entry with DN={}",
+                context.getSession().getClientAddress(), context.getDn().getName());
 
         QueryExpression expression = BooleanValue.trueValue();
         Set<String> attributes = Collections.emptySet();
@@ -149,8 +149,9 @@ public class CommonPartition
     protected boolean compare(CompareOperationContext context)
             throws LdapException {
 
-        logger.info("[Thread ID {}] - Perform compare action with DN={}",
-                Thread.currentThread().getId(), context.getDn().getName());
+        logger.info("[{}] - Perform compare action with DN={} compare={}:{}",
+                context.getSession().getClientAddress(), context.getDn().getName(),
+                context.getOid(), context.getValue().getString());
 
         QueryExpression expression = new EqualOperator(context.getOid(), context.getValue().getString());
         Set<String> attributes = Collections.emptySet();
@@ -167,8 +168,8 @@ public class CommonPartition
     protected EntryFilteringCursor findOne(SearchOperationContext context)
             throws LdapException {
 
-        logger.debug("[Thread ID {}] - Perform search for a single entry with DN={}",
-                Thread.currentThread().getId(), context.getDn().getName());
+        logger.debug("Perform search for a single entry with DN={}",
+                context.getDn().getName());
 
         QueryExpression expression = LdapUtils.createQueryExpression(context.getFilter());
         Set<String> attributes = LdapUtils.getAttributes(context);
@@ -192,8 +193,8 @@ public class CommonPartition
     protected EntryFilteringCursor findManyOnFirstLevel(SearchOperationContext context)
             throws LdapException {
 
-        logger.debug("[Thread ID {}] - Perform search for entries with DN={}",
-                Thread.currentThread().getId(), context.getDn().getName());
+        logger.debug("Perform search for entries with DN={}",
+                context.getDn().getName());
 
         QueryExpression expression = LdapUtils.createQueryExpression(context.getFilter());
         Set<String> attributes = LdapUtils.getAttributes(context);

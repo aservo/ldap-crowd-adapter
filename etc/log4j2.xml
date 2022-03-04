@@ -4,7 +4,7 @@
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout>
                 <Pattern>
-                    [%highlight{%p{lowerCase=true}}{FATAL=red, ERROR=red, WARN=yellow, INFO=black, DEBUG=black, TRACE=magenta}] [%d{ISO8601}{UTC}] [%t] [%c] %m%n%throwable{full}
+                    [%highlight{%p{lowerCase=true}}{FATAL=red, ERROR=red, WARN=yellow, INFO=blue, DEBUG=normal, TRACE=normal}] [%d{ISO8601}{UTC}] [%t] [%c] %m%n%throwable{full}
                 </Pattern>
             </PatternLayout>
         </Console>
@@ -34,6 +34,10 @@
             <AppenderRef ref="RollingFile"/>
         </Logger>
         <Logger name="com.atlassian.crowd" level="warn">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+        <Logger name="org.apache.http" level="info">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="RollingFile"/>
         </Logger>

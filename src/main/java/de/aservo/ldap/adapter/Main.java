@@ -131,13 +131,12 @@ public class Main {
             context.updateLoggers();
         }
 
-        {
+        if (logLevel != null) {
+
             LoggerContext context = (LoggerContext) LogManager.getContext(false);
             Configuration config = context.getConfiguration();
 
-            if (logLevel != null)
-                config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).setLevel(Level.getLevel(logLevel.toUpperCase()));
-
+            config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).setLevel(Level.getLevel(logLevel.toUpperCase()));
             context.updateLoggers();
         }
     }
