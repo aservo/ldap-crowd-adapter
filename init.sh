@@ -54,6 +54,8 @@ fi
 
 if [ -n "$SERVER_BIND_ADDRESS" ]; then
   JAVA_OPTS="-Dbind.address=$SERVER_BIND_ADDRESS $JAVA_OPTS"
+else
+  JAVA_OPTS="-Dbind.address=0.0.0.0:13333 $JAVA_OPTS"
 fi
 
 if [ -n "$SERVER_MODE_FLATTENING" ]; then
@@ -204,8 +206,8 @@ fi
 
 if [ "$WAIT_DATABASE" = "true" ] && [ -n "$BACKEND_JDBC_URL" ]; then
   while ! nc -z $(echo "$BACKEND_JDBC_URL" | cut -d "/" -f 3 | tr ':' ' '); do
-  echo "Waiting another 5 seconds for the database to come up."
-  sleep 5
+    echo "Waiting another 5 seconds for the database to come up."
+    sleep 5
   done
 fi
 
