@@ -1,13 +1,9 @@
 package test.configuration.server;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import test.api.CertificateGenerator;
 import test.api.IntegrationTestServerSetup;
+import test.api.helper.ShellAccess;
 
 import java.nio.file.Path;
-import java.security.KeyPair;
-import java.security.Security;
-import java.security.cert.X509Certificate;
 import java.util.Properties;
 
 
@@ -70,21 +66,25 @@ public class JsonWithGroupNestingAndSsl
     public void startup()
             throws Exception {
 
-        Security.addProvider(new BouncyCastleProvider());
-
-        KeyPair keyPair = CertificateGenerator.generateKeyPair();
-        X509Certificate cert = CertificateGenerator.generateX509Certificate(keyPair, "CN=" + getHost(), 10);
-
-        CertificateGenerator.updateKeyStore(keyPair, cert, "self-signed", getKeyStoreFile().toFile(),
-                getKeyStorePassword());
+        ShellAccess.syncExec(
+                "./ssl-test-setup/create-key-store.sh",
+                getHost(),
+                getKeyStorePassword(),
+                getSelfSignedDataDir().toString()
+        );
 
         System.setProperty("javax.net.ssl.trustStore", getKeyStoreFile().toString());
         System.setProperty("javax.net.ssl.trustStorePassword", getKeyStorePassword());
     }
 
+    private Path getSelfSignedDataDir() {
+
+        return getTestDirectory().resolve("self-signed");
+    }
+
     private Path getKeyStoreFile() {
 
-        return getTestDirectory().resolve("local.keystore");
+        return getSelfSignedDataDir().resolve("local.keystore.jks");
     }
 
     private String getKeyStorePassword() {

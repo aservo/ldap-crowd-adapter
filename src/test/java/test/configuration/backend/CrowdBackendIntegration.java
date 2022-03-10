@@ -1,8 +1,8 @@
 package test.configuration.backend;
 
 import test.api.IntegrationTestBackendSetup;
+import test.api.helper.ShellAccess;
 
-import java.io.IOException;
 import java.util.Properties;
 
 
@@ -29,23 +29,12 @@ public class CrowdBackendIntegration
         if (crowdTestVersion == null || crowdTestVersion.trim().isEmpty())
             throw new IllegalArgumentException("Missing env property CROWD_TEST_VERSION.");
 
-        exec("./crowd-test-setup/it-boot.sh");
+        ShellAccess.syncExec("./crowd-test-setup/it-boot.sh");
     }
 
     public void shutdown()
             throws Exception {
 
-        exec("./crowd-test-setup/stop.sh");
-    }
-
-    private void exec(String... command)
-            throws Exception {
-
-        Process process = new ProcessBuilder(command).start();
-        int exitCode = process.waitFor();
-
-        if (exitCode != 0)
-            throw new IOException("The command " + String.join(" ", command) + " quits with exit code " +
-                    exitCode + ".");
+        ShellAccess.syncExec("./crowd-test-setup/stop.sh");
     }
 }
