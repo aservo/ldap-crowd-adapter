@@ -26,6 +26,7 @@ import org.apache.directory.server.core.api.filtering.EntryFilteringCursor;
 import org.apache.directory.server.core.api.filtering.EntryFilteringCursorImpl;
 import org.apache.directory.server.core.api.interceptor.context.*;
 import org.apache.directory.server.core.api.partition.*;
+import org.apache.logging.log4j.core.util.UuidUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,13 +167,13 @@ public abstract class SimpleReadOnlyPartition
     @Override
     public PartitionReadTxn beginReadTransaction() {
 
-        return new PartitionReadTxn();
+        return new ReadTransaction();
     }
 
     @Override
     public PartitionWriteTxn beginWriteTransaction() {
 
-        return new PartitionWriteTxn();
+        return null;
     }
 
     @Override
@@ -232,5 +233,21 @@ public abstract class SimpleReadOnlyPartition
             throws LdapException {
 
         throw new LdapException(MODIFICATION_NOT_ALLOWED_MSG);
+    }
+
+    public static class ReadTransaction
+            extends PartitionReadTxn {
+
+        private final String id;
+
+        public ReadTransaction() {
+
+            id = UuidUtil.getTimeBasedUuid().toString();
+        }
+
+        public String getId() {
+
+            return id;
+        }
     }
 }

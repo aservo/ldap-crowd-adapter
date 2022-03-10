@@ -54,12 +54,13 @@ public interface DirectoryBackend {
     /**
      * Runs a query expression.
      *
+     * @param txId          the transaction ID
      * @param schemaManager the schema manager
      * @param expression    the query expression
      * @param entityType    the entity type
      * @return the query generator
      */
-    MappableCursor<Row> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+    MappableCursor<Row> runQueryExpression(String txId, SchemaManager schemaManager, QueryExpression expression,
                                            EntityType entityType);
 
     /**

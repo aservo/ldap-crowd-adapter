@@ -166,10 +166,10 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
-    public MappableCursor<Row> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+    public MappableCursor<Row> runQueryExpression(String txId, SchemaManager schemaManager, QueryExpression expression,
                                                   EntityType entityType) {
 
-        return directoryBackend.runQueryExpression(schemaManager, expression, entityType);
+        return directoryBackend.runQueryExpression(txId, schemaManager, expression, entityType);
     }
 
     @Override

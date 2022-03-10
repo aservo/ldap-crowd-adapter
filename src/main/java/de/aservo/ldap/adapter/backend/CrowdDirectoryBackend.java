@@ -111,7 +111,7 @@ public class CrowdDirectoryBackend
         crowdClient.shutdown();
     }
 
-    public MappableCursor<Row> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+    public MappableCursor<Row> runQueryExpression(String txId, SchemaManager schemaManager, QueryExpression expression,
                                                   EntityType entityType) {
 
         throw new UnsupportedOperationException("Query generation not supported for Crowd directory backend.");

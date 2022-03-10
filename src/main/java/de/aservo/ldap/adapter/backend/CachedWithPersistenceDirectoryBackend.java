@@ -112,7 +112,7 @@ public class CachedWithPersistenceDirectoryBackend
 
     private final Logger logger = LoggerFactory.getLogger(CachedWithPersistenceDirectoryBackend.class);
     private final Map<Long, QueryDefFactory> queryDefFactories = Collections.synchronizedMap(new HashMap<>());
-    private final Map<Long, CloseableTransactionWrapper> closeableTransactions = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, CloseableTransactionWrapper> closeableTransactions = Collections.synchronizedMap(new HashMap<>());
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final DatabaseService dbService;
     private final int transactionTimeout;
@@ -532,15 +532,15 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
-    public MappableCursor<Row> runQueryExpression(SchemaManager schemaManager, QueryExpression expression,
+    public MappableCursor<Row> runQueryExpression(String txId, SchemaManager schemaManager, QueryExpression expression,
                                                   EntityType entityType) {
 
         QueryGenerator generator =
                 new QueryGenerator(schemaManager, getId(), config.isFlatteningEnabled(), activeUsersOnly,
                         useMaterializedViews);
 
-        return addCursorCleanup(generator.generate(entityType, getCloseableTransaction().getQueryDefFactory(),
-                expression)
+        return addCursorCleanup(txId, generator.generate(entityType, getCloseableTransaction(txId).getQueryDefFactory(),
+                        expression)
                 .execute(CursorResult.class)
                 .transform(Function.identity()));
     }
@@ -780,7 +780,7 @@ public class CachedWithPersistenceDirectoryBackend
 
     private void clearCloseableTransaction() {
 
-        (new HashMap<>(closeableTransactions)).forEach((id, transaction) -> {
+        (new HashMap<>(closeableTransactions)).forEach((txId, transaction) -> {
 
             if (System.currentTimeMillis() - transaction.timestamp > transactionTimeout) {
 
@@ -794,22 +794,20 @@ public class CachedWithPersistenceDirectoryBackend
 
                 } finally {
 
-                    closeableTransactions.remove(id);
+                    closeableTransactions.remove(txId);
                 }
             }
         });
     }
 
-    private CloseableTransaction getCloseableTransaction() {
+    private CloseableTransaction getCloseableTransaction(String txId) {
 
-        long id = Thread.currentThread().getId();
-
-        if (closeableTransactions.containsKey(id))
-            closeableTransactions.get(id).counter.incrementAndGet();
+        if (closeableTransactions.containsKey(txId))
+            closeableTransactions.get(txId).counter.incrementAndGet();
         else
-            closeableTransactions.put(id, new CloseableTransactionWrapper(dbService.getCloseableTransaction()));
+            closeableTransactions.put(txId, new CloseableTransactionWrapper(dbService.getCloseableTransaction()));
 
-        return closeableTransactions.get(id);
+        return closeableTransactions.get(txId);
     }
 
     private QueryDefFactory getCurrentQueryDefFactory() {
@@ -817,9 +815,7 @@ public class CachedWithPersistenceDirectoryBackend
         return queryDefFactories.get(Thread.currentThread().getId());
     }
 
-    private MappableCursor<Row> addCursorCleanup(MappableCursor<Row> rows) {
-
-        long id = Thread.currentThread().getId();
+    private MappableCursor<Row> addCursorCleanup(String txId, MappableCursor<Row> rows) {
 
         return new MappableCursor<Row>() {
 
@@ -839,14 +835,14 @@ public class CachedWithPersistenceDirectoryBackend
             public void close()
                     throws IOException {
 
-                CloseableTransactionWrapper transaction = closeableTransactions.get(id);
+                CloseableTransactionWrapper transaction = closeableTransactions.get(txId);
                 int count = transaction.counter.decrementAndGet();
 
                 rows.close();
 
                 if (count == 0) {
 
-                    logger.debug("[Thread ID {}] - Close async transaction.", id);
+                    logger.debug("[Thread ID {}] - Close async transaction.", Thread.currentThread().getId());
 
                     try {
 
@@ -854,7 +850,7 @@ public class CachedWithPersistenceDirectoryBackend
 
                     } finally {
 
-                        closeableTransactions.remove(id);
+                        closeableTransactions.remove(txId);
                     }
                 }
             }

@@ -47,6 +47,7 @@ import org.apache.directory.server.core.api.interceptor.context.CompareOperation
 import org.apache.directory.server.core.api.interceptor.context.HasEntryOperationContext;
 import org.apache.directory.server.core.api.interceptor.context.LookupOperationContext;
 import org.apache.directory.server.core.api.interceptor.context.SearchOperationContext;
+import org.apache.directory.server.core.api.partition.PartitionTxn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,9 +109,10 @@ public class CommonPartition
         logger.info("[{}] - Perform lookup operation for entry with DN={}",
                 context.getSession().getClientAddress(), context.getDn().getName());
 
+        PartitionTxn transaction = context.getTransaction();
         QueryExpression expression = BooleanValue.trueValue();
         Set<String> attributes = LdapUtils.getAttributes(context);
-        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, transaction, false);
 
         if (!entries.next()) {
 
@@ -135,9 +137,10 @@ public class CommonPartition
         logger.info("[{}] - Perform check for existence of entry with DN={}",
                 context.getSession().getClientAddress(), context.getDn().getName());
 
+        PartitionTxn transaction = context.getTransaction();
         QueryExpression expression = BooleanValue.trueValue();
         Set<String> attributes = Collections.emptySet();
-        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, transaction, false);
 
         boolean exists = entries.next();
 
@@ -154,9 +157,10 @@ public class CommonPartition
                 context.getSession().getClientAddress(), context.getDn().getName(),
                 context.getOid(), context.getValue().getString());
 
+        PartitionTxn transaction = context.getTransaction();
         QueryExpression expression = new EqualOperator(context.getOid(), context.getValue().getString());
         Set<String> attributes = Collections.emptySet();
-        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, true);
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, transaction, true);
 
         boolean exists = entries.next();
 
@@ -172,9 +176,10 @@ public class CommonPartition
         logger.debug("Perform search for a single entry with DN={}",
                 context.getDn().getName());
 
+        PartitionTxn transaction = context.getTransaction();
         QueryExpression expression = LdapUtils.createQueryExpression(context.getFilter());
         Set<String> attributes = LdapUtils.getAttributes(context);
-        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, false);
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, transaction, false);
 
         if (!entries.next()) {
 
@@ -197,9 +202,10 @@ public class CommonPartition
         logger.debug("Perform search for entries with DN={}",
                 context.getDn().getName());
 
+        PartitionTxn transaction = context.getTransaction();
         QueryExpression expression = LdapUtils.createQueryExpression(context.getFilter());
         Set<String> attributes = LdapUtils.getAttributes(context);
-        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, true);
+        MappableCursor<Entry> entries = findEntries(expression, context.getDn(), attributes, transaction, true);
 
         return new EntryFilteringWrapperCursor(new IterableEntryCursor(logger, entries), context);
     }
@@ -213,11 +219,16 @@ public class CommonPartition
     }
 
     private MappableCursor<Entry> findEntries(QueryExpression expression, Dn queryDn, Set<String> attributes,
-                                              boolean multiple) {
+                                              PartitionTxn transaction, boolean multiple) {
 
         Dn rootDn = LdapUtils.createDn(schemaManager, EntityType.DOMAIN, getId());
         Dn groupsDn = LdapUtils.createDn(schemaManager, EntityType.GROUP_UNIT, getId());
         Dn usersDn = LdapUtils.createDn(schemaManager, EntityType.USER_UNIT, getId());
+
+        if (!(transaction instanceof SimpleReadOnlyPartition.ReadTransaction))
+            throw new IllegalArgumentException("Cannot process unexpected transaction type");
+
+        String txId = ((SimpleReadOnlyPartition.ReadTransaction) transaction).getId();
 
         return directoryFactory.withSession(directory -> {
 
@@ -230,7 +241,7 @@ public class CommonPartition
 
                 if (multiple) {
 
-                    cursors.add(directory.runQueryExpression(schemaManager, expression, EntityType.GROUP));
+                    cursors.add(directory.runQueryExpression(txId, schemaManager, expression, EntityType.GROUP));
                 }
 
             } else if (queryDn.getParent().equals(groupsDn)) {
@@ -241,7 +252,7 @@ public class CommonPartition
                 QueryExpression expr =
                         new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
 
-                cursors.add(directory.runQueryExpression(schemaManager, expr, EntityType.GROUP));
+                cursors.add(directory.runQueryExpression(txId, schemaManager, expr, EntityType.GROUP));
 
             } else if (queryDn.equals(usersDn)) {
 
@@ -250,7 +261,7 @@ public class CommonPartition
 
                 if (multiple) {
 
-                    cursors.add(directory.runQueryExpression(schemaManager, expression, EntityType.USER));
+                    cursors.add(directory.runQueryExpression(txId, schemaManager, expression, EntityType.USER));
                 }
 
             } else if (queryDn.getParent().equals(usersDn)) {
@@ -261,7 +272,7 @@ public class CommonPartition
                 QueryExpression expr =
                         new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
 
-                cursors.add(directory.runQueryExpression(schemaManager, expr, EntityType.USER));
+                cursors.add(directory.runQueryExpression(txId, schemaManager, expr, EntityType.USER));
 
             } else if (queryDn.equals(rootDn)) {
 
@@ -276,8 +287,8 @@ public class CommonPartition
                     if (LdapUtils.evaluateExpression(LdapUtils.preEvaluateExpression(expression, userUnitEntity)))
                         cursors.add(MappableCursor.fromIterable(Collections.singleton(userUnitEntity)));
 
-                    cursors.add(directory.runQueryExpression(schemaManager, expression, EntityType.GROUP));
-                    cursors.add(directory.runQueryExpression(schemaManager, expression, EntityType.USER));
+                    cursors.add(directory.runQueryExpression(txId, schemaManager, expression, EntityType.GROUP));
+                    cursors.add(directory.runQueryExpression(txId, schemaManager, expression, EntityType.USER));
                 }
 
             } else if (queryDn.getParent().equals(rootDn) && multiple) {
@@ -288,8 +299,8 @@ public class CommonPartition
                 QueryExpression expr =
                         new AndLogicExpression(Arrays.asList(new EqualOperator(attribute, value), expression));
 
-                cursors.add(directory.runQueryExpression(schemaManager, expr, EntityType.GROUP));
-                cursors.add(directory.runQueryExpression(schemaManager, expr, EntityType.USER));
+                cursors.add(directory.runQueryExpression(txId, schemaManager, expr, EntityType.GROUP));
+                cursors.add(directory.runQueryExpression(txId, schemaManager, expr, EntityType.USER));
             }
 
             return createEntries(MappableCursor.flatten(cursors), attributes);
