@@ -22,14 +22,13 @@ import de.aservo.ldap.adapter.api.entity.EntityType;
 import de.aservo.ldap.adapter.api.entity.UnitEntity;
 import de.aservo.ldap.adapter.api.exception.UnsupportedQueryExpressionException;
 import de.aservo.ldap.adapter.api.query.*;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
-import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
 import org.apache.directory.api.ldap.model.filter.*;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
-import org.apache.directory.api.ldap.model.schema.normalizers.NoOpNormalizer;
 import org.apache.directory.server.core.api.interceptor.context.FilteringOperationContext;
 
 import java.util.*;
@@ -230,23 +229,17 @@ public class LdapUtils {
         } else if (node instanceof SubstringNode) {
 
             SubstringNode n = (SubstringNode) node;
-            Pattern pattern;
+            String initialSegment = StringUtils.stripStart(n.getInitial(), null);
+            String finalSegment = StringUtils.stripEnd(n.getFinal(), null);
+            List<String> middleSegments = new ArrayList<>();
 
-            try {
+            if (n.getAny() != null)
+                middleSegments.addAll(n.getAny());
 
-                pattern = n.getRegex(new NoOpNormalizer());
+            Pattern pattern =
+                    SubstringNode.getRegex(initialSegment, middleSegments.toArray(String[]::new), finalSegment);
 
-            } catch (LdapException e) {
-
-                throw new RuntimeException(e);
-            }
-
-            List<String> any = n.getAny();
-
-            if (any == null)
-                any = new ArrayList<>();
-
-            return new WildcardOperator(n.getAttribute(), pattern, n.getInitial(), n.getFinal(), any);
+            return new WildcardOperator(n.getAttribute(), pattern, initialSegment, finalSegment, middleSegments);
 
         } else if (node instanceof ObjectClassNode) {
 
