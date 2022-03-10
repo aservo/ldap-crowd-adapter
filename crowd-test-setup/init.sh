@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 CROWD_KEY="$1"
 INSTALL_DIR="$PWD/tmp/crowd-it-test-installation"
 CROWD_INSTALL="$INSTALL_DIR/atlassian-crowd"
@@ -130,14 +132,14 @@ function pre_config {
 
   # set Crowd options
   curl -L -X POST \
-  --silent --output /dev/null \
-  --cookie "$CROWD_COOKIES" \
-  --header "Content-Type: application/x-www-form-urlencoded" \
-  --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/setupoptions.action)" \
-  --data-urlencode "title=Test Instance" \
-  --data-urlencode "sessionTime=30" \
-  --data-urlencode "baseURL=$CROWD_HOST/crowd" \
-  "$CROWD_HOST"'/crowd/console/setup/setupoptions!update.action'
+    --silent --output /dev/null \
+    --cookie "$CROWD_COOKIES" \
+    --header "Content-Type: application/x-www-form-urlencoded" \
+    --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/setupoptions.action)" \
+    --data-urlencode "title=Test Instance" \
+    --data-urlencode "sessionTime=30" \
+    --data-urlencode "baseURL=$CROWD_HOST/crowd" \
+    "$CROWD_HOST"'/crowd/console/setup/setupoptions!update.action'
 
   # set initial internal directory
   curl -L -X POST \
@@ -304,8 +306,7 @@ function create_app {
   local DIRECTORIES="$5"
 
   # create array from comma separated string
-  #readarray -td ',' DIR_ARRAY <<< "$DIRECTORIES"
-  IFS=',' read -ra DIR_ARRAY <<< "$DIRECTORIES"
+  readarray -td ',' DIR_ARRAY <<< "$DIRECTORIES"
   for i in "${!DIR_ARRAY[@]}"; do DIR_ARRAY[$i]="$(echo "${DIR_ARRAY[$i]}" | tr -d '[:space:]')"; done
   for i in "${!DIR_ARRAY[@]}"; do DIR_ARRAY[$i]="$(get_directory_id "${DIR_ARRAY[$i]}")"; done
 
@@ -418,3 +419,5 @@ add_group_to_group 'ldap-test-dir-4' 'GroupE' 'GroupD'
 
 create_app 'ldap-adapter' 'http://localhost' '127.0.0.1' 'password' 'ldap-test-dir-1,ldap-test-dir-2,ldap-test-dir-3,ldap-test-dir-4'
 enable_app_aggregation 'ldap-adapter'
+
+exit 0
