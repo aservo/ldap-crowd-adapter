@@ -1,0 +1,38 @@
+<settings>
+
+    <servers>
+        <server>
+            <id>ossrh</id>
+            <username>${env.OSSRH_USERNAME}</username>
+            <password>${env.OSSRH_PASSWORD}</password>
+        </server>
+    </servers>
+
+    <profiles>
+        <profile>
+            <id>analyzing</id>
+            <properties>
+                <sonar.projectKey>aservo_ldap-crowd-adapter</sonar.projectKey>
+                <sonar.organization>800c9135c81800959e51375f6594c91a1f757be9bbbc14d311783a4f75c501ec7807da061e787a9ea89433eb1cf2d6088b664332abd6a411ca5b44e811e97a23</sonar.organization>
+                <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+            </properties>
+        </profile>
+        <profile>
+            <id>signing</id>
+            <properties>
+                <gpg.keyname>${env.GPG_KEY_NAME}</gpg.keyname>
+                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+                <gpg.executable>gpg</gpg.executable>
+            </properties>
+        </profile>
+        <profile>
+            <id>deploying</id>
+            <properties>
+                <nexus.host.url>https://oss.sonatype.org/</nexus.host.url>
+                <nexus.snapshot.url>https://oss.sonatype.org/content/repositories/snapshots</nexus.snapshot.url>
+                <nexus.release.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</nexus.release.url>
+            </properties>
+        </profile>
+    </profiles>
+
+</settings>
