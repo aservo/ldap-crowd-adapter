@@ -775,7 +775,7 @@ public class Executor {
             if (this == that)
                 return true;
 
-            if (this.getClass() != that.getClass())
+            if (that == null || this.getClass() != that.getClass())
                 return false;
 
             QueryDefImpl queryDef = (QueryDefImpl) that;
