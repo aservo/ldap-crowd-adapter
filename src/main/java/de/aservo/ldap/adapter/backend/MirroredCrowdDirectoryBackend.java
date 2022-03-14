@@ -175,6 +175,8 @@ public class MirroredCrowdDirectoryBackend
         } catch (InterruptedException e) {
 
             logger.error("Could not complete all synchronization tasks.", e);
+
+            Thread.currentThread().interrupt();
         }
 
         super.shutdown();
@@ -209,7 +211,7 @@ public class MirroredCrowdDirectoryBackend
 
         } catch (InterruptedException e) {
 
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
         }
 
         return super.withReadAccess(block);
@@ -234,7 +236,7 @@ public class MirroredCrowdDirectoryBackend
 
         } catch (InterruptedException e) {
 
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
         }
 
         return super.withWriteAccess(block);
@@ -739,6 +741,8 @@ public class MirroredCrowdDirectoryBackend
             } catch (InterruptedException e) {
 
                 logger.error("The backoff waiting time was interrupted.", e);
+
+                Thread.currentThread().interrupt();
             }
         }
 
