@@ -17,6 +17,7 @@ RUN yum -y update && \
         ca-certificates \
         openssl \
         nc \
+        jq \
         java-11-openjdk-headless \
         && \
     yum clean all && \
