@@ -13,10 +13,12 @@ RUN chmod -R 644 /usr/share/pki/ca-trust-source/anchors/ && \
     chown -R appuser:appuser /app
 
 RUN yum -y update && \
+    yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm  && \
     yum -y install \
         ca-certificates \
         openssl \
         nc \
+        jq \
         java-11-openjdk-headless \
         && \
     yum clean all && \
