@@ -20,6 +20,7 @@ RUN \
         ca-certificates \
         openssl \
         ncat \
+        jq \
         openjdk-11-jdk-headless \
         && \
     apt-get clean && \
