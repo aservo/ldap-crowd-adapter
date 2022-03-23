@@ -46,6 +46,8 @@ public class CompareRequestHandler
         DirectoryService directoryService = session.getCoreSession().getDirectoryService();
         Partition partition = directoryService.getPartitionNexus().getPartition(compareRequest.getName());
 
+        compareContext.setTransaction(partition.beginReadTransaction());
+
         try {
 
             if (partition instanceof SimpleReadOnlyPartition)
