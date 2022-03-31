@@ -16,7 +16,8 @@ RUN chmod -R 644 /usr/local/share/ca-certificates/ && \
 
 RUN \
     apt-get update && \
-    apt-get --no-install-recommends --yes install \
+    apt-get -y upgrade && \
+    apt-get -y --no-install-recommends install \
         ca-certificates \
         openssl \
         ncat \

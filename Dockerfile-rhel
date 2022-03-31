@@ -12,7 +12,8 @@ RUN chmod -R 644 /usr/share/pki/ca-trust-source/anchors/ && \
     useradd -r -g 1000 -u 1000 appuser && \
     chown -R appuser:appuser /app
 
-RUN yum -y update && \
+RUN yum makecache && \
+    yum -y update && \
     yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm  && \
     yum -y install \
         ca-certificates \
