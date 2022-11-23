@@ -32,6 +32,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -880,7 +881,9 @@ public class MirroredCrowdDirectoryBackend
         private Optional<JsonObject> getRestApi(String route, boolean expectResult)
                 throws IOException {
 
-            CloseableHttpClient httpclient = HttpClientBuilder.create().build();
+            CloseableHttpClient httpclient =
+                    HttpClientBuilder.create().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
             Gson gson = new Gson();
 
             String credentials =
