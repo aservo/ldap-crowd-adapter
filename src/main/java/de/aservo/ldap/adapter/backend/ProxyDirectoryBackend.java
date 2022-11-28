@@ -118,6 +118,12 @@ public abstract class ProxyDirectoryBackend
     }
 
     @Override
+    public void upsertUser(String id, String idOther) {
+
+        directoryBackend.upsertUser(id, idOther);
+    }
+
+    @Override
     public int upsertAllUsers(int startIndex, int maxResults) {
 
         return directoryBackend.upsertAllUsers(startIndex, maxResults);
