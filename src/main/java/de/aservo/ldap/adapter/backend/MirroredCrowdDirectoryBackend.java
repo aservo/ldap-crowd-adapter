@@ -45,6 +45,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 
 public class MirroredCrowdDirectoryBackend
@@ -413,7 +414,31 @@ public class MirroredCrowdDirectoryBackend
 
                                             String alias = auditLogProcessor.resolveToAlias(name);
 
-                                            if (eventType.equals("USER_CREATED") || eventType.equals("USER_UPDATED"))
+                                            if (eventType.equals("USER_UPDATED")) {
+
+                                                Optional<JsonObject> property =
+                                                        StreamSupport.stream(valueElement.getAsJsonObject().getAsJsonArray("entries").spliterator(), false)
+                                                                .map(JsonElement::getAsJsonObject)
+                                                                .filter(x -> x.get("propertyName").getAsString().equalsIgnoreCase("username"))
+                                                                .findAny();
+
+                                                // username is changed
+                                                property.ifPresent(x -> {
+
+                                                    String nameOld = x.get("oldValue").getAsString();
+                                                    String aliasOld = auditLogProcessor.resolveToAlias(nameOld);
+
+                                                    // remove the old user entity
+                                                    deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, aliasOld));
+
+                                                    // add the new user entity
+                                                    deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, Pair.of(alias, aliasOld)));
+                                                });
+
+                                                if (property.isEmpty())
+                                                    deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, alias));
+
+                                            } else if (eventType.equals("USER_CREATED"))
                                                 deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, alias));
                                             else if (eventType.equals("USER_DELETED"))
                                                 deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, alias));
@@ -485,6 +510,14 @@ public class MirroredCrowdDirectoryBackend
                         x.getRight() instanceof String) {
 
                     directoryBackend.upsertUser(((String) x.getRight()).toLowerCase());
+
+                } else if (x.getLeft().equals(UpdateType.USER_VALIDATE) &&
+                        x.getRight() instanceof Pair) {
+
+                    String newName = ((Pair<?, ?>) x.getRight()).getLeft().toString();
+                    String oldName = ((Pair<?, ?>) x.getRight()).getRight().toString();
+
+                    directoryBackend.upsertUser(newName.toLowerCase(), oldName.toLowerCase());
 
                 } else if (x.getLeft().equals(UpdateType.USER_INVALIDATE) &&
                         x.getRight() instanceof String) {

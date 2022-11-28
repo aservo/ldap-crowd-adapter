@@ -128,6 +128,16 @@ public interface NestedDirectoryBackend
     }
 
     /**
+     * To keep the cache up-to-date an user entity is updated or inserted.
+     * The user inherits the groups of another user
+     *
+     * @param id the user ID
+     * @param idOther the user ID of an existing user
+     */
+    default void upsertUser(String id, String idOther) {
+    }
+
+    /**
      * To keep the cache up-to-date all user entities are updated or inserted.
      *
      * @param startIndex the start index for pagination
