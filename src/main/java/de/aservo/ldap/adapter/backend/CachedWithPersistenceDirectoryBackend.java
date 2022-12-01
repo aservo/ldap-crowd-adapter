@@ -378,6 +378,25 @@ public class CachedWithPersistenceDirectoryBackend
     }
 
     @Override
+    public void upsertUser(String id, String idOther) {
+
+        super.upsertUser(id, idOther);
+
+        upsertUser(id);
+
+        QueryDefFactory factory = getCurrentQueryDefFactory();
+
+        getDirectGroupsOfUser(idOther).forEach(group -> {
+
+            factory
+                    .queryById("create_user_membership_if_not_exists")
+                    .on("parent_group_id", group.getName())
+                    .on("member_user_id", id)
+                    .execute(IgnoredResult.class);
+        });
+    }
+
+    @Override
     public int upsertAllUsers(int startIndex, int maxResults) {
 
         super.upsertAllUsers(startIndex, maxResults);
