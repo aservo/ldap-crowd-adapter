@@ -2,10 +2,11 @@
 # General
 #
 
-*.class
-*.bin
+*.tmp
 *.log
 *.pid
+*.seed
+*.lock
 *.swp
 *~
 .DS_Store
@@ -17,18 +18,31 @@ Thumbs.db
 /temp/
 /tmp/
 
+hs_err_pid*
+replay_pid*
+
 ########################
 # Build tool / IDE
 #
 
+*.iws
 *.iml
+*.ipr
+
+.metadata
+.project
+.classpath
+.loadpath
 
 .idea/
+.idea_modules/
 .vscode/
 .bsp/
 .lib/
 .settings/
+.target/
 
+bin/
 dist/
 build/
 out/
@@ -40,17 +54,22 @@ project/project/
 project/target/
 
 ########################
-# Packages
+# Binary objects
 #
 
+*.class
+*.bin
 *.jar
-*.ear
 *.war
-*.tar
-*.bz2
-*.gz
+*.nar
+*.ear
+*.sar
 *.zip
 *.7z
+*.bz2
+*.gz
+*.tgz
+*.tar
 *.rar
 *.iso
 
