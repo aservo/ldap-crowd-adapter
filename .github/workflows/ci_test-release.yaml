@@ -36,6 +36,8 @@ jobs:
           mvn --batch-mode package \
             -DskipTests=true
       - name: Test project
+        env:
+          CROWD_LICENSE_KEY: ${{ secrets.CROWD_LICENSE_KEY }}
         run: |
           mvn --batch-mode verify
       - name: Perform static code analysis

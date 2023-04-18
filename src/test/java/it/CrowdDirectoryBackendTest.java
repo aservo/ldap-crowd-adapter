@@ -6,7 +6,6 @@ import de.aservo.ldap.adapter.api.directory.exception.SecurityProblemException;
 import de.aservo.ldap.adapter.api.entity.GroupEntity;
 import de.aservo.ldap.adapter.api.entity.UserEntity;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import test.api.AbstractBackendTest;
 import test.configuration.backend.CrowdBackendIntegration;
 
@@ -18,7 +17,6 @@ import java.util.stream.Collectors;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@EnabledIfEnvironmentVariable(named = "CROWD_TEST_VERSION", matches = "\\d+(\\.\\d+){0,2}")
 public class CrowdDirectoryBackendTest
         extends AbstractBackendTest {
 

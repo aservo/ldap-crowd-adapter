@@ -1,9 +1,7 @@
 package test.configuration.backend;
 
-import test.api.IntegrationTestBackendSetup;
-import test.api.helper.ShellAccess;
-
 import java.util.Properties;
+import test.api.IntegrationTestBackendSetup;
 
 
 public class CrowdBackendIntegration
@@ -23,18 +21,9 @@ public class CrowdBackendIntegration
 
     public void startup()
             throws Exception {
-
-        String crowdTestVersion = System.getenv("CROWD_TEST_VERSION");
-
-        if (crowdTestVersion == null || crowdTestVersion.trim().isEmpty())
-            throw new IllegalArgumentException("Missing env property CROWD_TEST_VERSION.");
-
-        ShellAccess.syncExec("./crowd-test-setup/it-boot.sh");
     }
 
     public void shutdown()
             throws Exception {
-
-        ShellAccess.syncExec("./crowd-test-setup/stop.sh");
     }
 }

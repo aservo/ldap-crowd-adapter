@@ -2,13 +2,6 @@
 
 set -euo pipefail
 
-CROWD_KEY="$1"
-INSTALL_DIR="$PWD/tmp/crowd-it-test-installation"
-CROWD_INSTALL="$INSTALL_DIR/atlassian-crowd"
-CROWD_INSTANCE="$CROWD_INSTALL-instance"
-CROWD_COOKIES="$INSTALL_DIR/cookies.txt"
-CROWD_HOST="http://localhost:8095"
-
 function wait_server_up {
 
   sleep 3
@@ -20,11 +13,6 @@ function wait_server_up {
 function parse_token {
 
   echo "$1" | tr -d '[:space:]' | grep -o -P '(?<=name\=\"atl_token\"value\=\").+(?=\"id\=\"atl_token\")' | cut -d '"' -f1
-}
-
-function read_server_id {
-
-  cat "$CROWD_INSTANCE/data/shared/crowd.cfg.xml" | grep -oPm1 '(?<=<property name="crowd.server.id">)[^<]+'
 }
 
 function getAtlToken {
@@ -45,33 +33,34 @@ function get_directory_id {
 
   local UNIQUE_NAME="$1"
 
-  # fetch page with information about initial directory
-  local RESULT=$(curl -L -X POST \
+  # fetch information about the initial directory entity
+  local RESULT=$(curl -L -X GET -G \
     --silent \
     --cookie "$CROWD_COOKIES" \
-    --header "Content-Type: application/x-www-form-urlencoded" \
-    --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/directory/browse.action)" \
-    --data-urlencode "active=" \
-    --data-urlencode "name=$UNIQUE_NAME" \
-    --data-urlencode "resultsPerPage=1" \
-    "$CROWD_HOST"'/crowd/console/secure/directory/browse.action')
+    --data-urlencode "search=$UNIQUE_NAME" \
+    --data-urlencode "start=0" \
+    --data-urlencode "limit=1" \
+    "$CROWD_HOST"'/crowd/rest/admin/latest/directory/detailed')
 
   # parse directory ID
-  echo "$RESULT" | tr -d '[:space:]' | grep -o -P '(?<=data-id\=\")\d+(?=\"\>'"$UNIQUE_NAME"')'
+  echo "$RESULT" | jq '.values[0].id'
 }
 
 function get_application_id {
 
   local UNIQUE_NAME="$1"
 
-  # fetch page with information about initial directory
-  local RESULT=$(curl -L -X GET \
+  # fetch information about the application entity
+  local RESULT=$(curl -L -X GET -G \
     --silent \
     --cookie "$CROWD_COOKIES" \
-    "$CROWD_HOST/crowd/console/secure/application/browse.action?name=$UNIQUE_NAME&active=&resultsPerPage=1")
+    --data-urlencode "name=$UNIQUE_NAME" \
+    --data-urlencode "start=0" \
+    --data-urlencode "limit=1" \
+    "$CROWD_HOST"'/crowd/rest/admin/1.0/application')
 
   # parse directory ID
-  echo "$RESULT" | tr -d '[:space:]' | grep -o -P '(?<=ID\=)\d+(?=\"\>'"$UNIQUE_NAME"')'
+  echo "$RESULT" | jq '.values[0].id'
 }
 
 function login_web {
@@ -88,7 +77,6 @@ function login_web {
 
 function pre_config {
 
-  local SERVER_ID="$(read_server_id)"
   local DIRECTORY="$1"
   local EMAIL="$2"
   local UNIQUE_NAME="$3"
@@ -108,8 +96,8 @@ function pre_config {
     --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/setuplicense.action)" \
-    --data-urlencode "sid=$SERVER_ID" \
-    --data-urlencode "key=$CROWD_KEY" \
+    --data-urlencode "sid=$CROWD_SERVER_ID" \
+    --data-urlencode "key=$CROWD_LICENSE_KEY" \
     "$CROWD_HOST"'/crowd/console/setup/setuplicense!update.action'
 
   # set flag to continue with installation process from null
@@ -373,6 +361,8 @@ function enable_app_aggregation {
     --data '{"aggregateMemberships":true}' \
     "$CROWD_HOST/crowd/rest/admin/latest/application/$(get_application_id "$UNIQUE_NAME")"
 }
+
+mkdir -p "$PWD/tmp"
 
 wait_server_up
 
