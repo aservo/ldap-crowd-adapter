@@ -6,6 +6,7 @@ HOSTNAME="$1"
 PASSWORD="$2"
 INSTALL_DIR="$3"
 
+# shellcheck disable=SC2015
 [[ -d "$INSTALL_DIR" ]] && rm -r "$INSTALL_DIR" || true
 mkdir -p "$INSTALL_DIR"
 
