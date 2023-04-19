@@ -6,7 +6,8 @@ HOSTNAME="$1"
 PASSWORD="$2"
 INSTALL_DIR="$3"
 
-rm -r "$INSTALL_DIR" || true
+# shellcheck disable=SC2015
+[[ -d "$INSTALL_DIR" ]] && rm -r "$INSTALL_DIR" || true
 mkdir -p "$INSTALL_DIR"
 
 cp "./ssl-test-setup/req.conf" "$INSTALL_DIR/req.conf"

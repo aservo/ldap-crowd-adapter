@@ -2,17 +2,10 @@
 
 set -euo pipefail
 
-CROWD_KEY="$1"
-INSTALL_DIR="$PWD/tmp/crowd-it-test-installation"
-CROWD_INSTALL="$INSTALL_DIR/atlassian-crowd"
-CROWD_INSTANCE="$CROWD_INSTALL-instance"
-CROWD_COOKIES="$INSTALL_DIR/cookies.txt"
-CROWD_HOST="http://localhost:8095"
-
 function wait_server_up {
 
   sleep 3
-  until $(curl -L --silent --output /dev/null --head --fail "$CROWD_HOST/crowd/console"); do
+  until curl -L --silent --output /dev/null --head --fail "$CROWD_HOST/crowd/console"; do
     sleep 3
   done
 }
@@ -22,56 +15,61 @@ function parse_token {
   echo "$1" | tr -d '[:space:]' | grep -o -P '(?<=name\=\"atl_token\"value\=\").+(?=\"id\=\"atl_token\")' | cut -d '"' -f1
 }
 
-function read_server_id {
-
-  cat "$CROWD_INSTANCE/data/shared/crowd.cfg.xml" | grep -oPm1 '(?<=<property name="crowd.server.id">)[^<]+'
-}
-
 function getAtlToken {
 
+  local ATL_TOKEN
+  local RESULT
+
   # fetch page to parse the token
-  local RESULT=$(curl -L -X GET \
+  RESULT=$(curl -L -X GET \
     --silent \
     --cookie "$CROWD_COOKIES" \
     "$CROWD_HOST""$1")
 
   # parse form token
-  local ATL_TOKEN="$(parse_token "$RESULT")"
+  ATL_TOKEN="$(parse_token "$RESULT")"
 
-  echo $ATL_TOKEN
+  echo "$ATL_TOKEN"
 }
 
 function get_directory_id {
 
-  local UNIQUE_NAME="$1"
+  local UNIQUE_NAME
+  local RESULT
 
-  # fetch page with information about initial directory
-  local RESULT=$(curl -L -X POST \
+  UNIQUE_NAME="$1"
+
+  # fetch information about the initial directory entity
+  RESULT=$(curl -L -X GET -G \
     --silent \
     --cookie "$CROWD_COOKIES" \
-    --header "Content-Type: application/x-www-form-urlencoded" \
-    --data-urlencode "atl_token=$(getAtlToken /crowd/console/secure/directory/browse.action)" \
-    --data-urlencode "active=" \
-    --data-urlencode "name=$UNIQUE_NAME" \
-    --data-urlencode "resultsPerPage=1" \
-    "$CROWD_HOST"'/crowd/console/secure/directory/browse.action')
+    --data-urlencode "search=$UNIQUE_NAME" \
+    --data-urlencode "start=0" \
+    --data-urlencode "limit=1" \
+    "$CROWD_HOST"'/crowd/rest/admin/latest/directory/detailed')
 
   # parse directory ID
-  echo "$RESULT" | tr -d '[:space:]' | grep -o -P '(?<=data-id\=\")\d+(?=\"\>'"$UNIQUE_NAME"')'
+  echo "$RESULT" | jq '.values[0].id'
 }
 
 function get_application_id {
 
-  local UNIQUE_NAME="$1"
+  local UNIQUE_NAME
+  local RESULT
 
-  # fetch page with information about initial directory
-  local RESULT=$(curl -L -X GET \
+  UNIQUE_NAME="$1"
+
+  # fetch information about the application entity
+  RESULT=$(curl -L -X GET -G \
     --silent \
     --cookie "$CROWD_COOKIES" \
-    "$CROWD_HOST/crowd/console/secure/application/browse.action?name=$UNIQUE_NAME&active=&resultsPerPage=1")
+    --data-urlencode "name=$UNIQUE_NAME" \
+    --data-urlencode "start=0" \
+    --data-urlencode "limit=1" \
+    "$CROWD_HOST"'/crowd/rest/admin/1.0/application')
 
   # parse directory ID
-  echo "$RESULT" | tr -d '[:space:]' | grep -o -P '(?<=ID\=)\d+(?=\"\>'"$UNIQUE_NAME"')'
+  echo "$RESULT" | jq '.values[0].id'
 }
 
 function login_web {
@@ -88,13 +86,19 @@ function login_web {
 
 function pre_config {
 
-  local SERVER_ID="$(read_server_id)"
-  local DIRECTORY="$1"
-  local EMAIL="$2"
-  local UNIQUE_NAME="$3"
-  local FIRST_NAME="$4"
-  local LAST_NAME="$5"
-  local PASSWORD="$6"
+  local DIRECTORY
+  local EMAIL
+  local UNIQUE_NAME
+  local FIRST_NAME
+  local LAST_NAME
+  local PASSWORD
+
+  DIRECTORY="$1"
+  EMAIL="$2"
+  UNIQUE_NAME="$3"
+  FIRST_NAME="$4"
+  LAST_NAME="$5"
+  PASSWORD="$6"
 
   # fetch session cookie
   curl -L -X GET \
@@ -108,8 +112,8 @@ function pre_config {
     --cookie "$CROWD_COOKIES" \
     --header "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "atl_token=$(getAtlToken /crowd/console/setup/setuplicense.action)" \
-    --data-urlencode "sid=$SERVER_ID" \
-    --data-urlencode "key=$CROWD_KEY" \
+    --data-urlencode "sid=$CROWD_SERVER_ID" \
+    --data-urlencode "key=$CROWD_LICENSE_KEY" \
     "$CROWD_HOST"'/crowd/console/setup/setuplicense!update.action'
 
   # set flag to continue with installation process from null
@@ -175,14 +179,23 @@ function pre_config {
 
 function create_user {
 
-  local DIRECTORY="$1"
-  local DIRECTORY_ID="$(get_directory_id "$DIRECTORY")"
-  local EMAIL="$2"
-  local UNIQUE_NAME="$3"
-  local FIRST_NAME="$4"
-  local LAST_NAME="$5"
-  local DISPLAYNAME="$6"
-  local PASSWORD="$7"
+  local DIRECTORY
+  local DIRECTORY_ID
+  local EMAIL
+  local UNIQUE_NAME
+  local FIRST_NAME
+  local LAST_NAME
+  local DISPLAYNAME
+  local PASSWORD
+
+  DIRECTORY="$1"
+  DIRECTORY_ID="$(get_directory_id "$DIRECTORY")"
+  EMAIL="$2"
+  UNIQUE_NAME="$3"
+  FIRST_NAME="$4"
+  LAST_NAME="$5"
+  DISPLAYNAME="$6"
+  PASSWORD="$7"
 
   # safe user
   curl -L -X POST \
@@ -204,10 +217,15 @@ function create_user {
 
 function create_group {
 
-  local DIRECTORY="$1"
-  local DIRECTORY_ID="$(get_directory_id "$DIRECTORY")"
-  local UNIQUE_NAME="$2"
-  local DESCRIPTION="$3"
+  local DIRECTORY
+  local DIRECTORY_ID
+  local UNIQUE_NAME
+  local DESCRIPTION
+
+  DIRECTORY="$1"
+  DIRECTORY_ID="$(get_directory_id "$DIRECTORY")"
+  UNIQUE_NAME="$2"
+  DESCRIPTION="$3"
 
   # safe group
   curl -L -X POST \
@@ -224,10 +242,15 @@ function create_group {
 
 function add_user_to_group {
 
-  local DIRECTORY="$1"
-  local DIRECTORY_ID="$(get_directory_id "$DIRECTORY")"
-  local UNIQUE_NAME="$2"
-  local MEMBER_UNIQUE_NAME="$3"
+  local DIRECTORY
+  local DIRECTORY_ID
+  local UNIQUE_NAME
+  local MEMBER_UNIQUE_NAME
+
+  DIRECTORY="$1"
+  DIRECTORY_ID="$(get_directory_id "$DIRECTORY")"
+  UNIQUE_NAME="$2"
+  MEMBER_UNIQUE_NAME="$3"
 
   # safe user-group-membership
   curl -L -X POST \
@@ -241,10 +264,15 @@ function add_user_to_group {
 
 function add_group_to_group {
 
-  local DIRECTORY="$1"
-  local DIRECTORY_ID="$(get_directory_id "$DIRECTORY")"
-  local UNIQUE_NAME="$2"
-  local MEMBER_UNIQUE_NAME="$3"
+  local DIRECTORY
+  local DIRECTORY_ID
+  local UNIQUE_NAME
+  local MEMBER_UNIQUE_NAME
+
+  DIRECTORY="$1"
+  DIRECTORY_ID="$(get_directory_id "$DIRECTORY")"
+  UNIQUE_NAME="$2"
+  MEMBER_UNIQUE_NAME="$3"
 
   # safe group-group-membership
   curl -L -X POST \
@@ -258,7 +286,9 @@ function add_group_to_group {
 
 function create_directory {
 
-  local UNIQUE_NAME="$1"
+  local UNIQUE_NAME
+
+  UNIQUE_NAME="$1"
 
   # safe directory part 1
   curl -L -X POST \
@@ -299,11 +329,17 @@ function create_directory {
 
 function create_app {
 
-  local UNIQUE_NAME="$1"
-  local APP_URL="$2"
-  local APP_IP="$3"
-  local PASSWORD="$4"
-  local DIRECTORIES="$5"
+  local UNIQUE_NAME
+  local APP_URL
+  local APP_IP
+  local PASSWORD
+  local DIRECTORIES
+
+  UNIQUE_NAME="$1"
+  APP_URL="$2"
+  APP_IP="$3"
+  PASSWORD="$4"
+  DIRECTORIES="$5"
 
   # create array from comma separated string
   readarray -td ',' DIR_ARRAY <<< "$DIRECTORIES"
@@ -334,6 +370,7 @@ function create_app {
     "$CROWD_HOST"'/crowd/console/secure/application/addapplicationconnectiondetails!completeStep.action'
 
   # safe app part 3
+  # shellcheck disable=SC2046
   curl -L -X POST \
     --silent --output /dev/null \
     --cookie "$CROWD_COOKIES" \
@@ -343,6 +380,7 @@ function create_app {
     "$CROWD_HOST"'/crowd/console/secure/application/addapplicationdirectorydetails!completeStep.action'
 
   # safe app part 4
+  # shellcheck disable=SC2046
   curl -L -X POST \
     --silent --output /dev/null \
     --cookie "$CROWD_COOKIES" \
@@ -362,7 +400,9 @@ function create_app {
 
 function enable_app_aggregation {
 
-  local UNIQUE_NAME="$1"
+  local UNIQUE_NAME
+
+  UNIQUE_NAME="$1"
 
   # set aggregation flag
   curl -L -X PUT \
@@ -373,6 +413,8 @@ function enable_app_aggregation {
     --data '{"aggregateMemberships":true}' \
     "$CROWD_HOST/crowd/rest/admin/latest/application/$(get_application_id "$UNIQUE_NAME")"
 }
+
+mkdir -p "$PWD/tmp"
 
 wait_server_up
 
