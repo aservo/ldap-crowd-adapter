@@ -127,3 +127,22 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/central-saml-logout:${{ steps.tagging.outputs.version-major }}
             ghcr.io/${{ github.repository_owner }}/central-saml-logout:${{ steps.tagging.outputs.version-major-minor }}
             ghcr.io/${{ github.repository_owner }}/central-saml-logout:${{ steps.tagging.outputs.version-major-minor-patch }}
+      - name: Publish to GitHub Docker registry (base image RHEL UBI; canary release)
+        if: ${{ steps.tagging.outputs.tag-created == 'no' }}
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          context: .
+          file: ./docker/Dockerfile-rhel
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/central-saml-logout:canary-rhel
+      - name: Publish to GitHub Docker registry (base image Ubuntu; canary release)
+        if: ${{ steps.tagging.outputs.tag-created == 'no' }}
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          context: .
+          file: ./docker/Dockerfile
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/central-saml-logout:canary-ubuntu
+            ghcr.io/${{ github.repository_owner }}/central-saml-logout:canary
