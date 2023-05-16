@@ -118,13 +118,12 @@ public class Executor {
                 Result concreteResult;
 
                 if (query != null) {
-
                     setValues(statement, query.getBindValues());
-
                 } else {
-                    // TODO: support parameters for native SQL statements
+                    setValues(statement, parameters);
                 }
 
+                logger.debug("Native SQL for Statement: {}", statement);
                 statement.execute();
 
                 if (clazz == IgnoredResult.class) {
@@ -365,6 +364,17 @@ public class Executor {
 
             key++;
             setValue(statement, key, x);
+        }
+    }
+
+    private void setValues(PreparedStatement statement, Map<String, Object> parameters)
+            throws SQLException {
+
+        int key = 0;
+
+        for (var x : parameters.entrySet()) {
+            key++;
+            setValue(statement, key, x.getValue());
         }
     }
 

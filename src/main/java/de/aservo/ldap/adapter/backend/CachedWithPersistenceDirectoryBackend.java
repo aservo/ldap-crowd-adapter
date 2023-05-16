@@ -26,6 +26,7 @@ import de.aservo.ldap.adapter.api.database.result.CursorResult;
 import de.aservo.ldap.adapter.api.database.result.IgnoredResult;
 import de.aservo.ldap.adapter.api.database.result.IndexedSeqResult;
 import de.aservo.ldap.adapter.api.database.result.SingleOptResult;
+import de.aservo.ldap.adapter.api.database.result.SingleResult;
 import de.aservo.ldap.adapter.api.directory.NestedDirectoryBackend;
 import de.aservo.ldap.adapter.api.directory.exception.EntityNotFoundException;
 import de.aservo.ldap.adapter.api.entity.EntityType;
@@ -109,6 +110,14 @@ public class CachedWithPersistenceDirectoryBackend
      * The constant CONFIG_PASS_ACTIVE_USERS_ONLY.
      */
     public static final String CONFIG_PASS_ACTIVE_USERS_ONLY = "persistence.pass-active-users-only";
+    /**
+     * The constant CONFIG_ACQUIREDBLOCK_WAIT_TIME.
+     */
+    public static final String CONFIG_ACQUIREDBLOCK_WAIT_TIME = "persistence.acquiredblock-wait-time";
+    /**
+     * The constant CONFIG_ACQUIREDBLOCK_RECHECK_TIME.
+     */
+    public static final String CONFIG_ACQUIREDBLOCK_RECHECK_TIME = "persistence.acquiredblock-recheck-time";
 
     private final Logger logger = LoggerFactory.getLogger(CachedWithPersistenceDirectoryBackend.class);
     private final Map<Long, QueryDefFactory> queryDefFactories = Collections.synchronizedMap(new HashMap<>());
@@ -119,6 +128,8 @@ public class CachedWithPersistenceDirectoryBackend
     private final boolean applyNativeSql;
     private final boolean useMaterializedViews;
     private final boolean activeUsersOnly;
+    private final int acquireDbLockWaitTime;
+    private final int acquireDbLockRecheckTime;
 
     /**
      * Instantiates a new directory backend.
@@ -151,6 +162,8 @@ public class CachedWithPersistenceDirectoryBackend
         applyNativeSql = Boolean.parseBoolean(properties.getProperty(CONFIG_APPLY_NATIVE_SQL, "false"));
         useMaterializedViews = Boolean.parseBoolean(properties.getProperty(CONFIG_USE_MATERIALIZED_VIEWS, "false"));
         activeUsersOnly = Boolean.parseBoolean(properties.getProperty(CONFIG_PASS_ACTIVE_USERS_ONLY, "true"));
+        acquireDbLockWaitTime = Integer.parseInt(properties.getProperty(CONFIG_ACQUIREDBLOCK_WAIT_TIME, "3"));
+        acquireDbLockRecheckTime = Integer.parseInt(properties.getProperty(CONFIG_ACQUIREDBLOCK_RECHECK_TIME, "1"));
 
         if (driver == null)
             throw new IllegalArgumentException("Missing value for " + CONFIG_DB_DRIVER);
@@ -770,6 +783,39 @@ public class CachedWithPersistenceDirectoryBackend
         }
     }
 
+    @Override
+    public boolean acquireDbLock(int lockId) {
+        boolean locked = false;
+        QueryDefFactory factory = getCurrentQueryDefFactory();
+
+        final long timeToGiveUp = System.currentTimeMillis() + (acquireDbLockWaitTime * 1000L);
+        while (!locked && (System.currentTimeMillis() < timeToGiveUp)) {
+            locked = Boolean.TRUE.equals(factory.queryById("pg_acquireLock").on("lock_id", lockId).execute(SingleResult.class).transform(this::mapAcquireDbLockResult));
+            if (!locked) {
+                logger.info("Waiting for sync dblock....");
+                try {
+                    Thread.sleep(acquireDbLockRecheckTime * 1000L);
+                } catch (InterruptedException e) {
+                    // Restore thread interrupt status
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+
+        return locked;
+    }
+
+    @Override
+    public void releaseDbLock(int lockId) {
+        boolean unlocked = false;
+        QueryDefFactory factory = getCurrentQueryDefFactory();
+
+        unlocked = Boolean.TRUE.equals(factory.queryById("pg_releaseLock").on("lock_id", lockId).execute(SingleResult.class).transform(this::mapReleaseDbLockResult));
+        if (!unlocked) {
+            logger.warn("Release of sync dblock failed, probably lock no longer exists.");
+        }
+    }
+
     private <T> T processTransaction(boolean readOnly, Supplier<T> block) {
 
         return dbService.withTransaction(factory -> {
@@ -892,6 +938,14 @@ public class CachedWithPersistenceDirectoryBackend
                 row.apply("display_name", String.class),
                 row.apply("email", String.class),
                 row.apply("active", Boolean.class));
+    }
+
+    private Boolean mapAcquireDbLockResult(Row row) {
+        return row.apply("pg_try_advisory_lock", Boolean.class);
+    }
+
+    private Boolean mapReleaseDbLockResult(Row row) {
+        return row.apply("pg_advisory_unlock", Boolean.class);
     }
 
     private static class CloseableTransactionWrapper
