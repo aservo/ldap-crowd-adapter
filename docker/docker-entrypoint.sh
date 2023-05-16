@@ -150,6 +150,22 @@ if [[ -n "${BACKEND_MIRROR_FORCE_FULL_SYNC_ON_BOOT:-}" ]]; then
   JAVA_OPTS="-Dmirror.force-full-sync-on-boot=$BACKEND_MIRROR_FORCE_FULL_SYNC_ON_BOOT ${JAVA_OPTS:-}"
 fi
 
+if [[ -n "${BACKEND_MIRROR_SYNC_INITIAL_DELAY:-}" ]]; then
+  JAVA_OPTS="-Dmirror.sync.initialdelay=$BACKEND_MIRROR_SYNC_INITIAL_DELAY ${JAVA_OPTS:-}"
+fi
+
+if [[ -n "${BACKEND_MIRROR_SYNC_PERIOD:-}" ]]; then
+  JAVA_OPTS="-Dmirror.sync.period=$BACKEND_MIRROR_SYNC_PERIOD ${JAVA_OPTS:-}"
+fi
+
+if [[ -n "${BACKEND_MIRROR_SYNC_USE_LOCKING:-}" ]]; then
+  JAVA_OPTS="-Dmirror.sync.usebdlock=$BACKEND_MIRROR_SYNC_USE_LOCKING ${JAVA_OPTS:-}"
+fi
+
+if [[ -n "${BACKEND_MIRROR_SYNC_LOCK_ID:-}" ]]; then
+  JAVA_OPTS="-Dmirror.sync.lockid=$BACKEND_MIRROR_SYNC_LOCK_ID ${JAVA_OPTS:-}"
+fi
+
 # backend settings for class CachedWithPersistenceDirectoryBackend
 
 if [[ -n "${BACKEND_JDBC_DRIVER:-}" ]]; then
@@ -198,6 +214,14 @@ fi
 
 if [[ -n "${BACKEND_USE_MATERIALIZED_VIEWS:-}" ]]; then
   JAVA_OPTS="-Dpersistence.use-materialized-views=$BACKEND_USE_MATERIALIZED_VIEWS ${JAVA_OPTS:-}"
+fi
+
+if [[ -n "${BACKEND_LOCK_WAIT_TIME:-}" ]]; then
+  JAVA_OPTS="-Dpersistence.acquiredblock-wait-time=$BACKEND_LOCK_WAIT_TIME ${JAVA_OPTS:-}"
+fi
+
+if [[ -n "${BACKEND_LOCK_RECHECK_TIME:-}" ]]; then
+  JAVA_OPTS="-Dpersistence.acquiredblock-recheck-time=$BACKEND_LOCK_RECHECK_TIME ${JAVA_OPTS:-}"
 fi
 
 if [[ -n "${BACKEND_PASS_ACTIVE_USERS_ONLY:-}" ]]; then
