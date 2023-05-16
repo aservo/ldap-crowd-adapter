@@ -56,7 +56,7 @@ jobs:
     env:
       OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
       OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_KEY_BASE64 }}
       GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
       GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
     steps:
@@ -75,7 +75,7 @@ jobs:
           key: ${{ runner.os }}-maven2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven2
       - name: Import GPG key
-        run: echo "${GPG_KEY_BASE64}" | base64 --decode | gpg --no-tty --batch --import
+        run: echo "${GPG_SIGNING_KEY}" | base64 --decode | gpg --no-tty --batch --import
       - name: Perform tagging if version has changed
         id: tagging
         uses: brettaufheber/auto-tagging-action@v1
