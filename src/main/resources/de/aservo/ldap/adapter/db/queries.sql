@@ -230,3 +230,9 @@ NATIVE_SQL:refresh materialized view concurrently _Group_Membership_Transitive
 
 --[ID: refresh_materialized_view_for_transitive_user_memberships]--
 NATIVE_SQL:refresh materialized view concurrently _User_Membership_Transitive
+
+--[ID: pg_acquireLock]--
+NATIVE_SQL:SELECT pg_try_advisory_lock(?)
+
+--[ID: pg_releaseLock]--
+NATIVE_SQL:SELECT pg_advisory_unlock(?)

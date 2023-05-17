@@ -209,4 +209,21 @@ public interface NestedDirectoryBackend
      * @return the cursor with membership elements
      */
     MappableCursor<MembershipEntity> getMemberships();
+
+    /**
+     * try to acquire a databaselock
+     *
+     * @return the boolean
+     */
+    default boolean acquireDbLock(int lockId) {
+
+        return false;
+    }
+
+    /**
+     * releases a databaselock
+     */
+    default void releaseDbLock(int lockId) {
+    }
+
 }

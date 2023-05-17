@@ -31,7 +31,7 @@
 
     <groupId>de.aservo</groupId>
     <artifactId>ldap-crowd-adapter</artifactId>
-    <version>7.1.0</version>
+    <version>7.2.0</version>
 
     <scm>
         <connection>scm:git:https://github.com/aservo/ldap-crowd-adapter.git</connection>
@@ -317,6 +317,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
+                            <skip>${skipITs}</skip>
                             <executable>${basedir}/crowd-test-setup/it-setup.sh</executable>
                         </configuration>
                     </execution>
@@ -327,6 +328,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
+                            <skip>${skipITs}</skip>
                             <executable>${basedir}/crowd-test-setup/it-shutdown.sh</executable>
                         </configuration>
                     </execution>

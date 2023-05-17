@@ -80,6 +80,22 @@ public class MirroredCrowdDirectoryBackend
      */
     public static final String CONFIG_AUDIT_LOG_PAGE_LIMIT = "mirror.audit-log.page-limit";
     /**
+     * The constant CONFIG_SYNC_INITIAL_DELAY.
+     */
+    public static final String CONFIG_SYNC_INITIAL_DELAY = "mirror.sync.initialdelay";
+    /**
+     * The constant CONFIG_SYNC_INITIAL_PERIOD.
+     */
+    public static final String CONFIG_SYNC_PERIOD = "mirror.sync.period";
+    /**
+     * The constant CONFIG_SYNC_USEDBLOCK.
+     */
+    public static final String CONFIG_SYNC_USEDBLOCK = "mirror.sync.usebdlock";
+    /**
+     * The constant CONFIG_SYNC_LOCKID.
+     */
+    public static final String CONFIG_SYNC_LOCKID = "mirror.sync.lockid";
+    /**
      * The constant CONFIG_FORCE_FULL_SYNC_ON_BOOT.
      */
     public static final String CONFIG_FORCE_FULL_SYNC_ON_BOOT = "mirror.force-full-sync-on-boot";
@@ -109,6 +125,10 @@ public class MirroredCrowdDirectoryBackend
         String syncPageSizeValue = properties.getProperty(CONFIG_SYNC_PAGE_SIZE);
         String auditLogPageSizeValue = properties.getProperty(CONFIG_AUDIT_LOG_PAGE_SIZE);
         String auditLogPageLimitValue = properties.getProperty(CONFIG_AUDIT_LOG_PAGE_LIMIT);
+        String syncInitialDelayValue = properties.getProperty(CONFIG_SYNC_INITIAL_DELAY);
+        String syncPeriodValue = properties.getProperty(CONFIG_SYNC_PERIOD);
+        String syncUseDblockValue = properties.getProperty(CONFIG_SYNC_USEDBLOCK);
+        String syncLockIdValue = properties.getProperty(CONFIG_SYNC_LOCKID);
         String forceFullSyncOnBootValue = properties.getProperty(CONFIG_FORCE_FULL_SYNC_ON_BOOT);
 
         if (appName == null)
@@ -132,12 +152,28 @@ public class MirroredCrowdDirectoryBackend
         if (auditLogPageLimitValue == null)
             throw new IllegalArgumentException("Missing value for " + CONFIG_AUDIT_LOG_PAGE_LIMIT);
 
+        if (syncInitialDelayValue == null)
+            throw new IllegalArgumentException("Missing value for " + CONFIG_SYNC_INITIAL_DELAY);
+
+        if (syncPeriodValue == null)
+            throw new IllegalArgumentException("Missing value for " + CONFIG_SYNC_PERIOD);
+
+        if (syncUseDblockValue == null)
+            throw new IllegalArgumentException("Missing value for " + CONFIG_SYNC_USEDBLOCK);
+
+        if (syncLockIdValue == null)
+            throw new IllegalArgumentException("Missing value for " + CONFIG_SYNC_LOCKID);
+
         if (forceFullSyncOnBootValue == null)
             throw new IllegalArgumentException("Missing value for " + CONFIG_FORCE_FULL_SYNC_ON_BOOT);
 
         int syncPageSize = Integer.parseInt(syncPageSizeValue);
         int auditLogPageSize = Integer.parseInt(auditLogPageSizeValue);
         int auditLogPageLimit = Integer.parseInt(auditLogPageLimitValue);
+        int syncInitialDelay = Integer.parseInt(syncInitialDelayValue);
+        int syncPeriod = Integer.parseInt(syncPeriodValue);
+        boolean syncUseDblock = Boolean.parseBoolean(syncUseDblockValue);
+        int syncLockId = Integer.parseInt(syncLockIdValue);
         boolean forceFullSyncOnBoot = Boolean.parseBoolean(forceFullSyncOnBootValue);
 
         if (syncPageSize < 1)
@@ -153,7 +189,7 @@ public class MirroredCrowdDirectoryBackend
                 new AuditLogProcessor(appName, restUsername, restUserPassword, restBaseUrl,
                         auditLogPageLimit, auditLogPageSize);
 
-        mirrorStrategy = new MirrorStrategy(syncPageSize, forceFullSyncOnBoot);
+        mirrorStrategy = new MirrorStrategy(syncPageSize, forceFullSyncOnBoot, syncInitialDelay, syncPeriod, syncUseDblock, syncLockId);
     }
 
     @Override
@@ -161,7 +197,7 @@ public class MirroredCrowdDirectoryBackend
 
         super.startup();
 
-        scheduler.scheduleAtFixedRate(mirrorStrategy, 3, 4, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(mirrorStrategy, mirrorStrategy.syncInitialDelay, mirrorStrategy.syncPeriod, TimeUnit.SECONDS);
     }
 
     @Override
@@ -260,236 +296,262 @@ public class MirroredCrowdDirectoryBackend
         private final int pageSize;
         private boolean forceFullSync;
         private boolean resetToggle = false;
+        private int syncInitialDelay;
+        private int syncPeriod;
+        private boolean syncUseDblock = false;
+        private int syncLockId;
 
-        public MirrorStrategy(int pageSize, boolean forceFullSync) {
+        public MirrorStrategy(int pageSize, boolean forceFullSync, int syncInitialDelay, int syncPeriod,
+                              boolean syncUseDblock, int syncLockId) {
 
             this.pageSize = pageSize;
             this.forceFullSync = forceFullSync;
+            this.syncInitialDelay = syncInitialDelay;
+            this.syncPeriod = syncPeriod;
+            this.syncUseDblock = syncUseDblock;
+            this.syncLockId = syncLockId;
         }
 
         public void run() {
 
-            try {
+            directoryBackend.withWriteAccess(() -> {
+                boolean gotLock = false;
+                try {
 
-                if (directoryBackend.requireReset() && !resetToggle) {
+                    if (syncUseDblock) {
 
-                    forceFullSync = true;
-                    resetToggle = true;
-                }
+                        logger.info("Trying to acquire syncdblock.");
 
-                if (forceFullSync) {
+                        gotLock = directoryBackend.acquireDbLock(this.syncLockId);
+                        if (!gotLock) {
+                            logger.info("Did not get the syncdblock, run canceled.");
+                            return;
+                        }
+                        logger.info("Successfully acquired syncdblock.");
 
-                    logger.info("Start forced synchronization of a full copy.");
-                    performFullUpdate();
-                    logger.info("End forced synchronization of a full copy.");
+                    }
+                    if (directoryBackend.requireReset() && !resetToggle) {
 
-                    forceFullSync = false;
+                        forceFullSync = true;
+                        resetToggle = true;
+                    }
+
+                    if (forceFullSync) {
+
+                        logger.info("Start forced synchronization of a full copy.");
+                        performFullUpdate();
+                        logger.info("End forced synchronization of a full copy.");
+
+                        forceFullSync = false;
+                        latch.countDown();
+                        return;
+                    }
+
+                    AuditLogState state = auditLogProcessor.getAuditLogState(true);
+
+                    if (state.equals(AuditLogState.FULL_UPDATE_REQUIRED)) {
+
+                        logger.info("Start synchronization of a full copy.");
+                        performFullUpdate();
+                        logger.info("End synchronization of a full copy.");
+
+                    } else if (state.equals(AuditLogState.DELTA_UPDATE_REQUIRED)) {
+
+                        logger.info("Start incremental synchronization.");
+                        performDeltaUpdate();
+                        logger.info("End incremental synchronization.");
+                    }
+
                     latch.countDown();
 
-                    return;
+                } catch (Exception e) {
+
+                    logger.error("An error occurred during synchronization.", e);
+                } finally {
+                    if (syncUseDblock && gotLock) {
+                        try {
+                            directoryBackend.releaseDbLock(this.syncLockId);
+                            logger.info("syncdblock released.");
+                        } catch (Exception f) {
+                            logger.error("An error occurred when releasing the syncdblock.", f);
+                        }
+                    }
                 }
-
-                AuditLogState state = auditLogProcessor.getAuditLogState(true);
-
-                if (state.equals(AuditLogState.FULL_UPDATE_REQUIRED)) {
-
-                    logger.info("Start synchronization of a full copy.");
-                    performFullUpdate();
-                    logger.info("End synchronization of a full copy.");
-
-                } else if (state.equals(AuditLogState.DELTA_UPDATE_REQUIRED)) {
-
-                    logger.info("Start incremental synchronization.");
-                    performDeltaUpdate();
-                    logger.info("End incremental synchronization.");
-                }
-
-                latch.countDown();
-
-            } catch (Exception e) {
-
-                logger.error("An error occurred during synchronization.", e);
-            }
+            });
         }
 
         private void performFullUpdate() {
 
-            directoryBackend.withWriteAccess(() -> {
+            auditLogProcessor.updateConcurrent(() -> {
 
-                auditLogProcessor.updateConcurrent(() -> {
+                directoryBackend.dropAllGroups();
+                directoryBackend.dropAllUsers();
 
-                    directoryBackend.dropAllGroups();
-                    directoryBackend.dropAllUsers();
+                MappableCursor<MembershipEntity> memberships = directoryBackend.getMemberships();
+                int groupPage = 0;
+                int userPage = 0;
 
-                    MappableCursor<MembershipEntity> memberships = directoryBackend.getMemberships();
-                    int groupPage = 0;
-                    int userPage = 0;
+                while (groupPage != -1 || userPage != -1) {
 
-                    while (groupPage != -1 || userPage != -1) {
+                    if (groupPage >= 0) {
 
-                        if (groupPage >= 0) {
-
-                            if (directoryBackend.upsertAllGroups(groupPage++ * pageSize, pageSize) < pageSize)
-                                groupPage = -1;
-                        }
-
-                        if (userPage >= 0) {
-
-                            if (directoryBackend.upsertAllUsers(userPage++ * pageSize, pageSize) < pageSize)
-                                userPage = -1;
-                        }
+                        if (directoryBackend.upsertAllGroups(groupPage++ * pageSize, pageSize) < pageSize)
+                            groupPage = -1;
                     }
 
-                    while (memberships.next())
-                        directoryBackend.upsertMembership(memberships.get());
+                    if (userPage >= 0) {
 
-                    return false;
-                });
+                        if (directoryBackend.upsertAllUsers(userPage++ * pageSize, pageSize) < pageSize)
+                            userPage = -1;
+                    }
+                }
+
+                while (memberships.next())
+                    directoryBackend.upsertMembership(memberships.get());
+
+                return false;
             });
         }
 
         private void performDeltaUpdate() {
 
-            directoryBackend.withWriteAccess(() -> {
+            List<Pair<UpdateType, Object>> deltaUpdateList = new LinkedList<>();
 
-                List<Pair<UpdateType, Object>> deltaUpdateList = new LinkedList<>();
+            AuditLogState state = auditLogProcessor.updateConcurrent(() -> {
 
-                AuditLogState state = auditLogProcessor.updateConcurrent(() -> {
+                boolean committed = false;
+                boolean lastPageDone = false;
+                int page = 0;
 
-                    boolean committed = false;
-                    boolean lastPageDone = false;
-                    int page = 0;
+                deltaUpdateList.clear();
 
-                    deltaUpdateList.clear();
+                while (!lastPageDone) {
 
-                    while (!lastPageDone) {
+                    JsonObject result;
 
-                        JsonObject result;
+                    try {
 
-                        try {
+                        result = auditLogProcessor.queryAuditLog(page, pageSize);
+                        page++;
 
-                            result = auditLogProcessor.queryAuditLog(page, pageSize);
-                            page++;
+                    } catch (IOException e) {
 
-                        } catch (IOException e) {
+                        logger.error("Cannot call REST endpoint to query audit log for delta update.", e);
 
-                            logger.error("Cannot call REST endpoint to query audit log for delta update.", e);
+                        return true;
+                    }
 
-                            return true;
-                        }
+                    lastPageDone = result.getAsJsonObject().get("isLastPage").getAsBoolean();
 
-                        lastPageDone = result.getAsJsonObject().get("isLastPage").getAsBoolean();
+                    for (JsonElement valueElement : result.getAsJsonArray("values")) {
 
-                        for (JsonElement valueElement : result.getAsJsonArray("values")) {
+                        String eventType = valueElement.getAsJsonObject().get("eventType").getAsString();
+                        SyncState syncState = auditLogProcessor.getSynchronizationState(valueElement);
 
-                            String eventType = valueElement.getAsJsonObject().get("eventType").getAsString();
-                            SyncState syncState = auditLogProcessor.getSynchronizationState(valueElement);
+                        if (syncState == SyncState.SYNC_COMPLETE) {
 
-                            if (syncState == SyncState.SYNC_COMPLETE) {
+                            committed = true;
 
-                                committed = true;
+                        } else if (syncState == SyncState.SYNC_STOP && committed) {
 
-                            } else if (syncState == SyncState.SYNC_STOP && committed) {
+                            lastPageDone = true;
+                            break;
 
-                                lastPageDone = true;
-                                break;
+                        } else if (syncState == SyncState.NO_SYNC) {
 
-                            } else if (syncState == SyncState.NO_SYNC) {
+                            if (eventType.matches("(GROUP|USER)_(CREATED|UPDATED|DELETED)")) {
 
-                                if (eventType.matches("(GROUP|USER)_(CREATED|UPDATED|DELETED)")) {
+                                for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
 
-                                    for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
+                                    String type = entity.getAsJsonObject().get("type").getAsString();
+                                    String name = entity.getAsJsonObject().get("name").getAsString();
 
-                                        String type = entity.getAsJsonObject().get("type").getAsString();
-                                        String name = entity.getAsJsonObject().get("name").getAsString();
+                                    if (type.equals("GROUP")) {
 
-                                        if (type.equals("GROUP")) {
+                                        if (eventType.equals("GROUP_CREATED") || eventType.equals("GROUP_UPDATED"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.GROUP_VALIDATE, name));
+                                        else if (eventType.equals("GROUP_DELETED"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.GROUP_INVALIDATE, name));
 
-                                            if (eventType.equals("GROUP_CREATED") || eventType.equals("GROUP_UPDATED"))
-                                                deltaUpdateList.add(Pair.of(UpdateType.GROUP_VALIDATE, name));
-                                            else if (eventType.equals("GROUP_DELETED"))
-                                                deltaUpdateList.add(Pair.of(UpdateType.GROUP_INVALIDATE, name));
+                                    } else if (type.equals("USER")) {
 
-                                        } else if (type.equals("USER")) {
+                                        String alias = auditLogProcessor.resolveToAlias(name);
 
-                                            String alias = auditLogProcessor.resolveToAlias(name);
+                                        if (eventType.equals("USER_UPDATED")) {
 
-                                            if (eventType.equals("USER_UPDATED")) {
+                                            Optional<JsonObject> property =
+                                                    StreamSupport.stream(valueElement.getAsJsonObject().getAsJsonArray("entries").spliterator(), false)
+                                                            .map(JsonElement::getAsJsonObject)
+                                                            .filter(x -> x.get("propertyName").getAsString().equalsIgnoreCase("username"))
+                                                            .findAny();
 
-                                                Optional<JsonObject> property =
-                                                        StreamSupport.stream(valueElement.getAsJsonObject().getAsJsonArray("entries").spliterator(), false)
-                                                                .map(JsonElement::getAsJsonObject)
-                                                                .filter(x -> x.get("propertyName").getAsString().equalsIgnoreCase("username"))
-                                                                .findAny();
+                                            // username is changed
+                                            property.ifPresent(x -> {
 
-                                                // username is changed
-                                                property.ifPresent(x -> {
+                                                String nameOld = x.get("oldValue").getAsString();
+                                                String aliasOld = auditLogProcessor.resolveToAlias(nameOld);
 
-                                                    String nameOld = x.get("oldValue").getAsString();
-                                                    String aliasOld = auditLogProcessor.resolveToAlias(nameOld);
+                                                // remove the old user entity
+                                                deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, aliasOld));
 
-                                                    // remove the old user entity
-                                                    deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, aliasOld));
+                                                // add the new user entity
+                                                deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, Pair.of(alias, aliasOld)));
+                                            });
 
-                                                    // add the new user entity
-                                                    deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, Pair.of(alias, aliasOld)));
-                                                });
-
-                                                if (property.isEmpty())
-                                                    deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, alias));
-
-                                            } else if (eventType.equals("USER_CREATED"))
+                                            if (property.isEmpty())
                                                 deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, alias));
-                                            else if (eventType.equals("USER_DELETED"))
-                                                deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, alias));
-                                        }
+
+                                        } else if (eventType.equals("USER_CREATED"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.USER_VALIDATE, alias));
+                                        else if (eventType.equals("USER_DELETED"))
+                                            deltaUpdateList.add(Pair.of(UpdateType.USER_INVALIDATE, alias));
                                     }
+                                }
 
-                                } else if (eventType.matches("(ADDED_TO|REMOVED_FROM)_GROUP")) {
+                            } else if (eventType.matches("(ADDED_TO|REMOVED_FROM)_GROUP")) {
 
-                                    String parentGroupId = null;
-                                    Set<String> childGroupIds = new HashSet<>();
-                                    Set<String> userIds = new HashSet<>();
+                                String parentGroupId = null;
+                                Set<String> childGroupIds = new HashSet<>();
+                                Set<String> userIds = new HashSet<>();
 
-                                    for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
+                                for (JsonElement entity : valueElement.getAsJsonObject().getAsJsonArray("entities")) {
 
-                                        String type = entity.getAsJsonObject().get("type").getAsString();
-                                        String name = entity.getAsJsonObject().get("name").getAsString();
-                                        boolean primary = entity.getAsJsonObject().get("primary").getAsBoolean();
+                                    String type = entity.getAsJsonObject().get("type").getAsString();
+                                    String name = entity.getAsJsonObject().get("name").getAsString();
+                                    boolean primary = entity.getAsJsonObject().get("primary").getAsBoolean();
 
-                                        if (primary && type.equals("GROUP"))
-                                            parentGroupId = name;
-                                        else if (type.equals("GROUP"))
-                                            childGroupIds.add(name);
-                                        else if (type.equals("USER"))
-                                            userIds.add(auditLogProcessor.resolveToAlias(name));
-                                    }
+                                    if (primary && type.equals("GROUP"))
+                                        parentGroupId = name;
+                                    else if (type.equals("GROUP"))
+                                        childGroupIds.add(name);
+                                    else if (type.equals("USER"))
+                                        userIds.add(auditLogProcessor.resolveToAlias(name));
+                                }
 
-                                    if (parentGroupId == null)
-                                        logger.warn("Cannot find parent group to create membership object.");
-                                    else {
+                                if (parentGroupId == null)
+                                    logger.warn("Cannot find parent group to create membership object.");
+                                else {
 
-                                        MembershipEntity membership =
-                                                new MembershipEntity(parentGroupId, childGroupIds, userIds);
+                                    MembershipEntity membership =
+                                            new MembershipEntity(parentGroupId, childGroupIds, userIds);
 
-                                        if (eventType.equals("ADDED_TO_GROUP"))
-                                            deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_VALIDATE, membership));
-                                        else if (eventType.equals("REMOVED_FROM_GROUP"))
-                                            deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_INVALIDATE, membership));
-                                    }
+                                    if (eventType.equals("ADDED_TO_GROUP"))
+                                        deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_VALIDATE, membership));
+                                    else if (eventType.equals("REMOVED_FROM_GROUP"))
+                                        deltaUpdateList.add(Pair.of(UpdateType.MEMBERSHIP_INVALIDATE, membership));
                                 }
                             }
                         }
                     }
+                }
 
-                    return false;
-                });
-
-                if (state.equals(AuditLogState.CON_ISSUE))
-                    return;
-
-                downloadEntities(deltaUpdateList);
+                return false;
             });
+
+            if (state.equals(AuditLogState.CON_ISSUE))
+                return;
+
+            downloadEntities(deltaUpdateList);
         }
 
         private void downloadEntities(List<Pair<UpdateType, Object>> deltaUpdateList) {
