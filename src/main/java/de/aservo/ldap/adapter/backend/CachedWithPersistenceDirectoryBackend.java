@@ -810,9 +810,15 @@ public class CachedWithPersistenceDirectoryBackend
         boolean unlocked = false;
         QueryDefFactory factory = getCurrentQueryDefFactory();
 
-        unlocked = Boolean.TRUE.equals(factory.queryById("pg_releaseLock").on("lock_id", lockId).execute(SingleResult.class).transform(this::mapReleaseDbLockResult));
-        if (!unlocked) {
-            logger.warn("Release of sync dblock failed, probably lock no longer exists.");
+        try {
+            unlocked = Boolean.TRUE.equals(factory.queryById("pg_releaseLock").on("lock_id", lockId).executeWithAutoCommit(SingleResult.class).transform(this::mapReleaseDbLockResult));
+            if (!unlocked) {
+                logger.warn("Release of sync dblock failed, probably lock no longer exists.");
+            } else {
+                logger.info("syncdblock released.");
+            }
+        } catch (Exception e) {
+            logger.error("An error occurred when releasing the syncdblock", e);
         }
     }
 

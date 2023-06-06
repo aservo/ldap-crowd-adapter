@@ -779,6 +779,26 @@ public class Executor {
             }
         }
 
+        public <T extends Result> T executeWithAutoCommit(Class<T> clazz) {
+
+            try {
+
+                boolean commitState = Executor.this.connection.getAutoCommit();
+                Executor.this.connection.setAutoCommit(true);
+                Object result;
+                if (byId)
+                     result= Executor.this.executeById(clauseOrId, parameters, clazz);
+                else
+                    result= Executor.this.execute(clauseOrId, parameters, clazz);
+                Executor.this.connection.setAutoCommit(commitState);
+                return (T) result;
+
+            } catch (SQLException e) {
+
+                throw new UncheckedSQLException(e);
+            }
+        }
+
         @Override
         public boolean equals(Object that) {
 
