@@ -369,12 +369,7 @@ public class MirroredCrowdDirectoryBackend
                     logger.error("An error occurred during synchronization.", e);
                 } finally {
                     if (syncUseDblock && gotLock) {
-                        try {
-                            directoryBackend.releaseDbLock(this.syncLockId);
-                            logger.info("syncdblock released.");
-                        } catch (Exception f) {
-                            logger.error("An error occurred when releasing the syncdblock.", f);
-                        }
+                        directoryBackend.releaseDbLock(this.syncLockId);
                     }
                 }
             });

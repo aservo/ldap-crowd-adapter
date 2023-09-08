@@ -51,4 +51,12 @@ public interface QueryDef {
      * @return the result set
      */
     <T extends Result> T execute(Class<T> clazz);
+
+    /**
+     * Executes a query with autocommit on.
+     *
+     * @param clazz the type of the expected result set
+     * @return the result set
+     */
+    <T extends Result> T executeWithAutoCommit(Class<T> clazz);
 }
