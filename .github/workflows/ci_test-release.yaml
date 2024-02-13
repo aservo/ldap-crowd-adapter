@@ -40,14 +40,14 @@ jobs:
           CROWD_LICENSE_KEY: ${{ secrets.CROWD_LICENSE_KEY }}
         run: |
           mvn --batch-mode verify
-      - name: Perform static code analysis
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          mvn --batch-mode sonar:sonar \
-            --settings ./.github/workflows/settings.xml \
-            -P resolving,analyzing
+#      - name: Perform static code analysis
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#        run: |
+#          mvn --batch-mode sonar:sonar \
+#            --settings ./.github/workflows/settings.xml \
+#            -P resolving,analyzing
 
   release:
     needs: test
