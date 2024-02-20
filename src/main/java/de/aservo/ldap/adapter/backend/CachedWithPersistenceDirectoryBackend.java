@@ -329,6 +329,8 @@ public class CachedWithPersistenceDirectoryBackend
 
             QueryDefFactory factory = getCurrentQueryDefFactory();
 
+            logger.info("Inserting group {}", entity.getId());
+
             factory
                     .queryById("create_or_update_group")
                     .on("id", entity.getId())
