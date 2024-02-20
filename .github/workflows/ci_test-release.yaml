@@ -131,22 +131,22 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/ldap-crowd-adapter:${{ steps.tagging.outputs.version-major-minor }}
             ghcr.io/${{ github.repository_owner }}/ldap-crowd-adapter:${{ steps.tagging.outputs.version-major-minor-patch }}
             ghcr.io/${{ github.repository_owner }}/ldap-crowd-adapter:canary
-      - name: Publish to GitHub Docker registry (base image RHEL UBI; canary release only)
-        if: ${{ steps.tagging.outputs.tag-created == 'no' }}
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          context: .
-          file: ./docker/Dockerfile-rhel
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/ldap-crowd-adapter:canary-rhel
-      - name: Publish to GitHub Docker registry (base image Ubuntu; canary release only)
-        if: ${{ steps.tagging.outputs.tag-created == 'no' }}
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          context: .
-          file: ./docker/Dockerfile
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/ldap-crowd-adapter:canary-ubuntu
-            ghcr.io/${{ github.repository_owner }}/ldap-crowd-adapter:canary
+#      - name: Publish to GitHub Docker registry (base image RHEL UBI; canary release only)
+#        if: ${{ steps.tagging.outputs.tag-created == 'no' }}
+#        uses: docker/build-push-action@v2
+#        with:
+#          push: true
+#          context: .
+#          file: ./docker/Dockerfile-rhel
+#          tags: |
+#            ghcr.io/${{ github.repository_owner }}/ldap-crowd-adapter:canary-rhel
+#      - name: Publish to GitHub Docker registry (base image Ubuntu; canary release only)
+#        if: ${{ steps.tagging.outputs.tag-created == 'no' }}
+#        uses: docker/build-push-action@v2
+#        with:
+#          push: true
+#          context: .
+#          file: ./docker/Dockerfile
+#          tags: |
+#            ghcr.io/${{ github.repository_owner }}/ldap-crowd-adapter:canary-ubuntu
+#            ghcr.io/${{ github.repository_owner }}/ldap-crowd-adapter:canary
