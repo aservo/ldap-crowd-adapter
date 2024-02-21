@@ -479,8 +479,6 @@ public class CrowdDirectoryBackend
 
     private GroupEntity createGroupEntity(Group group) {
 
-        logger.info("Creating group {}", group.getName());
-
         return new GroupEntity(
                 group.getName(),
                 group.getDescription()
