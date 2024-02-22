@@ -171,6 +171,11 @@
             <version>4.3.11</version>
         </dependency>
         <dependency>
+            <groupId>com.atlassian.crowd.client</groupId>
+            <artifactId>atlassian-crowd-rest-client</artifactId>
+            <version>1.4</version>
+        </dependency>
+        <dependency>
             <groupId>com.atlassian.security</groupId>
             <artifactId>atlassian-cookie-tools</artifactId>
             <version>4.0.0</version>
