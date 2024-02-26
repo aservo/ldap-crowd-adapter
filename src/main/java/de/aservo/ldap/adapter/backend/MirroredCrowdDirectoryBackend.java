@@ -385,21 +385,30 @@ public class MirroredCrowdDirectoryBackend
                 MappableCursor<MembershipEntity> memberships = directoryBackend.getMemberships();
                 int groupPage = 0;
                 int userPage = 0;
+                int groupCount = 0;
+                int userCount = 0;
 
                 while (groupPage != -1 || userPage != -1) {
 
                     if (groupPage >= 0) {
 
-                        if (directoryBackend.upsertAllGroups(groupPage++ * pageSize, pageSize) < pageSize)
+                        int groups = directoryBackend.upsertAllGroups(groupPage++ * pageSize, pageSize);
+                        logger.info("upsertAlLGroups: received {} groups.", groups);
+                        groupCount += groups;
+                        if ( groups < pageSize)
                             groupPage = -1;
                     }
 
                     if (userPage >= 0) {
 
-                        if (directoryBackend.upsertAllUsers(userPage++ * pageSize, pageSize) < pageSize)
+                        int users = directoryBackend.upsertAllUsers(userPage++ * pageSize, pageSize); 
+                        logger.info("upsertAllUsers: received {} users.", users);
+                        userCount += users;
+                        if (users < pageSize)
                             userPage = -1;
                     }
                 }
+                logger.info("FullUpdate: received {} users and {} groups", userCount, groupCount);
 
                 while (memberships.next())
                     directoryBackend.upsertMembership(memberships.get());
