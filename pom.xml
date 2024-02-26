@@ -168,12 +168,7 @@
         <dependency>
             <groupId>com.atlassian.crowd</groupId>
             <artifactId>crowd-integration-client-rest</artifactId>
-            <version>4.3.11</version>
-        </dependency>
-        <dependency>
-            <groupId>com.atlassian.crowd.client</groupId>
-            <artifactId>atlassian-crowd-rest-client</artifactId>
-            <version>1.4</version>
+            <version>4.4.5</version>
         </dependency>
         <dependency>
             <groupId>com.atlassian.security</groupId>
