@@ -325,7 +325,14 @@ public class CachedWithPersistenceDirectoryBackend
 
         Set<GroupEntity> entities = directoryBackend.getAllGroups(startIndex, maxResults);
 
-        entities.forEach(entity -> {
+        int counter = 0;
+        for (Iterator<GroupEntity> i = entities.iterator(); i.hasNext(); ) {
+
+            GroupEntity entity = i.next();
+            if ((((counter/2000)*2000)==counter) || (counter == entities.size()-1)) {
+                logger.info("Inserting group {} {}", entity.getId(), entity.getName());
+            }
+            ++counter;
 
             QueryDefFactory factory = getCurrentQueryDefFactory();
 
@@ -335,7 +342,7 @@ public class CachedWithPersistenceDirectoryBackend
                     .on("name", entity.getName())
                     .on("description", Optional.ofNullable(entity.getDescription()))
                     .execute(IgnoredResult.class);
-        });
+        };
 
         return entities.size();
     }
