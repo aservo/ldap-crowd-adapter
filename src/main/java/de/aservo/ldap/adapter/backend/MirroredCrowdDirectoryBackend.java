@@ -393,7 +393,6 @@ public class MirroredCrowdDirectoryBackend
                     if (groupPage >= 0) {
 
                         int groups = directoryBackend.upsertAllGroups(groupPage++ * pageSize, pageSize);
-                        logger.info("upsertAllGroups: received {} groups.", groups);
                         groupCount += groups;
                         if ( groups < pageSize)
                             groupPage = -1;
@@ -402,7 +401,6 @@ public class MirroredCrowdDirectoryBackend
                     if (userPage >= 0) {
 
                         int users = directoryBackend.upsertAllUsers(userPage++ * pageSize, pageSize); 
-                        logger.info("upsertAllUsers: received {} users.", users);
                         userCount += users;
                         if (users < pageSize)
                             userPage = -1;

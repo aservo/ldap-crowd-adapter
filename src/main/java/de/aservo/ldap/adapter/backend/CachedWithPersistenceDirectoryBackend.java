@@ -327,7 +327,6 @@ public class CachedWithPersistenceDirectoryBackend
 
         entities.forEach(entity -> {
 
-            logger.info("{}", entity.getId());
             QueryDefFactory factory = getCurrentQueryDefFactory();
 
             factory
